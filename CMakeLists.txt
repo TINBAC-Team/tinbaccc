@@ -15,13 +15,17 @@ flex_target(tcc_sy_scanner src/parser/scanner.ll  ${CMAKE_CURRENT_BINARY_DIR}/tc
 
 add_flex_bison_dependency(tcc_sy_scanner tcc_sy_parser)
 
-set(PARSER_SOURCE
+set(PARSER_SOURCES
         ${BISON_tcc_sy_parser_OUTPUTS}
         ${FLEX_tcc_sy_scanner_OUTPUTS}
         src/parser/tcc-sy-driver.cpp)
 
+set(AST_SOURCES
+        src/ast/ast.cpp)
+
 add_executable(tinbaccc src/main.cpp
-        ${PARSER_SOURCE})
+        ${PARSER_SOURCES}
+        ${AST_SOURCES})
 
 target_include_directories(tinbaccc
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
