@@ -1,8 +1,8 @@
 #include <iostream>
-#include <parser/driver.h>
+#include <parser/tcc-sy-driver.hh>
 
 int main(int argc, char *argv[]) {
-    tcc_parser_driver driver;
+    tcc_sy_driver driver;
     if (!driver.parse(argv[1]))
         std::cout << "success" << std::endl;
     else

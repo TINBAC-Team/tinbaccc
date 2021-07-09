@@ -3,13 +3,9 @@
 # include <climits>
 # include <cstdlib>
 # include <string>
-# include <parser/driver.h>
-# include "tcc-sy-parser.h"
+# include "parser/tcc-sy-driver.hh"
+# include "tcc-sy-parser.hh"
 
-// Work around an incompatibility in flex (at least versions
-// 2.5.31 through 2.5.33): it generates code that does
-// not conform to C89.  See Debian bug 333231
-// <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.
 # undef yywrap
 # define yywrap() 1
 
@@ -17,8 +13,8 @@
 static yy::location loc;
 %}
 %option noyywrap nounput batch debug noinput
-id    [a-zA-Z][a-zA-Z_0-9]*
-int   [0-9]+
+ident    [a-zA-Z][a-zA-Z_0-9]*
+IntConst   [0-9]+
 blank [ \t]
 
 %{
@@ -35,30 +31,55 @@ blank [ \t]
 
 {blank}+   loc.step ();
 [\n]+      loc.lines (yyleng); loc.step ();
-"-"      return yy::tcc_sy_parser::make_MINUS(loc);
-"+"      return yy::tcc_sy_parser::make_PLUS(loc);
-"*"      return yy::tcc_sy_parser::make_STAR(loc);
-"/"      return yy::tcc_sy_parser::make_SLASH(loc);
-"("      return yy::tcc_sy_parser::make_LPAREN(loc);
-")"      return yy::tcc_sy_parser::make_RPAREN(loc);
-":="     return yy::tcc_sy_parser::make_ASSIGN(loc);
+"const"    return yy::tcc_sy_parser::make_CONST(loc);
+"int"      return yy::tcc_sy_parser::make_INT(loc);
+","        return yy::tcc_sy_parser::make_COMMA(loc);
+";"        return yy::tcc_sy_parser::make_SEMI(loc);
+"["        return yy::tcc_sy_parser::make_LSQUARE(loc);
+"]"        return yy::tcc_sy_parser::make_RSQUARE(loc);
+"("        return yy::tcc_sy_parser::make_LBRACE(loc);
+")"        return yy::tcc_sy_parser::make_RBRACE(loc);
+"{"        return yy::tcc_sy_parser::make_LBBRACE(loc);
+"}"        return yy::tcc_sy_parser::make_RBBRACE(loc);
+"void"      return yy::tcc_sy_parser::make_VOID(loc);
+"if"      return yy::tcc_sy_parser::make_IF(loc);
+"else"      return yy::tcc_sy_parser::make_ELSE(loc);
+"while"      return yy::tcc_sy_parser::make_WHILE(loc);
+"break"      return yy::tcc_sy_parser::make_BREAK(loc);
+"continue"      return yy::tcc_sy_parser::make_CONTINUE(loc);
+"return"      return yy::tcc_sy_parser::make_RETURN(loc);
+
+"+"        return yy::tcc_sy_parser::make_PLUS(loc);
+"-"        return yy::tcc_sy_parser::make_MINUS(loc);
+"*"        return yy::tcc_sy_parser::make_MUL(loc);
+"/"        return yy::tcc_sy_parser::make_DIVIDE(loc);
+"%"        return yy::tcc_sy_parser::make_MOD(loc);
+">"        return yy::tcc_sy_parser::make_GREATER(loc);
+">="        return yy::tcc_sy_parser::make_GREATEREQ(loc);
+"<"        return yy::tcc_sy_parser::make_SMALLER(loc);
+"<"        return yy::tcc_sy_parser::make_SMALLEREQ(loc);
+"=="        return yy::tcc_sy_parser::make_EQUAL(loc);
+"="        return yy::tcc_sy_parser::make_ASSIGN(loc);
+"!="        return yy::tcc_sy_parser::make_NOTEQUAL(loc);
 
 
-{int}      {
-  errno = 0;
+"&&"        return yy::tcc_sy_parser::make_AND(loc);
+"||"        return yy::tcc_sy_parser::make_OR(loc);
+"!"        return yy::tcc_sy_parser::make_NOT(loc);
+
+
+{IntConst}   {
   long n = strtol (yytext, NULL, 10);
-  if (! (INT_MIN <= n && n <= INT_MAX && errno != ERANGE))
-    driver.error (loc, "integer is out of range");
-  return yy::tcc_sy_parser::make_NUMBER(n, loc);
+  return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 
-{id}       return yy::tcc_sy_parser::make_IDENTIFIER(yytext, loc);
+{ident}       return yy::tcc_sy_parser::make_IDENTIFIER(yytext, loc);
 .          driver.error (loc, "invalid character");
 <<EOF>>    return yy::tcc_sy_parser::make_END(loc);
 %%
 
 void
-tcc_parser_driver::scan_begin ()
+tcc_sy_driver::scan_begin ()
 {
   yy_flex_debug = trace_scanning;
   if (file.empty () || file == "-")
@@ -70,8 +91,11 @@ tcc_parser_driver::scan_begin ()
     }
 }
 
+
+
 void
-tcc_parser_driver::scan_end ()
+tcc_sy_driver::scan_end ()
 {
   fclose (yyin);
 }
+

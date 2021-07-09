@@ -1,14 +1,13 @@
-#include <parser/driver.h>
-#include <tcc-sy-parser.h>
+#include <parser/tcc-sy-driver.hh>
 
-tcc_parser_driver::tcc_parser_driver()
+tcc_sy_driver::tcc_sy_driver()
         : trace_scanning(false), trace_parsing(false) {
 }
 
-tcc_parser_driver::~tcc_parser_driver() {
+tcc_sy_driver::~tcc_sy_driver() {
 }
 
-int tcc_parser_driver::parse(const std::string &f) {
+int tcc_sy_driver::parse(const std::string &f) {
     file = f;
     scan_begin();
     yy::tcc_sy_parser parser(*this);
@@ -18,10 +17,10 @@ int tcc_parser_driver::parse(const std::string &f) {
     return res;
 }
 
-void tcc_parser_driver::error(const yy::location &l, const std::string &m) {
+void tcc_sy_driver::error(const yy::location &l, const std::string &m) {
     std::cerr << l << ": " << m << std::endl;
 }
 
-void tcc_parser_driver::error(const std::string &m) {
+void tcc_sy_driver::error(const std::string &m) {
     std::cerr << m << std::endl;
 }

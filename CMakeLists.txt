@@ -9,7 +9,7 @@ find_package(FLEX)
 include_directories(include)
 
 bison_target(tcc_sy_parser src/parser/parser.yy ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-parser.cpp
-        DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-parser.h)
+        DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-parser.hh)
 flex_target(tcc_sy_scanner src/parser/scanner.ll  ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-scanner.cpp
         DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-scanner.hh)
 add_flex_bison_dependency(tcc_sy_scanner tcc_sy_parser)
@@ -17,7 +17,7 @@ add_flex_bison_dependency(tcc_sy_scanner tcc_sy_parser)
 set(PARSER_SOURCE
         ${BISON_tcc_sy_parser_OUTPUTS}
         ${FLEX_tcc_sy_scanner_OUTPUTS}
-        src/parser/driver.cpp)
+        src/parser/tcc-sy-driver.cpp)
 
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCE})
