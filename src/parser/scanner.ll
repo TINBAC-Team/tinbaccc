@@ -14,7 +14,9 @@ static yy::location loc;
 %}
 %option noyywrap nounput batch debug noinput
 ident    [a-zA-Z][a-zA-Z_0-9]*
-IntConst   [0-9]+
+HexConst "0"[xX][0-9a-fA-F]+
+OctConst "0"[0-9]*
+IntConst [1-9][0-9]*
 blank [ \t]
 
 %{
@@ -57,7 +59,7 @@ blank [ \t]
 ">"        return yy::tcc_sy_parser::make_GREATER(loc);
 ">="        return yy::tcc_sy_parser::make_GREATEREQ(loc);
 "<"        return yy::tcc_sy_parser::make_SMALLER(loc);
-"<"        return yy::tcc_sy_parser::make_SMALLEREQ(loc);
+"<="        return yy::tcc_sy_parser::make_SMALLEREQ(loc);
 "=="        return yy::tcc_sy_parser::make_EQUAL(loc);
 "="        return yy::tcc_sy_parser::make_ASSIGN(loc);
 "!="        return yy::tcc_sy_parser::make_NOTEQUAL(loc);
@@ -72,6 +74,27 @@ blank [ \t]
   long n = strtol (yytext, NULL, 10);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
+
+{HexConst}   {
+  char trans[strlen(yytext)+1];
+  strncpy(trans,yytext+2,strlen(yytext)-2);
+  long n = strtol (trans, NULL, 16);
+  return yy::tcc_sy_parser::make_INTCONST(n, loc);
+}
+
+{OctConst}   {
+  char trans[strlen(yytext)+1];
+  strncpy(trans,yytext+2,strlen(yytext)-2);
+  long n = strtol (trans, NULL, 8);
+  return yy::tcc_sy_parser::make_INTCONST(n, loc);
+}
+
+
+
+
+
+
+
 
 {ident}       return yy::tcc_sy_parser::make_IDENTIFIER(yytext, loc);
 .          driver.error (loc, "invalid character");

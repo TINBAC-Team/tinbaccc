@@ -25,11 +25,13 @@ class tcc_sy_driver;
 {
 # include "parser/tcc-sy-driver.hh"
 }
+%nonassoc "then"
+%nonassoc "else"
 %define api.token.prefix {TOK_}
 %token <int> INTCONST "intconst"
 %token <string> IDENTIFIER "identifier"
 %token
-  END  0  "end of file"
+  END "end of file"
   CONST "const"
   INT "int"
   COMMA ","
@@ -101,7 +103,7 @@ DefArray: ArrayBody "=" InitValArray {}
         ;
 
 ArrayBody: ArrayBody "[" Exp "]" {}
-         | ArrayBody {}
+         | IDENT "[" Exp "]" {}
          ;
 
 ConstDef: ConstDefSingleElem
@@ -128,8 +130,7 @@ InitValArrayInner: InitValArrayInner "," InitValArray {}
 
 Exp: AddExp;
 
-LOrExp: LAndExp "||" LAndExp {}
-      | LOrExp "||" LAndExp {}
+LOrExp: LOrExp "||" LAndExp {}
       | LAndExp {}
       ;
 
@@ -138,8 +139,8 @@ LAndExp: EqExp {}
        ;
 
 EqExp: RelExp {}
-     | EqExp "==" RelExp {}
-     | EqExp "!=" RelExp {}
+     | RelExp "==" RelExp {}
+     | RelExp "!=" RelExp {}
      ;
 
 RelExp: AddExp {}
@@ -168,11 +169,9 @@ PrimaryExp: "(" Exp ")" {}
           | Number {}
           ;
 
-ArrayItem: LVal "[" Exp "]"
-         | ArrayItem "[" Exp "]"
-         ;
+ArrayItem: "[" Exp "]";
 
-LVal: ArrayItem
+LVal: LVal ArrayItem
     | IDENT
     ;
 
@@ -219,8 +218,8 @@ Stmt: LVal "=" Exp ";"
     | ContinueStmt
     ;
 
-IfStmt: "if" "(" Cond ")" Stmt {}
-      | "if" "(" Cond ")" Stmt "else" Stmt {}
+IfStmt: "if" "(" Cond ")" Stmt "else" Stmt {}
+      | "if" "(" Cond ")" Stmt {} %prec "then"
       ;
 
 ReturnStmt: "return" Exp ";"
