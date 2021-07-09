@@ -1,19 +1,19 @@
-#ifndef TINBACCC_DRIVER_H
-#define TINBACCC_DRIVER_H
+#ifndef TINBACCC_TCC_SY_DRIVER_HH
+#define TINBACCC_TCC_SY_DRIVER_HH
 # include <string>
 # include <map>
-# include "tcc-sy-parser.h"
+# include "tcc-sy-parser.hh"
 // Tell Flex the lexer's prototype ...
 # define YY_DECL \
-  yy::tcc_sy_parser::symbol_type yylex (tcc_parser_driver& driver)
+  yy::tcc_sy_parser::symbol_type yylex (tcc_sy_driver& driver)
 // ... and declare it for the parser's sake.
 YY_DECL;
 // Conducting the whole scanning and parsing of Calc++.
-class tcc_parser_driver
+class tcc_sy_driver
 {
 public:
-    tcc_parser_driver ();
-    virtual ~tcc_parser_driver ();
+    tcc_sy_driver ();
+    virtual ~tcc_sy_driver ();
 
     // Handling the scanner.
     void scan_begin ();
@@ -31,4 +31,4 @@ public:
     void error (const yy::location& l, const std::string& m);
     void error (const std::string& m);
 };
-#endif //TINBACCC_DRIVER_H
+#endif //TINBACCC_TCC_SY_DRIVER_HH
