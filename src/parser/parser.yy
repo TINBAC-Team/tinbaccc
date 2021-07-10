@@ -177,8 +177,8 @@ LVal: LVal ArrayItem
 
 FuncDef: "void" IDENT "(" FuncFParams ")" Block {}
        | "void" IDENT "(" ")" Block {}
-       | "int" IDENT "(" FuncFParams ")" Block {}
-       | "int" IDENT "(" ")" Block {}
+       | BType IDENT "(" FuncFParams ")" Block {}
+       | BType IDENT "(" ")" Block {}
        ;
 
 FuncFParams: FuncFSingleParam
