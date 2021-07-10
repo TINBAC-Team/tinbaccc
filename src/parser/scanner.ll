@@ -15,7 +15,7 @@ static yy::location loc;
 %option noyywrap nounput batch debug noinput
 %x BLOCK_COMMENT
 %x SINGLE_COMMENT
-ident    [a-zA-Z][a-zA-Z_0-9]*
+ident    [a-zA-Z_][a-zA-Z0-9_]*
 HexConst "0"[xX][0-9a-fA-F]+
 OctConst "0"[0-9]*
 IntConst [1-9][0-9]*
@@ -33,7 +33,7 @@ blank [ \t]
   loc.step ();
 %}
 
-{blank}+   loc.step ();
+{blank}+   loc.columns(); loc.step ();
 [\n]+      loc.lines (yyleng); loc.step ();
 "const"    return yy::tcc_sy_parser::make_CONST(loc);
 "int"      return yy::tcc_sy_parser::make_INT(loc);
@@ -74,11 +74,11 @@ blank [ \t]
 "/*"            { BEGIN(BLOCK_COMMENT); }
 <BLOCK_COMMENT>"*/" { BEGIN(INITIAL); }
 <BLOCK_COMMENT>.    { }
-<BLOCK_COMMENT>\n   { }
+<BLOCK_COMMENT>\n   { loc.lines (yyleng); loc.step ();}
 
 "//"                { BEGIN(SINGLE_COMMENT); }
 <SINGLE_COMMENT>.        { }
-<SINGLE_COMMENT>\n  { BEGIN(INITIAL); }
+<SINGLE_COMMENT>\n  { loc.lines (yyleng); loc.step(); BEGIN(INITIAL);  }
 
 
 {IntConst}   {
