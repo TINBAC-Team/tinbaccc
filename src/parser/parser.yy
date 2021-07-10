@@ -9,6 +9,7 @@
 {
 # include <string>
 # include <vector>
+# include <algorithm>
 # include <ast/ast.h>
 using std::string;
 using std::vector;
@@ -73,14 +74,15 @@ class tcc_sy_driver;
 %type <ast::Decl::VarType> BType
 %type <ast::Decl *> VarDef DefSingleElem DefArray ArrayBody ConstDef ConstDefSingleElem ConstDefArray
 %type <ast::InitVal *> InitVal InitValArray InitValArrayInner
-%type <ast::Exp *> Exp LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp FuncCall PrimaryExp ArrayItem
+%type <ast::Exp *> Exp LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp PrimaryExp ArrayItem
+%type <ast::FuncCall *> FuncCall
 %type <ast::LVal *> LVal
 %type <ast::Function *> FuncDef
 %type <vector<ast::FuncFParam *>> FuncFParams
 %type <ast::FuncFParam *> FuncFParam FuncFSingleParam FuncFParamArray
 %type <vector<ast::Exp *>> FuncRParams
 %type <ast::Block *> Block BlockItems
-%type <ast::Node *> BlockItem
+%type <vector<ast::Node *>> BlockItem
 %type <ast::Stmt *> Stmt
 %type <ast::IfStmt *> IfStmt
 %type <ast::ReturnStmt *> ReturnStmt
@@ -96,199 +98,196 @@ class tcc_sy_driver;
 
 %%
 
-CompUnit: CompUnit Decl {}
-        | CompUnit FuncDef {}
-        | Decl {}
-        | FuncDef {}
+CompUnit: CompUnit Decl { driver.comp_unit->append_decls($2); }
+        | CompUnit FuncDef { driver.comp_unit->append_function($2); }
+        | Decl { driver.comp_unit->append_decls($1); }
+        | FuncDef { driver.comp_unit->append_function($1); }
         ;
 
-Decl: ConstDecl ";" {}
-    | VarDecl ";" {}
+Decl: ConstDecl ";" { std::swap($$, $1); }
+    | VarDecl ";" { std::swap($$, $1); }
     ;
 
-BType: "int";
+BType: "int" { $$ = ast::Decl::VarType::INT; };
 
-ConstDecl: "const" BType ConstDef {}
-         | ConstDecl "," ConstDef {}
+ConstDecl: "const" BType ConstDef { $3->is_const = true; $$.emplace_back($3); }
+         | ConstDecl "," ConstDef { std::swap($$, $1); $3->is_const = true; $$.emplace_back($3); }
     ;
 
-VarDecl: BType VarDef {}
-       | VarDecl "," VarDef {}
+VarDecl: BType VarDef { $$.emplace_back($2); }
+       | VarDecl "," VarDef { std::swap($$, $1); $$.emplace_back($3); }
        ;
 
-VarDef: DefSingleElem
-      | DefArray
+VarDef: DefSingleElem { $$ = $1; }
+      | DefArray { $$ = $1; }
       ;
 
-DefSingleElem: IDENT "=" InitVal {}
-             | IDENT {}
+DefSingleElem: IDENT "=" InitVal { $$ = new ast::Decl($1, $3); }
+             | IDENT { $$ = new ast::Decl($1); }
              ;
 
-DefArray: ArrayBody "=" InitValArray {}
-        | ArrayBody {}
+DefArray: ArrayBody "=" InitValArray { $$ = $1; $$->initval = $3; }
+        | ArrayBody { $$ = $1; }
         ;
 
-ArrayBody: ArrayBody "[" Exp "]" {}
-         | IDENT "[" Exp "]" {}
+ArrayBody: ArrayBody "[" Exp "]" { $$ = $1; $$->add_dim($3); }
+         | IDENT "[" Exp "]" { $$ = new ast::Decl($1); $$->add_dim($3); }
          ;
 
-ConstDef: ConstDefSingleElem
-        | ConstDefArray
+ConstDef: ConstDefSingleElem { $$ = $1; }
+        | ConstDefArray { $$ = $1; }
         ;
 
-ConstDefSingleElem: IDENT "=" InitVal {}
-                  | IDENT {}
+ConstDefSingleElem: IDENT "=" InitVal { $$ = new ast::Decl($1, $3); }
                   ;
-ConstDefArray: ArrayBody "=" InitValArray {}
+ConstDefArray: ArrayBody "=" InitValArray { $$ = $1; $$->initval = $3; }
              ;
 
-InitVal: AddExp;
+InitVal: AddExp { $$ = new ast::InitVal($1); };
 
-InitValArray: "{" InitValArrayInner "}" {}
-            | "{" "}" {}
+InitValArray: "{" InitValArrayInner "}" { $$ = $2; }
+            | "{" "}" { $$ = new ast::InitVal(); }
             ;
 
-InitValArrayInner: InitValArrayInner "," InitValArray {}
-                 | InitValArrayInner "," InitVal {}
-                 | InitValArray {}
-                 | InitVal {}
+InitValArrayInner: InitValArrayInner "," InitValArray { $$ = $1; $$->append_entry($3); }
+                 | InitValArrayInner "," InitVal { $$ = $1; $$->append_entry($3); }
+                 | InitValArray { $$ = new ast::InitVal($1); }
+                 | InitVal { $$ = new ast::InitVal($1); }
                  ;
 
-Exp: AddExp;
+Exp: AddExp { $$ = $1; };
 
-LOrExp: LOrExp "||" LAndExp {}
-      | LAndExp {}
+LOrExp: LOrExp "||" LAndExp { $$ = new ast::Exp(ast::Exp::Op::LOGIC_OR, $1, $3); }
+      | LAndExp { $$ = $1; }
       ;
 
-LAndExp: EqExp {}
-       | LAndExp "&&" EqExp {}
+LAndExp: EqExp { $$ = $1; }
+       | LAndExp "&&" EqExp { $$ = new ast::Exp(ast::Exp::Op::LOGIC_AND, $1, $3); }
        ;
 
-EqExp: RelExp {}
-     | RelExp "==" RelExp {}
-     | RelExp "!=" RelExp {}
+EqExp: RelExp { $$ = $1; }
+     | RelExp "==" RelExp { $$ = new ast::Exp(ast::Exp::Op::EQ, $1, $3); }
+     | RelExp "!=" RelExp { $$ = new ast::Exp(ast::Exp::Op::INEQ, $1, $3); }
      ;
 
-RelExp: AddExp {}
-      | RelExp RelOp AddExp {}
+RelExp: AddExp { $$ = $1; }
+      | RelExp RelOp AddExp { $$ = new ast::Exp($2, $1, $3); }
       ;
 
-AddExp: MulExp {}
-      | AddExp AddOp MulExp {}
+AddExp: MulExp { $$ = $1; }
+      | AddExp AddOp MulExp { $$ = new ast::Exp($2, $1, $3); }
       ;
 
-MulExp: UnaryExp {}
-      | MulExp MulOp UnaryExp {}
+MulExp: UnaryExp { $$ = $1; }
+      | MulExp MulOp UnaryExp { $$ = new ast::Exp($2, $1, $3); }
       ;
 
-UnaryExp: PrimaryExp {}
-        | FuncCall {}
-        | UnaryOp UnaryExp {}
+UnaryExp: PrimaryExp { $$ = $1; }
+        | FuncCall { $$ = new ast::Exp($1); }
+        | UnaryOp UnaryExp { $$ = new ast::Exp($1, $2); }
         ;
 
-FuncCall: IDENT "(" FuncRParams ")" {}
-        | IDENT "(" ")" {}
+FuncCall: IDENT "(" FuncRParams ")" { $$ = new ast::FuncCall($1); std::swap($$->params, $3); }
+        | IDENT "(" ")" { $$ = new ast::FuncCall($1); }
         ;
 
-PrimaryExp: "(" Exp ")" {}
-          | LVal {}
-          | Number {}
+PrimaryExp: "(" Exp ")" { $$ = $2; }
+          | LVal { $$ = new ast::Exp($1); }
+          | Number { $$ = $1; }
           ;
 
-ArrayItem: "[" Exp "]";
+ArrayItem: "[" Exp "]" { $$ = $2; };
 
-LVal: LVal ArrayItem
-    | IDENT
+LVal: LVal ArrayItem { $$ = $1; $$->add_dim($2); }
+    | IDENT { $$ = new ast::LVal($1); }
     ;
 
-FuncDef: "void" IDENT "(" FuncFParams ")" Block {}
-       | "void" IDENT "(" ")" Block {}
-       | BType IDENT "(" FuncFParams ")" Block {}
-       | BType IDENT "(" ")" Block {}
+FuncDef: "void" IDENT "(" FuncFParams ")" Block { $$ = new ast::Function(ast::Function::Type::VOID, $2, $4, $6); }
+       | "void" IDENT "(" ")" Block { $$ = new ast::Function(ast::Function::Type::VOID, $2, $5); }
+       | BType IDENT "(" FuncFParams ")" Block { $$ = new ast::Function(ast::Function::Type::INT, $2, $4, $6); }
+       | BType IDENT "(" ")" Block { $$ = new ast::Function(ast::Function::Type::INT, $2, $5); }
        ;
 
-FuncFParams: FuncFParams "," FuncFParam
-           | FuncFParam
+FuncFParams: FuncFParams "," FuncFParam { std::swap($$, $1); $$.emplace_back($3); }
+           | FuncFParam { $$.emplace_back($1); }
            ;
 
-FuncFParam: FuncFSingleParam
-           | FuncFParamArray
+FuncFParam: FuncFSingleParam { $$ = $1; }
+           | FuncFParamArray { $$ = $1; }
            ;
 
-FuncRParams: FuncRParams "," AddExp {}
-           | AddExp {}
+FuncRParams: FuncRParams "," AddExp { std::swap($$, $1); $$.emplace_back($3); }
+           | AddExp { $$.emplace_back($1); }
            ;
 
-FuncFSingleParam: BType IDENT {};
+FuncFSingleParam: BType IDENT { $$ = new ast::FuncFParam($1, $2); };
 
-FuncFParamArray: FuncFSingleParam "[" "]" {}
-               | FuncFParamArray "[" Exp "]" {}
+FuncFParamArray: FuncFSingleParam "[" "]" { $$ = $1; $$->signature->add_dim(0); }
+               | FuncFParamArray "[" Exp "]" { $$ = $1; $$->signature->add_dim($3); }
                ;
 
-Block: "{" "}" {}
-     | "{" BlockItems "}" {}
+Block: "{" "}" { $$ = new ast::Block(); }
+     | "{" BlockItems "}" { $$ = $2; }
      ;
 
-BlockItems: BlockItem {}
-          | BlockItems BlockItem {}
+BlockItems: BlockItem { $$ = new ast::Block(); $$->append_nodes($1); }
+          | BlockItems BlockItem { $$ = $1; $$->append_nodes($2); }
           ;
 
-BlockItem: Decl
-         | Stmt
+BlockItem: Decl { $$.insert(std::end($$), std::begin($1), std::end($1)); }
+         | Stmt { $$.emplace_back($1); }
          ;
 
-Stmt: LVal "=" Exp ";"
-    | Exp ";"
-    | ";"
-    | Block
-    | IfStmt
-    | WhileStmt
-    | BreakStmt
-    | ReturnStmt
-    | ContinueStmt
+Stmt: LVal "=" Exp ";" { $$ = new ast::AssignmentStmt($1, $3); }
+    | Exp ";" { $$ = new ast::EvalStmt($1); }
+    | ";" { $$ = new ast::Block(); }
+    | Block { $$ = $1; }
+    | IfStmt { $$ = $1; }
+    | WhileStmt { $$ = $1; }
+    | BreakStmt { $$ = $1; }
+    | ReturnStmt { $$ = $1; }
+    | ContinueStmt { $$ = $1; }
     ;
 
-IfStmt: "if" "(" Cond ")" Stmt "else" Stmt {}
-      | "if" "(" Cond ")" Stmt {} %prec "then"
+IfStmt: "if" "(" Cond ")" Stmt "else" Stmt { $$ = new ast::IfStmt($3, $5, $7); }
+      | "if" "(" Cond ")" Stmt { $$ = new ast::IfStmt($3, $5); } %prec "then"
       ;
 
-ReturnStmt: "return" Exp ";"
-          | "return" ";"
+ReturnStmt: "return" Exp ";" { $$ = new ast::ReturnStmt($2); }
+          | "return" ";" { $$ = new ast::ReturnStmt; }
           ;
 
-WhileStmt: "while" "(" Cond ")" Stmt {};
+WhileStmt: "while" "(" Cond ")" Stmt { $$ = new ast::WhileStmt($3, $5); };
 
-BreakStmt: "break" ";" {};
+BreakStmt: "break" ";" { $$ = new ast::BreakStmt; };
 
-ContinueStmt: "continue" ";" {}
+ContinueStmt: "continue" ";" { $$ = new ast::ContinueStmt; }
 
-Cond: LOrExp;
+Cond: LOrExp { $$ = new ast::Cond($1); };
 
-Number: INTCONST {}
+Number: INTCONST { $$ = new ast::Exp($1); }
 
-AddOp: "+"
-     | "-"
+AddOp: "+" { $$ = ast::Exp::Op::PLUS; }
+     | "-" { $$ = ast::Exp::Op::MINUS; }
      ;
 
-MulOp: "*"
-     | "/"
-     | "%"
+MulOp: "*" { $$ = ast::Exp::Op::MUL; }
+     | "/" { $$ = ast::Exp::Op::DIV; }
+     | "%" { $$ = ast::Exp::Op::MOD; }
      ;
 
-UnaryOp: "+"
-       | "-"
-       | "!"
+UnaryOp: "+" { $$ = ast::Exp::Op::UNARY_PLUS; }
+       | "-" { $$ = ast::Exp::Op::UNARY_MINUS; }
+       | "!" { $$ = ast::Exp::Op::LOGIC_NOT; }
        ;
 
-RelOp: ">"
-     | ">="
-     | "<"
-     | "<="
+RelOp: ">" { $$ = ast::Exp::Op::GREATER_THAN; }
+     | ">=" { $$ = ast::Exp::Op::GREATER_EQ; }
+     | "<" { $$ = ast::Exp::Op::LESS_THAN; }
+     | "<=" { $$ = ast::Exp::Op::LESS_EQ; }
      ;
 
 IDENT: IDENTIFIER;
-
-
 
 %left "+" "-";
 %left "*" "/";

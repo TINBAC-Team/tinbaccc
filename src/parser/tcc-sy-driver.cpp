@@ -2,6 +2,7 @@
 
 tcc_sy_driver::tcc_sy_driver()
         : trace_scanning(false), trace_parsing(false) {
+    comp_unit = std::make_unique<ast::CompUnit>();
 }
 
 tcc_sy_driver::~tcc_sy_driver() {

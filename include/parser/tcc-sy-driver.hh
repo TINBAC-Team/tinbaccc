@@ -2,7 +2,9 @@
 #define TINBACCC_TCC_SY_DRIVER_HH
 # include <string>
 # include <map>
+#include <memory>
 # include "tcc-sy-parser.hh"
+# include <ast/ast.h>
 // Tell Flex the lexer's prototype ...
 # define YY_DECL \
   yy::tcc_sy_parser::symbol_type yylex (tcc_sy_driver& driver)
@@ -15,6 +17,8 @@ public:
     tcc_sy_driver ();
     virtual ~tcc_sy_driver ();
 
+    // Final AST
+    std::unique_ptr<ast::CompUnit> comp_unit;
     // Handling the scanner.
     void scan_begin ();
     void scan_end ();
