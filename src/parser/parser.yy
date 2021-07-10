@@ -35,7 +35,7 @@ class tcc_sy_driver;
 %token <int> INTCONST "intconst"
 %token <string> IDENTIFIER "identifier"
 %token
-  END "end of file"
+  END 0 "end of file"
   CONST "const"
   INT "int"
   COMMA ","
