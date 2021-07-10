@@ -68,6 +68,9 @@ class tcc_sy_driver;
   AND "&&"
   OR "||"
   NOT "!"
+
+  SINGLECOMMENT "//"
+
 ;
 
 %type <vector<ast::Decl *>> Decl ConstDecl VarDecl

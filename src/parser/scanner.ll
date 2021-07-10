@@ -13,6 +13,8 @@
 static yy::location loc;
 %}
 %option noyywrap nounput batch debug noinput
+%x BLOCK_COMMENT
+%x SINGLE_COMMENT
 ident    [a-zA-Z][a-zA-Z_0-9]*
 HexConst "0"[xX][0-9a-fA-F]+
 OctConst "0"[0-9]*
@@ -68,6 +70,15 @@ blank [ \t]
 "&&"        return yy::tcc_sy_parser::make_AND(loc);
 "||"        return yy::tcc_sy_parser::make_OR(loc);
 "!"        return yy::tcc_sy_parser::make_NOT(loc);
+
+"/*"            { BEGIN(BLOCK_COMMENT); }
+<BLOCK_COMMENT>"*/" { BEGIN(INITIAL); }
+<BLOCK_COMMENT>.    { }
+<BLOCK_COMMENT>\n   { }
+
+"//"                { BEGIN(SINGLE_COMMENT); }
+<SINGLE_COMMENT>.        { }
+<SINGLE_COMMENT>\n  { BEGIN(INITIAL); }
 
 
 {IntConst}   {
