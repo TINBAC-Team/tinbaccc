@@ -23,9 +23,14 @@ set(PARSER_SOURCES
 set(AST_SOURCES
         src/ast/ast.cpp)
 
+set(SYMTAB_SOURCES
+        src/ast/symtab.cpp)
+
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}
-        ${AST_SOURCES})
+        ${AST_SOURCES}
+        ${SYMTAB_SOURCES})
+
 
 target_include_directories(tinbaccc
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
