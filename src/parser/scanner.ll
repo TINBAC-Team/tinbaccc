@@ -76,25 +76,14 @@ blank [ \t]
 }
 
 {HexConst}   {
-  char trans[strlen(yytext)+1];
-  strncpy(trans,yytext+2,strlen(yytext)-2);
-  long n = strtol (trans, NULL, 16);
+  long n = strtol (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 
 {OctConst}   {
-  char trans[strlen(yytext)+1];
-  strncpy(trans,yytext+2,strlen(yytext)-2);
-  long n = strtol (trans, NULL, 8);
+  long n = strtol (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
-
-
-
-
-
-
-
 
 {ident}       return yy::tcc_sy_parser::make_IDENTIFIER(yytext, loc);
 .          driver.error (loc, "invalid character");
