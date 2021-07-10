@@ -91,6 +91,12 @@ namespace ast {
 
     class Block;
 
+    class FuncFParam : public Node {
+    public:
+        Decl::VarType type;
+        LVal *signature;
+    };
+
     class Function : public Node {
     public:
         enum class Type {
@@ -98,7 +104,7 @@ namespace ast {
             INT
         } type;
         std::string name;
-        std::vector<Decl *> params;
+        std::vector<FuncFParam *> params;
         Block *block;
     };
 

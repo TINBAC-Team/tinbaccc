@@ -8,7 +8,10 @@
 %code requires
 {
 # include <string>
+# include <vector>
+# include <ast/ast.h>
 using std::string;
+using std::vector;
 class tcc_sy_driver;
 }
 // The parsing context.
@@ -65,6 +68,29 @@ class tcc_sy_driver;
   OR "||"
   NOT "!"
 ;
+
+%type <vector<ast::Decl *>> Decl ConstDecl VarDecl
+%type <ast::Decl::VarType> BType
+%type <ast::Decl *> VarDef DefSingleElem DefArray ArrayBody ConstDef ConstDefSingleElem ConstDefArray
+%type <ast::InitVal *> InitVal InitValArray InitValArrayInner
+%type <ast::Exp *> Exp LOrExp LAndExp EqExp RelExp AddExp MulExp UnaryExp FuncCall PrimaryExp ArrayItem
+%type <ast::LVal *> LVal
+%type <ast::Function *> FuncDef
+%type <vector<ast::FuncFParam *>> FuncFParams
+%type <ast::FuncFParam *> FuncFParam FuncFSingleParam FuncFParamArray
+%type <vector<ast::Exp *>> FuncRParams
+%type <ast::Block *> Block BlockItems
+%type <ast::Node *> BlockItem
+%type <ast::Stmt *> Stmt
+%type <ast::IfStmt *> IfStmt
+%type <ast::ReturnStmt *> ReturnStmt
+%type <ast::WhileStmt *>  WhileStmt
+%type <ast::BreakStmt *> BreakStmt
+%type <ast::ContinueStmt *> ContinueStmt
+%type <ast::Cond *> Cond
+%type <ast::Exp *> Number
+%type <ast::Exp::Op> AddOp MulOp UnaryOp RelOp
+%type <string> IDENT
 
 %start CompUnit;
 
@@ -181,7 +207,11 @@ FuncDef: "void" IDENT "(" FuncFParams ")" Block {}
        | BType IDENT "(" ")" Block {}
        ;
 
-FuncFParams: FuncFSingleParam
+FuncFParams: FuncFParams "," FuncFParam
+           | FuncFParam
+           ;
+
+FuncFParam: FuncFSingleParam
            | FuncFParamArray
            ;
 
