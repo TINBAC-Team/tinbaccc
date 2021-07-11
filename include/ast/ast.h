@@ -78,9 +78,8 @@ namespace ast {
         InitVal *initval; //非空指针有效
         std::vector<Exp *> array_dims; //数组各维度长度，0维为单变量
 
-        Decl() : is_const(false), is_fparam(false), type(VarType::INT), initval(nullptr) {}
-
-        Decl(std::string n, InitVal *init = nullptr) : name(n), initval(init) { Decl(); }
+        Decl(std::string n = "", InitVal *init = nullptr) : name(n), initval(init), is_const(false), is_fparam(false),
+                                                            type(VarType::INT) {}
 
         bool is_array() {
             return !array_dims.empty();
