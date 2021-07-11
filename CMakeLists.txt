@@ -21,7 +21,9 @@ set(PARSER_SOURCES
         src/parser/tcc-sy-driver.cpp)
 
 set(AST_SOURCES
-        src/ast/ast.cpp)
+        src/ast/ast.cpp
+        src/ast/print.cpp
+        src/ast/validation.cpp)
 
 set(SYMTAB_SOURCES
         src/ast/symtab.cpp)

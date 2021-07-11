@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <iostream>
+#include <ast/validation.h>
 
 namespace ast {
     class Decl;
@@ -13,6 +15,10 @@ namespace ast {
 
     class Node {
     public:
+        virtual void print(std::ostream &os);
+
+        virtual void validate(ValidationContext &ctx);
+
         virtual ~Node() {}
     };
 
