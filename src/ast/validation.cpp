@@ -1,17 +1,18 @@
 #include <ast/ast.h>
 #include <ast/validation.h>
 #include <sstream>
+
 namespace ast {
 
     void Node::validate(ValidationContext &ctx) {}
 
     void CompUnit::validate(ValidationContext &ctx) {
-        Decl* decl;
-        Function* func;
-        for (const auto & node : this->entries) {
-            if ((decl = dynamic_cast<Decl*>(node)))
+        Decl *decl;
+        Function *func;
+        for (const auto &node : this->entries) {
+            if ((decl = dynamic_cast<Decl *>(node)))
                 ctx.symbol_table.InsertVar(decl->name, decl);
-            else if ((func = dynamic_cast<Function*>(node)))
+            else if ((func = dynamic_cast<Function *>(node)))
                 ctx.symbol_table.InsertFunc(func->name, func);
             else
                 throw std::runtime_error("Expect Decl or FuncDef, but found: emm");
@@ -57,20 +58,21 @@ namespace ast {
     }
 
     void FuncCall::validate(ValidationContext &ctx) {
-        Function* func = ctx.symbol_table.GetFunc(name);
+        Function *func = ctx.symbol_table.GetFunc(name);
         if (!func)
             throw std::runtime_error("Unresolved function: " + name);
         if (func->params.size() != func->params.size())
             throw std::runtime_error("Incorrect number of parameters, expect "
-            + std::to_string(func->params.size()) + ", but get: " + std::to_string(this->params.size()));
-        for (const auto & node : this->params)
+                                     + std::to_string(func->params.size()) + ", but get: " +
+                                     std::to_string(this->params.size()));
+        for (const auto &node : this->params)
             node->validate(ctx);
     }
 
     void Function::validate(ValidationContext &ctx) {
         ctx.symbol_table.EnterScope();
         try {
-            for (const auto & node : this->params) {
+            for (const auto &node : this->params) {
                 node->validate(ctx);
             }
             this->block->validate(ctx);
@@ -84,7 +86,7 @@ namespace ast {
     }
 
     void Block::validate(ValidationContext &ctx) {
-        for (const auto & node : this->entries) {
+        for (const auto &node : this->entries) {
             node->validate(ctx);
         }
     }
@@ -97,26 +99,31 @@ namespace ast {
 
     void IfStmt::validate(ValidationContext &ctx) {
         this->cond->validate(ctx);
-        ctx.symbol_table.EnterScope();
-        try {
-            this->true_block->validate(ctx);
-        } catch (std::runtime_error &ex) {
+        if (this->true_block) {
+            ctx.symbol_table.EnterScope();
+            try {
+                this->true_block->validate(ctx);
+            } catch (std::runtime_error &ex) {
+                ctx.symbol_table.ExitScope();
+                throw ex;
+            }
             ctx.symbol_table.ExitScope();
-            throw ex;
         }
-        ctx.symbol_table.ExitScope();
-        ctx.symbol_table.EnterScope();
-        try {
-            this->false_block->validate(ctx);
-        } catch (std::runtime_error &ex) {
-            ctx.symbol_table.ExitScope();
-            throw ex;
+        if (this->false_block) {
+            ctx.symbol_table.EnterScope();
+            try {
+                this->false_block->validate(ctx);
+            } catch (std::runtime_error &ex) {
+                ctx.symbol_table.ExitScope();
+                throw ex;
+            }
         }
         ctx.symbol_table.ExitScope();
     }
 
     void ReturnStmt::validate(ValidationContext &ctx) {
-        this->ret->validate(ctx);
+        if (this->ret)
+            this->ret->validate(ctx);
     }
 
     void EvalStmt::validate(ValidationContext &ctx) {
