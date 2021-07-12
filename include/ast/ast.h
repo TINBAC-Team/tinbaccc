@@ -29,6 +29,8 @@ namespace ast {
         // Using two arrays isn't possible as we need to preserve the order.
         std::vector<Node *> entries;
 
+        ~CompUnit();
+
         void append_decls(std::vector<ast::Decl *> entries);
 
         void append_function(ast::Function *entry);
@@ -50,6 +52,8 @@ namespace ast {
             vals.emplace_back(init);
         }
 
+        ~InitVal();
+
         void append_entry(InitVal *init) {
             vals.emplace_back(init);
         }
@@ -62,9 +66,9 @@ namespace ast {
         std::string name;
         std::vector<Exp *> array_dims;
 
-        LVal() {}
+        LVal(const std::string n = "") : name(n) {}
 
-        LVal(const std::string n) : name(n) {}
+        ~LVal();
 
         void add_dim(int dim);
 
@@ -91,6 +95,8 @@ namespace ast {
                                                             type(VarType::INT) {}
 
         Decl(FuncFParam *param);
+
+        ~Decl();
 
         bool is_array() {
             return !array_dims.empty();
@@ -135,15 +141,18 @@ namespace ast {
         int const_val;
         Exp *lhs, *rhs;
 
-        Exp() {}
+        Exp() : lval(nullptr), funccall(nullptr), lhs(nullptr), rhs(nullptr) {}
 
-        Exp(int val) : op(Exp::Op::CONST_VAL), const_val(val) {}
+        Exp(int val) : op(Exp::Op::CONST_VAL), const_val(val), lval(nullptr), funccall(nullptr), lhs(nullptr),
+                       rhs(nullptr) {}
 
-        Exp(LVal *l) : op(Exp::Op::LVAL), lval(l) {}
+        Exp(LVal *l) : op(Exp::Op::LVAL), lval(l), funccall(nullptr), lhs(nullptr), rhs(nullptr) {}
 
-        Exp(FuncCall *f) : op(Exp::Op::FuncCall), funccall(f) {}
+        Exp(FuncCall *f) : op(Exp::Op::FuncCall), funccall(f), lval(nullptr), lhs(nullptr), rhs(nullptr) {}
 
-        Exp(Op o, Exp *l, Exp *r = nullptr) : op(o), lhs(l), rhs(r) {}
+        Exp(Op o, Exp *l, Exp *r = nullptr) : lval(nullptr), funccall(nullptr), op(o), lhs(l), rhs(r) {}
+
+        ~Exp();
 
         void print(std::ofstream &ofd);
 
@@ -158,6 +167,10 @@ namespace ast {
 
         Cond(Exp *e) : exp(e) {}
 
+        ~Cond() {
+            delete exp;
+        }
+
         void print(std::ofstream &ofd);
     };
 
@@ -169,6 +182,11 @@ namespace ast {
         FuncCall() {}
 
         FuncCall(std::string n) : name(std::move(n)) {}
+
+        ~FuncCall() {
+            for (auto i:params)
+                delete i;
+        }
 
         void print(std::ofstream &ofd);
     };
@@ -184,6 +202,10 @@ namespace ast {
 
         FuncFParam(Decl::VarType t, const std::string name) : type(t) {
             signature = new LVal(name);
+        }
+
+        ~FuncFParam() {
+            delete signature;
         }
 
         void print(std::ofstream &ofd);
@@ -208,6 +230,8 @@ namespace ast {
                 params.emplace_back(new Decl(i));
         }
 
+        ~Function();
+
         void print(std::ofstream &ofd);
     };
 
@@ -221,6 +245,11 @@ namespace ast {
         // Using two arrays isn't possible as we need to preserve the order.
         std::vector<Node *> entries;
 
+        ~Block() {
+            for (auto i:entries)
+                delete i;
+        }
+
         void append_nodes(std::vector<ast::Node *> entries);
 
         void print(std::ofstream &ofd);
@@ -233,6 +262,11 @@ namespace ast {
 
         AssignmentStmt(LVal *l = nullptr, Exp *e = nullptr) : lval(l), exp(e) {}
 
+        ~AssignmentStmt() {
+            delete lval;
+            delete exp;
+        }
+
         void print(std::ofstream &ofd);
     };
 
@@ -241,6 +275,10 @@ namespace ast {
         Exp *exp;
 
         EvalStmt(Exp *e = nullptr) : exp(e) {}
+
+        ~EvalStmt() {
+            delete exp;
+        }
 
         void print(std::ofstream &ofd);
     };
@@ -253,6 +291,14 @@ namespace ast {
 
         IfStmt(Cond *c = nullptr, Stmt *t = nullptr, Stmt *f = nullptr) : cond(c), true_block(t), false_block(f) {}
 
+        ~IfStmt() {
+            delete cond;
+            if (true_block)
+                delete true_block;
+            if (false_block)
+                delete false_block;
+        }
+
         void print(std::ofstream &ofd);
     };
 
@@ -262,6 +308,12 @@ namespace ast {
         Stmt *block;
 
         WhileStmt(Cond *c = nullptr, Stmt *b = nullptr) : cond(c), block(b) {}
+
+        ~WhileStmt() {
+            delete cond;
+            if (block)
+                delete block;
+        }
 
         void print(std::ofstream &ofd);
     };
@@ -279,6 +331,11 @@ namespace ast {
         Exp *ret;
 
         ReturnStmt(Exp *e = nullptr) : ret(e) {}
+
+        ~ReturnStmt() {
+            if (ret)
+                delete ret;
+        }
 
         void print(std::ofstream &ofd);
     };

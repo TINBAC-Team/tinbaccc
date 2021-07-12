@@ -1,12 +1,29 @@
 #include <ast/ast.h>
 
 namespace ast {
+    CompUnit::~CompUnit() noexcept {
+        for (auto i:entries)
+            delete i;
+    }
+
     void CompUnit::append_decls(std::vector<ast::Decl *> entries) {
         this->entries.insert(std::end(this->entries), std::begin(entries), std::end(entries));
     }
 
     void CompUnit::append_function(ast::Function *entry) {
         this->entries.emplace_back(entry);
+    }
+
+    InitVal::~InitVal() noexcept {
+        if (exp)
+            delete exp;
+        for (auto i:vals)
+            delete i;
+    }
+
+    LVal::~LVal() noexcept {
+        for (auto i:array_dims)
+            delete i;
     }
 
     void LVal::add_dim(int dim) {
@@ -21,6 +38,30 @@ namespace ast {
         name = std::move(param->signature->name);
         array_dims = std::move(param->signature->array_dims);
         delete param;
+    }
+
+    Decl::~Decl() noexcept {
+        if (initval)
+            delete initval;
+        for (auto i:array_dims)
+            delete i;
+    }
+
+    Exp::~Exp() noexcept {
+        if (lval)
+            delete lval;
+        if (funccall)
+            delete funccall;
+        if (lhs)
+            delete lhs;
+        if (rhs)
+            delete rhs;
+    }
+
+    Function::~Function() noexcept {
+        for (auto i:params)
+            delete i;
+        delete block;
     }
 
     void Block::append_nodes(std::vector<ast::Node *> entries) {
