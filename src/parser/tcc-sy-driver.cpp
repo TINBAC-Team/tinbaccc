@@ -1,4 +1,5 @@
 #include <parser/tcc-sy-driver.hh>
+#include <ast/validation.h>
 #include <fstream>
 
 tcc_sy_driver::tcc_sy_driver()
@@ -34,4 +35,9 @@ void tcc_sy_driver::print_ast(const char *path) {
     }
     comp_unit->print(ofs);
     ofs.close();
+}
+
+void tcc_sy_driver::validate_ast() {
+    ast::ValidationContext ctx;
+    comp_unit->validate(ctx);
 }

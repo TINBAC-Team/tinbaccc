@@ -35,5 +35,6 @@ public:
     void error (const yy::location& l, const std::string& m);
     void error (const std::string& m);
     void print_ast(const char *path);
+    void validate_ast();
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH

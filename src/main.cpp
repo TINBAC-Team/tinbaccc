@@ -43,6 +43,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    driver.validate_ast();
+
     if (ast_path)
         driver.print_ast(ast_path);
 
