@@ -199,8 +199,7 @@ namespace ast {
 
         Function(Type t, std::string n, Block *b) : type(t), name(n), block(b) {}
 
-        Function(Type t, std::string n, std::vector<FuncFParam *> &ps, Block *b) {
-            Function(t, n, b);
+        Function(Type t, std::string n, std::vector<FuncFParam *> &ps, Block *b) : Function(t, n, b) {
             std::swap(params, ps);
         }
 
