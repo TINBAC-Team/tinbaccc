@@ -1,4 +1,5 @@
 #include <parser/tcc-sy-driver.hh>
+#include <fstream>
 
 tcc_sy_driver::tcc_sy_driver()
         : trace_scanning(false), trace_parsing(false) {
@@ -24,4 +25,13 @@ void tcc_sy_driver::error(const yy::location &l, const std::string &m) {
 
 void tcc_sy_driver::error(const std::string &m) {
     std::cerr << m << std::endl;
+}
+
+void tcc_sy_driver::print_ast(const char *path) {
+    std::ofstream ofs(path, std::ofstream::out);
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open dot\n";
+    }
+    comp_unit->print(ofs);
+    ofs.close();
 }

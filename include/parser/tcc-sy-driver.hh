@@ -34,5 +34,6 @@ public:
     // Error handling.
     void error (const yy::location& l, const std::string& m);
     void error (const std::string& m);
+    void print_ast(const char *path);
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH
