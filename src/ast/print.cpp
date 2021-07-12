@@ -93,6 +93,8 @@ namespace ast {
 
     std::string Exp::op_real() {
         switch(op) {
+            case Op::MUL:
+                return "*";
             case Op::DIV:
                 return "/";
             case Op::EQ:
