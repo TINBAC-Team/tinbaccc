@@ -73,6 +73,8 @@ namespace ast {
         void print(std::ofstream &ofd);
     };
 
+    class FuncFParam;
+
     class Decl : public Node {
     public:
         bool is_const;
@@ -87,6 +89,8 @@ namespace ast {
 
         Decl(std::string n = "", InitVal *init = nullptr) : name(n), initval(init), is_const(false), is_fparam(false),
                                                             type(VarType::INT) {}
+
+        Decl(FuncFParam *param);
 
         bool is_array() {
             return !array_dims.empty();
@@ -192,7 +196,7 @@ namespace ast {
             INT
         } type;
         std::string name;
-        std::vector<FuncFParam *> params;
+        std::vector<Decl *> params;
         Block *block;
 
         Function() {}
@@ -200,7 +204,8 @@ namespace ast {
         Function(Type t, std::string n, Block *b) : type(t), name(n), block(b) {}
 
         Function(Type t, std::string n, std::vector<FuncFParam *> &ps, Block *b) : Function(t, n, b) {
-            std::swap(params, ps);
+            for (auto i : ps)
+                params.emplace_back(new Decl(i));
         }
 
         void print(std::ofstream &ofd);

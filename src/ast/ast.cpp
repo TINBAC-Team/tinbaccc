@@ -17,6 +17,12 @@ namespace ast {
         array_dims.emplace_back(dim);
     }
 
+    Decl::Decl(FuncFParam *param) : initval(nullptr), is_const(false), is_fparam(true), type(param->type) {
+        name = std::move(param->signature->name);
+        array_dims = std::move(param->signature->array_dims);
+        delete param;
+    }
+
     void Block::append_nodes(std::vector<ast::Node *> entries) {
         this->entries.insert(std::end(this->entries), std::begin(entries), std::end(entries));
     }
