@@ -28,10 +28,14 @@ set(AST_SOURCES
 set(SYMTAB_SOURCES
         src/ast/symtab.cpp)
 
+set(IR_SOURCES
+        src/ir/ir.cpp)
+
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}
         ${AST_SOURCES}
-        ${SYMTAB_SOURCES})
+        ${SYMTAB_SOURCES}
+        ${IR_SOURCES})
 
 
 target_include_directories(tinbaccc
