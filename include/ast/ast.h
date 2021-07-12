@@ -7,9 +7,10 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <ast/validation.h>
 
 namespace ast {
+    class ValidationContext;
+
     class Decl;
 
     class Function;
@@ -36,6 +37,8 @@ namespace ast {
         void append_function(ast::Function *entry);
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class Exp;
@@ -59,6 +62,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class LVal : public Node {
@@ -75,6 +80,8 @@ namespace ast {
         void add_dim(Exp *dim);
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class FuncFParam;
@@ -83,6 +90,9 @@ namespace ast {
     public:
         bool is_const;
         bool is_fparam;
+        std::vector<int> array_multipliers;
+        std::vector<Exp *> initval_expanded;
+
         std::string name;
         enum class VarType {
             INT,
@@ -105,6 +115,10 @@ namespace ast {
         void add_dim(Exp *dim) { array_dims.emplace_back(dim); }
 
         void print(std::ofstream &ofd);
+
+        int get_value(int array_dims);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class FuncCall;
@@ -157,6 +171,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         std::string op_real();
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class Cond : public Node {
@@ -172,6 +188,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class FuncCall : public Node {
@@ -189,6 +207,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class Block;
@@ -233,6 +253,8 @@ namespace ast {
         ~Function();
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class Stmt : public Node {
@@ -253,6 +275,8 @@ namespace ast {
         void append_nodes(std::vector<ast::Node *> entries);
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class AssignmentStmt : public Stmt {
@@ -268,6 +292,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class EvalStmt : public Stmt {
@@ -281,6 +307,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class IfStmt : public Stmt {
@@ -300,6 +328,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class WhileStmt : public Stmt {
@@ -319,10 +349,12 @@ namespace ast {
     };
 
     class BreakStmt : public Stmt {
+    public:
         void print(std::ofstream &ofd);
     };
 
     class ContinueStmt : public Stmt {
+    public:
         void print(std::ofstream &ofd);
     };
 
@@ -338,6 +370,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 }
 #endif //TINBACCC_AST_H
