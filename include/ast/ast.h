@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <ast/validation.h>
 
 namespace ast {
@@ -15,7 +16,7 @@ namespace ast {
 
     class Node {
     public:
-        virtual void print(std::ostream &os);
+        virtual void print(std::ofstream &ofd) = 0;
 
         virtual void validate(ValidationContext &ctx);
 
@@ -31,6 +32,8 @@ namespace ast {
         void append_decls(std::vector<ast::Decl *> entries);
 
         void append_function(ast::Function *entry);
+
+        void print(std::ofstream &ofd);
     };
 
     class Exp;
@@ -50,6 +53,8 @@ namespace ast {
         void append_entry(InitVal *init) {
             vals.emplace_back(init);
         }
+
+        void print(std::ofstream &ofd);
     };
 
     class LVal : public Node {
@@ -64,6 +69,8 @@ namespace ast {
         void add_dim(int dim);
 
         void add_dim(Exp *dim);
+
+        void print(std::ofstream &ofd);
     };
 
     class Decl : public Node {
@@ -86,6 +93,8 @@ namespace ast {
         }
 
         void add_dim(Exp *dim) { array_dims.emplace_back(dim); }
+
+        void print(std::ofstream &ofd);
     };
 
     class FuncCall;
@@ -131,6 +140,10 @@ namespace ast {
         Exp(FuncCall *f) : op(Exp::Op::FuncCall), funccall(f) {}
 
         Exp(Op o, Exp *l, Exp *r = nullptr) : op(o), lhs(l), rhs(r) {}
+
+        void print(std::ofstream &ofd);
+
+        std::string op_real();
     };
 
     class Cond : public Node {
@@ -140,6 +153,8 @@ namespace ast {
         Cond() {}
 
         Cond(Exp *e) : exp(e) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class FuncCall : public Node {
@@ -150,6 +165,8 @@ namespace ast {
         FuncCall() {}
 
         FuncCall(std::string n) : name(std::move(n)) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class Block;
@@ -164,6 +181,8 @@ namespace ast {
         FuncFParam(Decl::VarType t, const std::string name) : type(t) {
             signature = new LVal(name);
         }
+
+        void print(std::ofstream &ofd);
     };
 
     class Function : public Node {
@@ -184,6 +203,8 @@ namespace ast {
             Function(t, n, b);
             std::swap(params, ps);
         }
+
+        void print(std::ofstream &ofd);
     };
 
     class Stmt : public Node {
@@ -197,6 +218,8 @@ namespace ast {
         std::vector<Node *> entries;
 
         void append_nodes(std::vector<ast::Node *> entries);
+
+        void print(std::ofstream &ofd);
     };
 
     class AssignmentStmt : public Stmt {
@@ -205,6 +228,8 @@ namespace ast {
         Exp *exp;
 
         AssignmentStmt(LVal *l = nullptr, Exp *e = nullptr) : lval(l), exp(e) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class EvalStmt : public Stmt {
@@ -212,6 +237,8 @@ namespace ast {
         Exp *exp;
 
         EvalStmt(Exp *e = nullptr) : exp(e) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class IfStmt : public Stmt {
@@ -221,6 +248,8 @@ namespace ast {
         Stmt *false_block;
 
         IfStmt(Cond *c = nullptr, Stmt *t = nullptr, Stmt *f = nullptr) : cond(c), true_block(t), false_block(f) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class WhileStmt : public Stmt {
@@ -229,12 +258,16 @@ namespace ast {
         Stmt *block;
 
         WhileStmt(Cond *c = nullptr, Stmt *b = nullptr) : cond(c), block(b) {}
+
+        void print(std::ofstream &ofd);
     };
 
     class BreakStmt : public Stmt {
+        void print(std::ofstream &ofd);
     };
 
     class ContinueStmt : public Stmt {
+        void print(std::ofstream &ofd);
     };
 
     class ReturnStmt : public Stmt {
@@ -242,6 +275,8 @@ namespace ast {
         Exp *ret;
 
         ReturnStmt(Exp *e = nullptr) : ret(e) {}
+
+        void print(std::ofstream &ofd);
     };
 }
 #endif //TINBACCC_AST_H
