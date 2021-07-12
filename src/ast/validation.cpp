@@ -20,30 +20,37 @@ namespace ast {
     }
 
     void Decl::validate(ValidationContext &ctx) {
-//        ctx.symbol_table.GetVar()
-//        if (this->is_array())
-//            this->array_multipliers
+
+        if (is_array()) {
+            // array
+        }
+        if (is_const && !initval)
+            throw std::runtime_error("Const val isn't initialized");
+        if (initval) {
+            this->validate_array();
+            this->expand_array();
+        }
+        ctx.symbol_table.InsertVar(name, this);
     }
 
-    int Decl::get_value(int array_dims) {
-        if (!is_const)
-            throw std::runtime_error("not const");
-        if (is_array())
-            return initval_expanded[array_dims]->const_val;
-        else
-            return initval->exp->const_val;
-    }
+
 
     void InitVal::validate(ValidationContext &ctx) {
-
+        // do nothing
     }
 
     void LVal::validate(ValidationContext &ctx) {
+        Decl* d = ctx.symbol_table.GetVar(name);
+        if (!d)
+            throw std::runtime_error("Unresolved lval: " + name);
+        this->decl = d;
     }
 
     void Exp::validate(ValidationContext &ctx) {
         Node::validate(ctx);
     }
+
+
 
     void Cond::validate(ValidationContext &ctx) {
         exp->validate(ctx);

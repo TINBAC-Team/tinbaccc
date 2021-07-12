@@ -63,11 +63,17 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
+        void append_decls(std::vector<ast::Decl *> entries);
+
+        void append_function(ast::Function *entry);
+
+
         void validate(ValidationContext &ctx) override;
     };
 
     class LVal : public Node {
     public:
+        Decl* decl;
         std::string name;
         std::vector<Exp *> array_dims;
 
@@ -90,7 +96,9 @@ namespace ast {
     public:
         bool is_const;
         bool is_fparam;
+        // 数组展开后的数组各维度乘数
         std::vector<int> array_multipliers;
+        // 数组展开后展开后的初始值
         std::vector<Exp *> initval_expanded;
 
         std::string name;
@@ -119,6 +127,10 @@ namespace ast {
         int get_value(int array_dims);
 
         void validate(ValidationContext &ctx) override;
+
+        void validate_array();
+
+        void expand_array();
     };
 
     class FuncCall;
@@ -170,6 +182,7 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
+        int get_value();
         std::string op_real();
 
         void validate(ValidationContext &ctx) override;

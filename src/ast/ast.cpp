@@ -47,6 +47,23 @@ namespace ast {
             delete i;
     }
 
+    int Decl::get_value(int array_dims) {
+        if (!is_const)
+            throw std::runtime_error("not const");
+        if (is_array())
+            return initval_expanded[array_dims]->const_val;
+        else
+            return initval->exp->const_val;
+    }
+
+    void Decl::validate_array() {
+
+    }
+
+    void Decl::expand_array() {
+
+    }
+
     Exp::~Exp() noexcept {
         if (lval)
             delete lval;
@@ -56,6 +73,12 @@ namespace ast {
             delete lhs;
         if (rhs)
             delete rhs;
+    }
+
+    int Exp::get_value() {
+        if (!const_val)
+            throw std::runtime_error("not const");
+        return const_val;
     }
 
     Function::~Function() noexcept {
