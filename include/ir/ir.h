@@ -40,16 +40,20 @@ enum class OpType {
 
 class IRBuilder {
 public:
-    BasicBlockContainer BBCont;
-
     IRBuilder();
 
     BlockList bList;
     BasicBlock *CurBlock;
 
-    BasicBlock *CreateBlock();
+    BasicBlock *CreateBlock(); //create and enter the created block
 
     BasicBlock *GetCurBlock() const;
+
+    Value* CreateBinaryInst(Value* _ValueL, Value* _ValueR, OpType optype);
+    Value* CreateLoadInst();
+    Value* CreateCallInst();
+    Value *getConstant(int _value);
+    Value *getConstant(int valueL, int valueR, OpType optype);
 };
 
 class Value {
@@ -59,6 +63,7 @@ public:
     Value(OpType _optype);
 
     int addUse(Use *use);
+    virtual ~Value();
 };
 
 
@@ -74,8 +79,7 @@ public:
 class Inst : public Value {
 public:
     explicit Inst(OpType _optype);
-
-
+    ~Inst() override;
 };
 
 class BinaryInst : public Inst {
@@ -97,7 +101,7 @@ public:
 class CallInst : public Inst {
 public:
     Function *function;
-    CallInst(Function *_function);
+    explicit CallInst(Function *_function);
 };
 
 class BranchInst : public Inst {
@@ -111,6 +115,16 @@ class JumpInst : public Inst {
 class ReturnInst : public Inst {
 
 };
+
+class AccessInst: public Inst{
+
+};
+
+class LoadInst: public AccessInst{
+
+};
+
+
 
 class Use {
 public:
@@ -127,8 +141,8 @@ public:
     static ConstPool const_pool;
 
     explicit ConstValue(int _value);
+    ~ConstValue() override;
 
-    static ConstValue *getConstant(int _value);
 };
 
 

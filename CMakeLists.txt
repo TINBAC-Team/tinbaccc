@@ -23,7 +23,8 @@ set(PARSER_SOURCES
 set(AST_SOURCES
         src/ast/ast.cpp
         src/ast/print.cpp
-        src/ast/validation.cpp)
+        src/ast/validation.cpp
+        src/ast/codegen.cpp)
 
 set(SYMTAB_SOURCES
         src/ast/symtab.cpp)

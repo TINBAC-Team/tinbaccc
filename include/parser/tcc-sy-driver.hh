@@ -10,7 +10,7 @@
   yy::tcc_sy_parser::symbol_type yylex (tcc_sy_driver& driver)
 // ... and declare it for the parser's sake.
 YY_DECL;
-// Conducting the whole scanning and parsing of Calc++.
+// Conducting the whole scanning and parsing.
 class tcc_sy_driver
 {
 public:
@@ -36,5 +36,6 @@ public:
     void error (const std::string& m);
     void print_ast(const char *path);
     void validate_ast();
+    void generate_code();
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH

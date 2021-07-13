@@ -1,12 +1,16 @@
 #ifndef TINBACCC_AST_H
 #define TINBACCC_AST_H
 
+
 #include <string>
 #include <utility>
 #include <vector>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+
+class Value;
+class IRBuilder;
 
 namespace ast {
     class ValidationContext;
@@ -39,6 +43,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class Exp;
@@ -74,6 +80,8 @@ namespace ast {
         void fill_array(int dim, int &offset, const std::vector<int> &dims, std::vector<Exp *> &dst_vals);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class LVal : public Node {
@@ -97,6 +105,8 @@ namespace ast {
         bool is_const();
 
         int get_value();
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class FuncFParam;
@@ -141,6 +151,8 @@ namespace ast {
         void validate(ValidationContext &ctx) override;
 
         void expand_array();
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class FuncCall;
@@ -201,6 +213,8 @@ namespace ast {
         std::string op_real();
 
         void validate(ValidationContext &ctx) override;
+
+        Value * codegen(IRBuilder &builder);
     };
 
     class Cond : public Node {
@@ -218,6 +232,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class FuncCall : public Node {
@@ -237,6 +253,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class Block;
@@ -257,6 +275,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class Function : public Node {
@@ -283,6 +303,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class Stmt : public Node {
@@ -305,6 +327,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class AssignmentStmt : public Stmt {
@@ -322,6 +346,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class EvalStmt : public Stmt {
@@ -337,6 +363,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class IfStmt : public Stmt {
@@ -358,6 +386,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class WhileStmt : public Stmt {
@@ -376,16 +406,22 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class BreakStmt : public Stmt {
     public:
         void print(std::ofstream &ofd);
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class ContinueStmt : public Stmt {
     public:
         void print(std::ofstream &ofd);
+
+        Value* codegen(IRBuilder &builder);
     };
 
     class ReturnStmt : public Stmt {
@@ -402,6 +438,8 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        Value* codegen(IRBuilder &builder);
     };
 }
 #endif //TINBACCC_AST_H
