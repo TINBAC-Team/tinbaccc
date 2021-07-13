@@ -85,8 +85,6 @@ namespace ast {
         void fill_array(int dim, int &offset, const std::vector<int> &dims, std::vector<Exp *> &dst_vals);
 
         void validate(ValidationContext &ctx) override;
-
-        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class LVal : public Node {
@@ -156,8 +154,6 @@ namespace ast {
         void validate(ValidationContext &ctx) override;
 
         void expand_array();
-
-        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class FuncCall;
@@ -280,8 +276,6 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
-
-        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Function : public Node {
