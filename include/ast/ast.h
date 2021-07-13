@@ -63,17 +63,12 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
-        void append_decls(std::vector<ast::Decl *> entries);
-
-        void append_function(ast::Function *entry);
-
-
         void validate(ValidationContext &ctx) override;
     };
 
     class LVal : public Node {
     public:
-        Decl* decl;
+        Decl *decl;
         std::string name;
         std::vector<Exp *> array_dims;
 
@@ -88,6 +83,10 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         void validate(ValidationContext &ctx) override;
+
+        bool is_const();
+
+        int get_value();
     };
 
     class FuncFParam;
@@ -124,11 +123,9 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
-        int get_value(int array_dims);
+        int get_value(int offset);
 
         void validate(ValidationContext &ctx) override;
-
-        void validate_array();
 
         void expand_array();
     };
@@ -183,6 +180,11 @@ namespace ast {
         void print(std::ofstream &ofd);
 
         int get_value();
+
+        bool is_const() {
+            return op == Op::CONST_VAL;
+        }
+
         std::string op_real();
 
         void validate(ValidationContext &ctx) override;
@@ -359,6 +361,8 @@ namespace ast {
         }
 
         void print(std::ofstream &ofd);
+
+        void validate(ValidationContext &ctx) override;
     };
 
     class BreakStmt : public Stmt {

@@ -20,24 +20,47 @@ namespace ast {
     }
 
     void Decl::validate(ValidationContext &ctx) {
-
-        if (is_array()) {
-            // array
-        }
         if (initval)
             initval->validate(ctx);
 
         if (is_const && !(initval && initval->is_const))
             throw std::runtime_error("Const variable isn't initialized with const values");
 
+        if (is_array()) {
+            // deal with multipliers first
+            array_multipliers.resize(array_dims.size());
+            int mul = 1;
+            for (int i = array_dims.size() - 1; i >= 0; i--) {
+                array_dims[i]->validate(ctx);
+                mul *= array_dims[i]->get_value();
+                if (mul)
+                    array_multipliers[i] = mul;
+                else if (!is_fparam)
+                    throw std::runtime_error("zero-length array isn't allowed.");
+            }
+
+            // expand initval
+            expand_array();
+        } else if (initval) {
+            if (initval->exp)
+                initval_expanded.emplace_back(initval->exp);
+            else
+                throw std::runtime_error("single variable initialized with array initializer.");
+        }
+
         if (ctx.symbol_table.InsertVar(name, this))
             throw std::runtime_error(name + " is redefined.");
+    }
+
+    void Decl::expand_array() {
+        initval_expanded.resize(array_multipliers[0]);
+        int offset = 0;
     }
 
     void InitVal::validate(ValidationContext &ctx) {
         if (exp) {
             exp->validate(ctx);
-            is_const = exp->op == Exp::Op::CONST_VAL;
+            is_const = exp->is_const();
         } else {
             is_const = true;
             for (auto i:vals) {
@@ -53,10 +76,107 @@ namespace ast {
         if (!d)
             throw std::runtime_error("Unresolved lval: " + name);
         this->decl = d;
+
+        if (d->array_dims.size() < array_dims.size())
+            throw std::runtime_error("invalid array dimensions");
+
+        for (auto i:array_dims)
+            i->validate(ctx);
+    }
+
+    bool LVal::is_const() {
+        return decl->is_const;
+    }
+
+    int LVal::get_value() {
+        int offset = 0;
+        int i;
+        if (array_dims.empty())
+            return decl->get_value(0);
+        for (i = 0; i < array_dims.size() - 1; i++)
+            offset += (array_dims[i]->get_value()) * (decl->array_multipliers[i + 1]);
+        offset += array_dims[i]->get_value();
+        return decl->get_value(offset);
     }
 
     void Exp::validate(ValidationContext &ctx) {
-        Node::validate(ctx);
+        bool const_folding_possible = true;
+        if (lhs) {
+            lhs->validate(ctx);
+            if (!lhs->is_const())
+                const_folding_possible = false;
+        }
+        if (rhs) {
+            rhs->validate(ctx);
+            if (!rhs->is_const())
+                const_folding_possible = false;
+        }
+        if (lval) {
+            lval->validate(ctx);
+            if (!lval->is_const())
+                const_folding_possible = false;
+        }
+
+        if (const_folding_possible) {
+            bool const_folding_done = true;
+            switch (op) {
+                case Op::UNARY_PLUS:
+                    const_val = lhs->get_value();
+                    break;
+                case Op::UNARY_MINUS:
+                    const_val = -(lhs->get_value());
+                    break;
+                case Op::LOGIC_NOT:
+                    const_val = !(lhs->get_value());
+                    break;
+                case Op::PLUS:
+                    const_val = lhs->get_value() + rhs->get_value();
+                    break;
+                case Op::MINUS:
+                    const_val = lhs->get_value() - rhs->get_value();
+                    break;
+                case Op::MUL:
+                    const_val = lhs->get_value() * rhs->get_value();
+                    break;
+                case Op::DIV:
+                    const_val = lhs->get_value() / rhs->get_value();
+                    break;
+                case Op::MOD:
+                    const_val = lhs->get_value() % rhs->get_value();
+                    break;
+                case Op::LESS_THAN:
+                    const_val = (lhs->get_value() < rhs->get_value());
+                    break;
+                case Op::LESS_EQ:
+                    const_val = (lhs->get_value() <= rhs->get_value());
+                    break;
+                case Op::GREATER_THAN:
+                    const_val = (lhs->get_value() > rhs->get_value());
+                    break;
+                case Op::GREATER_EQ:
+                    const_val = (lhs->get_value() >= rhs->get_value());
+                    break;
+                case Op::EQ:
+                    const_val = (lhs->get_value() == rhs->get_value());
+                    break;
+                case Op::INEQ:
+                    const_val = (lhs->get_value() != rhs->get_value());
+                    break;
+                case Op::LOGIC_AND:
+                    const_val = (lhs->get_value() && rhs->get_value());
+                    break;
+                case Op::LOGIC_OR:
+                    const_val = (lhs->get_value() || rhs->get_value());
+                    break;
+                case Op::LVAL:
+                    const_val = lval->get_value();
+                    break;
+                default:
+                    const_folding_done = false;
+            }
+            if (const_folding_done)
+                op = Op::CONST_VAL;
+        }
     }
 
     void Cond::validate(ValidationContext &ctx) {
@@ -113,6 +233,12 @@ namespace ast {
 
         if (this->false_block)
             this->false_block->validate(ctx);
+    }
+
+    void WhileStmt::validate(ValidationContext &ctx) {
+        cond->validate(ctx);
+        if (block)
+            block->validate(ctx);
     }
 
     void ReturnStmt::validate(ValidationContext &ctx) {
