@@ -1,96 +1,136 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "bugprone-reserved-identifier"
 #ifndef TINBACCC_IR_H
 #define TINBACCC_IR_H
 
 #endif //TINBACCC_IR_H
+
 #include "ast/ast.h"
 #include <set>
 #include <vector>
 #include <list>
+#include <unordered_map>
+using ast::Function;
+
 class Inst;
+
 class Use;
+
 class BasicBlock;
+
 class Value;
 
-typedef std::vector<Value*> ValueContainer;
-typedef std::vector<BasicBlock*> BasicBlockContainer;
+class ConstValue;
 
-typedef std::vector<Value*> instList;
-typedef std::set<Use*> UseList;
-typedef std::list<BasicBlock*> BlockList;
+typedef std::vector<Value *> ValueContainer;
+typedef std::vector<BasicBlock *> BasicBlockContainer;
+typedef std::unordered_map<int, ConstValue *> ConstPool;
+typedef std::vector <std::pair<BasicBlock*,Value*> > PhiParam;
+typedef std::unordered_map <BasicBlock*, Value* > PhiContent;
+
+typedef std::list<Value *> instList;
+typedef std::set<Use *> UseList;
+typedef std::list<BasicBlock *> BlockList;
 
 
-enum class OpType{
+enum class OpType {
 #include "allop.inc"
 };
 
 
-class IRBuilder
-{
+class IRBuilder {
 public:
-    ValueContainer ValCont;
     BasicBlockContainer BBCont;
+
     IRBuilder();
+
     BlockList bList;
-    BasicBlock* CurBlock;
-    BasicBlock* CreateBlock();
-    BasicBlock* GetCurBlock() const;
+    BasicBlock *CurBlock;
+
+    BasicBlock *CreateBlock();
+
+    BasicBlock *GetCurBlock() const;
 };
-class Value
-{
+
+class Value {
 public:
     UseList uList;
-    Value();
-    int addUse(Use* use);
+    OpType optype;
+    Value(OpType _optype);
+
+    int addUse(Use *use);
 };
 
 
-class BasicBlock
-{
+class BasicBlock {
 public:
-    explicit BasicBlock(IRBuilder &irbuilder);
+    BasicBlock();
+
     instList iList;
-    ValueContainer *ValCont;
-    Value* CreateBinaryInst(OpType _instop, Value* ValueL, Value* ValueR);
+    int InsertAtEnd(Value* value);
+    int InsertAtFront(Value* value);
 };
 
-class Inst : public Value
-{
+class Inst : public Value {
 public:
-    Inst(OpType _optype);
-    OpType instop;
+    explicit Inst(OpType _optype);
+
+
 };
 
-class BinaryInst : public Inst
-{
+class BinaryInst : public Inst {
 public:
     Value *ValueL, *ValueR;
-    BinaryInst(OpType _optype, Value* ValueL, Value* ValueR);
+
+    BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
 };
 
-class CallInst : public Inst
-{
-
-};
-
-class BranchInst : public Inst{
-
-};
-
-class JumpInst: public Inst{
-
-};
-
-class ReturnInst: public Inst{
-
-};
-
-class Use
-{
+class PhiInst : public Inst {
 public:
-    Inst* user;
-    Value* value;
-    Use(Inst* _user, Value* _value);
+    PhiContent phicont;
+    explicit PhiInst(const PhiParam&);
+    PhiInst();
+    Value* GetRelatedValue(BasicBlock* basicblock);
+    int InsertElem(BasicBlock* basicblock, Value* value);
+};
+
+class CallInst : public Inst {
+public:
+    Function *function;
+    CallInst(Function *_function);
+};
+
+class BranchInst : public Inst {
+
+};
+
+class JumpInst : public Inst {
+
+};
+
+class ReturnInst : public Inst {
+
+};
+
+class Use {
+public:
+    Inst *user;
+    Value *value;
+
+    Use(Inst *_user, Value *_value);
+};
+
+
+class ConstValue : public Value {
+public:
+    int value;
+    static ConstPool const_pool;
+
+    explicit ConstValue(int _value);
+
+    static ConstValue *getConstant(int _value);
 };
 
 
 
+#pragma clang diagnostic pop
