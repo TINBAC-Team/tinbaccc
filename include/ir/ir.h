@@ -27,6 +27,8 @@ namespace ir {
 
     class GlobalVar;
 
+    class Function;
+
     typedef std::vector<Value *> ValueContainer;
     typedef std::vector<BasicBlock *> BasicBlockContainer;
     typedef std::unordered_map<int, ConstValue *> ConstPool;
@@ -36,6 +38,7 @@ namespace ir {
     typedef std::list<Value *> instList;
     typedef std::set<Use *> UseList;
     typedef std::list<GlobalVar *> GlobalVarList;
+    typedef std::list<Function *> FunctionList;
     typedef std::list<BasicBlock *> BlockList;
 
 
@@ -48,11 +51,14 @@ namespace ir {
     public:
         IRBuilder();
 
-        BlockList bList;
+        FunctionList functionList;
         GlobalVarList globalVarList;
+        Function *curFunction;
         BasicBlock *CurBlock;
 
         BasicBlock *CreateBlock(); //create and enter the created block
+
+        Function *CreateFunction();
 
         BasicBlock *GetCurBlock() const;
 
@@ -86,6 +92,27 @@ namespace ir {
         ast::Decl *decl;
 
         explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
+    };
+
+    class FuncParam : Value {
+    public:
+        ast::Decl *decl;
+
+        FuncParam(ast::Decl *d) : Value(OpType::PARAM), decl(d) {}
+    };
+
+    class Function {
+    public:
+        BlockList bList;
+        std::vector<FuncParam *> params;
+
+        /**
+         * create a new block, add it to current function and return it.
+         * @return pointer to the created block.
+         */
+        BasicBlock *CreateBlock();
+
+        void setupParams(const std::vector<ast::Decl*> decls);
     };
 
     class BasicBlock {

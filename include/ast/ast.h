@@ -28,6 +28,8 @@ namespace ast {
 
         virtual void validate(ValidationContext &ctx);
 
+        virtual ir::Value *codegen(ir::IRBuilder &builder) { return nullptr; }
+
         virtual ~Node() {}
     };
 

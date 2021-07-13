@@ -5,10 +5,15 @@ namespace ir {
     ConstPool ConstValue::const_pool;
 
     BasicBlock *IRBuilder::CreateBlock() {
-        auto *BasicBlockp = new BasicBlock();
-        bList.push_back(BasicBlockp);
-        CurBlock = BasicBlockp;
-        return bList.back();
+        CurBlock = curFunction->CreateBlock();
+        return CurBlock;
+    }
+
+    Function *IRBuilder::CreateFunction() {
+        auto *pFunc = new Function();
+        functionList.push_back(pFunc);
+        curFunction = pFunc;
+        return pFunc;
     }
 
     BasicBlock *IRBuilder::GetCurBlock() const {
@@ -35,6 +40,17 @@ namespace ir {
         GlobalVar *var = new GlobalVar(decl);
         globalVarList.push_back(var);
         return var;
+    }
+
+    BasicBlock *Function::CreateBlock() {
+        auto *BasicBlockp = new BasicBlock();
+        bList.push_back(BasicBlockp);
+        return bList.back();
+    }
+
+    void Function::setupParams(const std::vector<ast::Decl *> decls) {
+        for (auto i:decls)
+            params.emplace_back(new FuncParam(i));
     }
 
     Value::Value(OpType _optype) {

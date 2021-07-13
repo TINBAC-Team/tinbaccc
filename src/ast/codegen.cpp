@@ -15,7 +15,18 @@ namespace ast {
         return nullptr; // There's no ir::Value* for a module
     }
 
-    ir::Value * Function::codegen(ir::IRBuilder &builder) {
+    ir::Value *Function::codegen(ir::IRBuilder &builder) {
+        ir::Function *irFunc = builder.CreateFunction();
+        irFunc->setupParams(params);
+        // LLVM requires that the first block must have no predecessors. Create it here.
+        builder.CreateBlock();
+        return block->codegen(builder);
+    }
+
+    ir::Value *Block::codegen(ir::IRBuilder &builder) {
+        for (auto i:entries)
+            i->codegen(builder);
+        // Block doesn't produce a single value. It produces several BBs instead.
         return nullptr;
     }
 
