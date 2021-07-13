@@ -154,6 +154,8 @@ namespace ast {
         void validate(ValidationContext &ctx) override;
 
         void expand_array();
+
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class FuncCall;
