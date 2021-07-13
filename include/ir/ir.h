@@ -10,152 +10,169 @@
 
 namespace ast {
     class Function;
+
     class Decl;
 }
 
-class Inst;
+namespace ir {
+    class Inst;
 
-class Use;
+    class Use;
 
-class BasicBlock;
+    class BasicBlock;
 
-class Value;
+    class Value;
 
-class ConstValue;
+    class ConstValue;
 
-class GlobalVar;
+    class GlobalVar;
 
-typedef std::vector<Value *> ValueContainer;
-typedef std::vector<BasicBlock *> BasicBlockContainer;
-typedef std::unordered_map<int, ConstValue *> ConstPool;
-typedef std::vector <std::pair<BasicBlock*,Value*> > PhiParam;
-typedef std::unordered_map <BasicBlock*, Value* > PhiContent;
+    typedef std::vector<Value *> ValueContainer;
+    typedef std::vector<BasicBlock *> BasicBlockContainer;
+    typedef std::unordered_map<int, ConstValue *> ConstPool;
+    typedef std::vector<std::pair<BasicBlock *, Value *> > PhiParam;
+    typedef std::unordered_map<BasicBlock *, Value *> PhiContent;
 
-typedef std::list<Value *> instList;
-typedef std::set<Use *> UseList;
-typedef std::list<GlobalVar *> GlobalVarList;
-typedef std::list<BasicBlock *> BlockList;
+    typedef std::list<Value *> instList;
+    typedef std::set<Use *> UseList;
+    typedef std::list<GlobalVar *> GlobalVarList;
+    typedef std::list<BasicBlock *> BlockList;
 
 
-enum class OpType {
+    enum class OpType {
 #include "allop.inc"
-};
+    };
 
 
-class IRBuilder {
-public:
-    IRBuilder();
+    class IRBuilder {
+    public:
+        IRBuilder();
 
-    BlockList bList;
-    GlobalVarList globalVarList;
-    BasicBlock *CurBlock;
+        BlockList bList;
+        GlobalVarList globalVarList;
+        BasicBlock *CurBlock;
 
-    BasicBlock *CreateBlock(); //create and enter the created block
+        BasicBlock *CreateBlock(); //create and enter the created block
 
-    BasicBlock *GetCurBlock() const;
+        BasicBlock *GetCurBlock() const;
 
-    Value* CreateBinaryInst(Value* _ValueL, Value* _ValueR, OpType optype);
-    Value* CreateLoadInst();
-    Value* CreateCallInst();
-    Value* CreateGlobalVar(ast::Decl *decl);
-    Value *getConstant(int _value);
-    Value *getConstant(int valueL, int valueR, OpType optype);
-};
+        Value *CreateBinaryInst(Value *_ValueL, Value *_ValueR, OpType optype);
 
-class Value {
-public:
-    UseList uList;
-    OpType optype;
-    Value(OpType _optype);
+        Value *CreateLoadInst();
 
-    int addUse(Use *use);
-    virtual ~Value();
-};
+        Value *CreateCallInst();
 
-class GlobalVar : public Value {
-public:
-    ast::Decl *decl;
+        Value *CreateGlobalVar(ast::Decl *decl);
 
-    explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
-};
+        Value *getConstant(int _value);
 
-class BasicBlock {
-public:
-    BasicBlock();
+        Value *getConstant(int valueL, int valueR, OpType optype);
+    };
 
-    instList iList;
-    int InsertAtEnd(Value* value);
-    int InsertAtFront(Value* value);
-};
+    class Value {
+    public:
+        UseList uList;
+        OpType optype;
 
-class Inst : public Value {
-public:
-    explicit Inst(OpType _optype);
-    ~Inst() override;
-};
+        Value(OpType _optype);
 
-class BinaryInst : public Inst {
-public:
-    Value *ValueL, *ValueR;
+        int addUse(Use *use);
 
-    BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
-};
+        virtual ~Value();
+    };
 
-class PhiInst : public Inst {
-public:
-    PhiContent phicont;
-    explicit PhiInst(const PhiParam&);
-    PhiInst();
-    Value* GetRelatedValue(BasicBlock* basicblock);
-    int InsertElem(BasicBlock* basicblock, Value* value);
-};
+    class GlobalVar : public Value {
+    public:
+        ast::Decl *decl;
 
-class CallInst : public Inst {
-public:
-    ast::Function *function;
-    explicit CallInst(ast::Function *_function);
-};
+        explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
+    };
 
-class BranchInst : public Inst {
+    class BasicBlock {
+    public:
+        BasicBlock();
 
-};
+        instList iList;
 
-class JumpInst : public Inst {
+        int InsertAtEnd(Value *value);
 
-};
+        int InsertAtFront(Value *value);
+    };
 
-class ReturnInst : public Inst {
+    class Inst : public Value {
+    public:
+        explicit Inst(OpType _optype);
 
-};
+        ~Inst() override;
+    };
 
-class AccessInst: public Inst{
+    class BinaryInst : public Inst {
+    public:
+        Value *ValueL, *ValueR;
 
-};
+        BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
+    };
 
-class LoadInst: public AccessInst{
+    class PhiInst : public Inst {
+    public:
+        PhiContent phicont;
 
-};
+        explicit PhiInst(const PhiParam &);
+
+        PhiInst();
+
+        Value *GetRelatedValue(BasicBlock *basicblock);
+
+        int InsertElem(BasicBlock *basicblock, Value *value);
+    };
+
+    class CallInst : public Inst {
+    public:
+        ast::Function *function;
+
+        explicit CallInst(ast::Function *_function);
+    };
+
+    class BranchInst : public Inst {
+
+    };
+
+    class JumpInst : public Inst {
+
+    };
+
+    class ReturnInst : public Inst {
+
+    };
+
+    class AccessInst : public Inst {
+
+    };
+
+    class LoadInst : public AccessInst {
+
+    };
 
 
+    class Use {
+    public:
+        Inst *user;
+        Value *value;
 
-class Use {
-public:
-    Inst *user;
-    Value *value;
-
-    Use(Inst *_user, Value *_value);
-};
+        Use(Inst *_user, Value *_value);
+    };
 
 
-class ConstValue : public Value {
-public:
-    int value;
-    static ConstPool const_pool;
+    class ConstValue : public Value {
+    public:
+        int value;
+        static ConstPool const_pool;
 
-    explicit ConstValue(int _value);
-    ~ConstValue() override;
+        explicit ConstValue(int _value);
 
-};
+        ~ConstValue() override;
 
+    };
+}
 #pragma clang diagnostic pop
 #endif //TINBACCC_IR_H

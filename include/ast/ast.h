@@ -9,8 +9,11 @@
 #include <iostream>
 #include <fstream>
 
-class Value;
-class IRBuilder;
+namespace ir {
+    class Value;
+
+    class IRBuilder;
+}
 
 namespace ast {
     class ValidationContext;
@@ -44,7 +47,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Exp;
@@ -81,7 +84,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class LVal : public Node {
@@ -106,7 +109,7 @@ namespace ast {
 
         int get_value();
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class FuncFParam;
@@ -152,7 +155,7 @@ namespace ast {
 
         void expand_array();
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class FuncCall;
@@ -214,7 +217,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value * codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Cond : public Node {
@@ -233,7 +236,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class FuncCall : public Node {
@@ -254,7 +257,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Block;
@@ -276,7 +279,7 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Function : public Node {
@@ -304,7 +307,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class Stmt : public Node {
@@ -328,7 +331,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class AssignmentStmt : public Stmt {
@@ -347,7 +350,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class EvalStmt : public Stmt {
@@ -364,7 +367,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class IfStmt : public Stmt {
@@ -387,7 +390,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class WhileStmt : public Stmt {
@@ -407,21 +410,21 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class BreakStmt : public Stmt {
     public:
         void print(std::ofstream &ofd);
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class ContinueStmt : public Stmt {
     public:
         void print(std::ofstream &ofd);
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 
     class ReturnStmt : public Stmt {
@@ -439,7 +442,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        Value* codegen(IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder);
     };
 }
 #endif //TINBACCC_AST_H

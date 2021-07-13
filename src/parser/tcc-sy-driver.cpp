@@ -44,6 +44,6 @@ void tcc_sy_driver::validate_ast() {
 }
 
 void tcc_sy_driver::generate_code() {
-    IRBuilder builder;
+    ir::IRBuilder builder;
     comp_unit->codegen(builder);
 }
