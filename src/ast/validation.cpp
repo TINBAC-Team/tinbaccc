@@ -40,7 +40,8 @@ namespace ast {
             }
 
             // expand initval
-            expand_array();
+            if(initval)
+                expand_array();
         } else if (initval) {
             if (initval->exp)
                 initval_expanded.emplace_back(initval->exp);
@@ -55,6 +56,7 @@ namespace ast {
     void Decl::expand_array() {
         initval_expanded.resize(array_multipliers[0]);
         int offset = 0;
+        initval->fill_array(0, offset, array_multipliers, initval_expanded);
     }
 
     void InitVal::validate(ValidationContext &ctx) {
@@ -69,6 +71,30 @@ namespace ast {
                     is_const = false;
             }
         }
+    }
+
+    void InitVal::fill_array(int dim, int &offset, const std::vector<int> &dims, std::vector<Exp *> &dst_vals) {
+        int block_offs = offset / dims[dim];
+        int block_start = block_offs * dims[dim];
+        int block_end = (block_offs + 1) * dims[dim];
+        int block_size = (dim == dims.size() - 1 ? 1 : dims[dim + 1]);
+        if (exp)
+            throw std::runtime_error("array initialized with a single variable.");
+        if (block_start != offset)
+            throw std::runtime_error("array isn't filled at it's start boundary, check the code!");
+        for (auto i:vals) {
+            if (offset >= block_end)
+                throw std::runtime_error("too many values.");
+            if (i->exp) {
+                dst_vals[offset++] = i->exp;
+            } else {
+                while (offset % block_size)
+                    dst_vals[offset++] = nullptr;
+                i->fill_array(dim + 1, offset, dims, dst_vals);
+            }
+        }
+        while (offset < block_end)
+            dst_vals[offset++] = nullptr;
     }
 
     void LVal::validate(ValidationContext &ctx) {

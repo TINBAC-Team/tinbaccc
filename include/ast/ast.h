@@ -63,6 +63,16 @@ namespace ast {
 
         void print(std::ofstream &ofd);
 
+        /**
+         * fill_array: 填充数组初始值
+         *
+         * @param dim 当前填充第几层的数组
+         * @param offset vals待填充的偏移量
+         * @param dims 数组展开后各维度
+         * @param dst_vals 展开数值列表
+         */
+        void fill_array(int dim, int &offset, const std::vector<int> &dims, std::vector<Exp *> &dst_vals);
+
         void validate(ValidationContext &ctx) override;
     };
 
