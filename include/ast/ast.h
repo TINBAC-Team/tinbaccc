@@ -47,11 +47,11 @@ namespace ast {
     public:
         Exp *exp; // invalid when it's nullptr
         std::vector<InitVal *> vals;
+        bool is_const;
 
         InitVal(Exp *e = nullptr) : exp(e) {}
 
-        InitVal(InitVal *init) {
-            InitVal();
+        InitVal(InitVal *init) : exp(nullptr) {
             vals.emplace_back(init);
         }
 

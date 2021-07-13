@@ -10,8 +10,7 @@ namespace ast {
         Decl *decl;
         Function *func;
         for (const auto &node : this->entries) {
-            if ((decl = dynamic_cast<Decl *>(node)))
-                ctx.symbol_table.InsertVar(decl->name, decl);
+            if ((decl = dynamic_cast<Decl *>(node)));
             else if ((func = dynamic_cast<Function *>(node)))
                 ctx.symbol_table.InsertFunc(func->name, func);
             else
@@ -25,23 +24,32 @@ namespace ast {
         if (is_array()) {
             // array
         }
-        if (is_const && !initval)
-            throw std::runtime_error("Const val isn't initialized");
-        if (initval) {
-            this->validate_array();
-            this->expand_array();
-        }
-        ctx.symbol_table.InsertVar(name, this);
+        if (initval)
+            initval->validate(ctx);
+
+        if (is_const && !(initval && initval->is_const))
+            throw std::runtime_error("Const variable isn't initialized with const values");
+
+        if (ctx.symbol_table.InsertVar(name, this))
+            throw std::runtime_error(name + " is redefined.");
     }
 
-
-
     void InitVal::validate(ValidationContext &ctx) {
-        // do nothing
+        if (exp) {
+            exp->validate(ctx);
+            is_const = exp->op == Exp::Op::CONST_VAL;
+        } else {
+            is_const = true;
+            for (auto i:vals) {
+                i->validate(ctx);
+                if (!i->is_const)
+                    is_const = false;
+            }
+        }
     }
 
     void LVal::validate(ValidationContext &ctx) {
-        Decl* d = ctx.symbol_table.GetVar(name);
+        Decl *d = ctx.symbol_table.GetVar(name);
         if (!d)
             throw std::runtime_error("Unresolved lval: " + name);
         this->decl = d;
@@ -50,8 +58,6 @@ namespace ast {
     void Exp::validate(ValidationContext &ctx) {
         Node::validate(ctx);
     }
-
-
 
     void Cond::validate(ValidationContext &ctx) {
         exp->validate(ctx);
@@ -70,6 +76,7 @@ namespace ast {
     }
 
     void Function::validate(ValidationContext &ctx) {
+        // FIXME: Function params should be in the same scope as function body!
         ctx.symbol_table.EnterScope();
         try {
             for (const auto &node : this->params) {
@@ -86,9 +93,11 @@ namespace ast {
     }
 
     void Block::validate(ValidationContext &ctx) {
+        ctx.symbol_table.EnterScope();
         for (const auto &node : this->entries) {
             node->validate(ctx);
         }
+        ctx.symbol_table.ExitScope();
     }
 
     void AssignmentStmt::validate(ValidationContext &ctx) {
@@ -99,26 +108,11 @@ namespace ast {
 
     void IfStmt::validate(ValidationContext &ctx) {
         this->cond->validate(ctx);
-        if (this->true_block) {
-            ctx.symbol_table.EnterScope();
-            try {
-                this->true_block->validate(ctx);
-            } catch (std::runtime_error &ex) {
-                ctx.symbol_table.ExitScope();
-                throw ex;
-            }
-            ctx.symbol_table.ExitScope();
-        }
-        if (this->false_block) {
-            ctx.symbol_table.EnterScope();
-            try {
-                this->false_block->validate(ctx);
-            } catch (std::runtime_error &ex) {
-                ctx.symbol_table.ExitScope();
-                throw ex;
-            }
-        }
-        ctx.symbol_table.ExitScope();
+        if (this->true_block)
+            this->true_block->validate(ctx);
+
+        if (this->false_block)
+            this->false_block->validate(ctx);
     }
 
     void ReturnStmt::validate(ValidationContext &ctx) {
