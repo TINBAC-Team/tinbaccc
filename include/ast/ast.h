@@ -105,6 +105,7 @@ namespace ast {
     public:
         bool is_const;
         bool is_fparam;
+        bool is_global;
         // 数组展开后的数组各维度乘数
         std::vector<int> array_multipliers;
         // 数组展开后展开后的初始值
@@ -119,7 +120,7 @@ namespace ast {
         std::vector<Exp *> array_dims; //数组各维度长度，0维为单变量
 
         Decl(std::string n = "", InitVal *init = nullptr) : name(n), initval(init), is_const(false), is_fparam(false),
-                                                            type(VarType::INT) {}
+                                                            is_global(false), type(VarType::INT) {}
 
         Decl(FuncFParam *param);
 
@@ -130,6 +131,8 @@ namespace ast {
         }
 
         void add_dim(Exp *dim) { array_dims.emplace_back(dim); }
+
+        void set_global() { is_global = true; }
 
         void print(std::ofstream &ofd);
 

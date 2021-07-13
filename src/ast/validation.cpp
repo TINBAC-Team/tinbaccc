@@ -10,7 +10,8 @@ namespace ast {
         Decl *decl;
         Function *func;
         for (const auto &node : this->entries) {
-            if ((decl = dynamic_cast<Decl *>(node)));
+            if ((decl = dynamic_cast<Decl *>(node)))
+                decl->set_global();
             else if ((func = dynamic_cast<Function *>(node)))
                 ctx.symbol_table.InsertFunc(func->name, func);
             else
@@ -26,6 +27,9 @@ namespace ast {
         if (is_const && !(initval && initval->is_const))
             throw std::runtime_error("Const variable isn't initialized with const values");
 
+        if(is_global && initval && !initval->is_const)
+            throw std::runtime_error("Global variable isn't initialized with const values");
+
         if (is_array()) {
             // deal with multipliers first
             array_multipliers.resize(array_dims.size());
@@ -40,7 +44,7 @@ namespace ast {
             }
 
             // expand initval
-            if(initval)
+            if (initval)
                 expand_array();
         } else if (initval) {
             if (initval->exp)
