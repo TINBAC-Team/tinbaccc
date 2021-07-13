@@ -55,6 +55,17 @@ namespace ast {
         return 0;
     }
 
+    ir::Value *Decl::lookup_var_def(const ir::BasicBlock *b) {
+        auto got = var_defs.find(b);
+        if (got != var_defs.end())
+            return got->second;
+        return nullptr;
+    }
+
+    void Decl::set_var_def(const ir::BasicBlock *b, ir::Value *v) {
+        var_defs[b] = v;
+    }
+
     Exp::~Exp() noexcept {
         if (lval)
             delete lval;

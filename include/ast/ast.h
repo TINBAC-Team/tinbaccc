@@ -8,9 +8,12 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 namespace ir {
     class Value;
+
+    class BasicBlock;
 
     class IRBuilder;
 }
@@ -131,6 +134,7 @@ namespace ast {
         } type;
         InitVal *initval; //非空指针有效
         std::vector<Exp *> array_dims; //数组各维度长度，0维为单变量
+        std::unordered_map<const ir::BasicBlock *, ir::Value *> var_defs; // variable definition in BBs
 
         Decl(std::string n = "", InitVal *init = nullptr) : name(n), initval(init), is_const(false), is_fparam(false),
                                                             is_global(false), type(VarType::INT) {}
@@ -156,6 +160,10 @@ namespace ast {
         void expand_array();
 
         ir::Value *codegen(ir::IRBuilder &builder);
+
+        ir::Value *lookup_var_def(const ir::BasicBlock *b);
+
+        void set_var_def(const ir::BasicBlock *b, ir::Value *v);
     };
 
     class FuncCall;

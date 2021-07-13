@@ -15,7 +15,21 @@ namespace ast {
         return nullptr; // There's no ir::Value* for a module
     }
 
-    ir::Value *LVal::codegen(ir::IRBuilder &builder) {}
+    ir::Value *LVal::codegen(ir::IRBuilder &builder) {
+        if(decl->is_array()) {
+            // TODO: resolve and return its address.
+            return nullptr;
+        }
+
+        // Local Value Numbering: lookup variable's current definition and return it.
+        ir::Value *val =decl->lookup_var_def(builder.GetCurBlock());
+        if(val)
+            return val;
+        // TODO: Global Value Numbering: Lookup its definitions in BB predecessors and create Phi if needed.
+        return nullptr;
+    }
+
+    ir::Value *Decl::codegen(ir::IRBuilder &builder) {}
 
     ir::Value *Cond::codegen(ir::IRBuilder &builder) {
         return exp->codegen(builder);
@@ -38,7 +52,16 @@ namespace ast {
         return nullptr;
     }
 
-    ir::Value *AssignmentStmt::codegen(ir::IRBuilder &builder) {}
+    ir::Value *AssignmentStmt::codegen(ir::IRBuilder &builder) {
+        ir::Value *val = exp->codegen(builder);
+        if (lval->decl->is_array()) {
+            // TODO: calculate address and load its value
+        }
+
+        // Local Value Numbering: save its current defining IR
+        lval->decl->set_var_def(builder.GetCurBlock(), val);
+        return val;
+    }
 
     ir::Value *EvalStmt::codegen(ir::IRBuilder &builder) {
         return exp->codegen(builder);
