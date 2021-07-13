@@ -31,6 +31,11 @@ Value *IRBuilder::CreateBinaryInst(Value* _ValueL, Value* _ValueR, OpType optype
     return instp;
 }
 
+Value *IRBuilder::CreateGlobalVar(ast::Decl *decl) {
+    GlobalVar *var = new GlobalVar(decl);
+    globalVarList.push_back(var);
+    return var;
+}
 
 Value::Value(OpType _optype) {
     optype = _optype;

@@ -3,7 +3,19 @@
 
 namespace ast {
 
-    Value* CompUnit::codegen(IRBuilder &builder){
+    Value *CompUnit::codegen(IRBuilder &builder) {
+        Decl *decl;
+        Function *func;
+        for (auto node:entries) {
+            if ((decl = dynamic_cast<Decl *>(node)))
+                builder.CreateGlobalVar(decl);
+            else if ((func = dynamic_cast<Function *>(node)))
+                func->codegen(builder);
+        }
+        return nullptr; // There's no Value* for a module
+    }
+
+    Value * Function::codegen(IRBuilder &builder) {
         return nullptr;
     }
 
@@ -21,9 +33,9 @@ namespace ast {
             case Op::UNARY_PLUS:
                 return L;
             case Op::UNARY_MINUS:
-                return builder.CreateBinaryInst(L,builder.getConstant(0),OpType::SUB);
+                return builder.CreateBinaryInst(L, builder.getConstant(0), OpType::SUB);
             case Op::LOGIC_NOT:
-                return builder.CreateBinaryInst(L,builder.getConstant(0),OpType::NE);
+                return builder.CreateBinaryInst(L, builder.getConstant(0), OpType::NE);
 
             case Op::PLUS:
                 return builder.CreateBinaryInst(L, R, OpType::ADD);
@@ -37,22 +49,22 @@ namespace ast {
                 return builder.CreateBinaryInst(L, R, OpType::SREM);
 
             case Op::LESS_THAN:
-                return builder.CreateBinaryInst(L,R,OpType::SLT);
+                return builder.CreateBinaryInst(L, R, OpType::SLT);
             case Op::LESS_EQ:
-                return builder.CreateBinaryInst(L,R,OpType::SLE);
+                return builder.CreateBinaryInst(L, R, OpType::SLE);
             case Op::GREATER_THAN:
-                return builder.CreateBinaryInst(L,R,OpType::SGT);
+                return builder.CreateBinaryInst(L, R, OpType::SGT);
             case Op::GREATER_EQ:
-                return builder.CreateBinaryInst(L,R,OpType::SGE);
+                return builder.CreateBinaryInst(L, R, OpType::SGE);
             case Op::EQ:
-                return builder.CreateBinaryInst(L,R,OpType::EQ);
+                return builder.CreateBinaryInst(L, R, OpType::EQ);
             case Op::INEQ:
-                return builder.CreateBinaryInst(L,R,OpType::NE);
+                return builder.CreateBinaryInst(L, R, OpType::NE);
 
             case Op::LOGIC_AND:
-                return builder.CreateBinaryInst(L,R,OpType::AND);
+                return builder.CreateBinaryInst(L, R, OpType::AND);
             case Op::LOGIC_OR:
-                return builder.CreateBinaryInst(L,R,OpType::OR);
+                return builder.CreateBinaryInst(L, R, OpType::OR);
 
             case Op::CONST_VAL:
                 return builder.getConstant(get_value());

@@ -10,6 +10,7 @@
 
 namespace ast {
     class Function;
+    class Decl;
 }
 
 class Inst;
@@ -22,6 +23,8 @@ class Value;
 
 class ConstValue;
 
+class GlobalVar;
+
 typedef std::vector<Value *> ValueContainer;
 typedef std::vector<BasicBlock *> BasicBlockContainer;
 typedef std::unordered_map<int, ConstValue *> ConstPool;
@@ -30,6 +33,7 @@ typedef std::unordered_map <BasicBlock*, Value* > PhiContent;
 
 typedef std::list<Value *> instList;
 typedef std::set<Use *> UseList;
+typedef std::list<GlobalVar *> GlobalVarList;
 typedef std::list<BasicBlock *> BlockList;
 
 
@@ -43,6 +47,7 @@ public:
     IRBuilder();
 
     BlockList bList;
+    GlobalVarList globalVarList;
     BasicBlock *CurBlock;
 
     BasicBlock *CreateBlock(); //create and enter the created block
@@ -52,6 +57,7 @@ public:
     Value* CreateBinaryInst(Value* _ValueL, Value* _ValueR, OpType optype);
     Value* CreateLoadInst();
     Value* CreateCallInst();
+    Value* CreateGlobalVar(ast::Decl *decl);
     Value *getConstant(int _value);
     Value *getConstant(int valueL, int valueR, OpType optype);
 };
@@ -66,6 +72,12 @@ public:
     virtual ~Value();
 };
 
+class GlobalVar : public Value {
+public:
+    ast::Decl *decl;
+
+    explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
+};
 
 class BasicBlock {
 public:
