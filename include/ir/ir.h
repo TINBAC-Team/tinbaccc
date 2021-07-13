@@ -3,12 +3,14 @@
 #ifndef TINBACCC_IR_H
 #define TINBACCC_IR_H
 
-#include "ast/ast.h"
 #include <set>
 #include <vector>
 #include <list>
 #include <unordered_map>
-using ast::Function;
+
+namespace ast {
+    class Function;
+}
 
 class Inst;
 
@@ -98,8 +100,8 @@ public:
 
 class CallInst : public Inst {
 public:
-    Function *function;
-    explicit CallInst(Function *_function);
+    ast::Function *function;
+    explicit CallInst(ast::Function *_function);
 };
 
 class BranchInst : public Inst {

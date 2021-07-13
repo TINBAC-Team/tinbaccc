@@ -1,4 +1,5 @@
-#include "ir/ir.h"
+#include <ir/ir.h>
+#include <ast/ast.h>
 
 ConstPool ConstValue::const_pool;
 
@@ -154,6 +155,6 @@ int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
     return 0;
 }
 
-CallInst::CallInst(Function *_function) : Inst(OpType::CALL) {
+CallInst::CallInst(ast::Function *_function) : Inst(OpType::CALL) {
     function = _function;
 }
