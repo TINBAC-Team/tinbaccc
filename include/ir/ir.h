@@ -3,8 +3,6 @@
 #ifndef TINBACCC_IR_H
 #define TINBACCC_IR_H
 
-#endif //TINBACCC_IR_H
-
 #include "ast/ast.h"
 #include <set>
 #include <vector>
@@ -145,6 +143,5 @@ public:
 
 };
 
-
-
 #pragma clang diagnostic pop
+#endif //TINBACCC_IR_H
