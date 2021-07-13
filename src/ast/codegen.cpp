@@ -15,6 +15,14 @@ namespace ast {
         return nullptr; // There's no ir::Value* for a module
     }
 
+    ir::Value *LVal::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *Cond::codegen(ir::IRBuilder &builder) {
+        return exp->codegen(builder);
+    }
+
+    ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {}
+
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
         ir::Function *irFunc = builder.CreateFunction();
         irFunc->setupParams(params);
@@ -29,6 +37,22 @@ namespace ast {
         // Block doesn't produce a single value. It produces several BBs instead.
         return nullptr;
     }
+
+    ir::Value *AssignmentStmt::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *EvalStmt::codegen(ir::IRBuilder &builder) {
+        return exp->codegen(builder);
+    }
+
+    ir::Value *IfStmt::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *WhileStmt::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *BreakStmt::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *ContinueStmt::codegen(ir::IRBuilder &builder) {}
+
+    ir::Value *ReturnStmt::codegen(ir::IRBuilder &builder) {}
 
     ir::Value *Exp::codegen(ir::IRBuilder &builder) {
         ir::Value *L = nullptr, *R = nullptr;
@@ -80,9 +104,9 @@ namespace ast {
             case Op::CONST_VAL:
                 return builder.getConstant(get_value());
             case Op::LVAL:
-                return builder.CreateLoadInst(); //to be done
+                return lval->codegen(builder);
             case Op::FuncCall:
-                return builder.CreateCallInst(); //to be done
+                return funccall->codegen(builder);
             default:
                 throw std::runtime_error("Invalid op, exp codegen failed.");
         }
