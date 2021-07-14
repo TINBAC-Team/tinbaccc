@@ -64,10 +64,10 @@ namespace ir {
 
     }
 
-    Use::Use(Inst *_user, Value *_value) {
+    Use::Use(Value *_user, Value *_value) {
         user = _user;
         value = _value;
-        user->addUse(this);
+        value->addUse(this);
     }
 
 
@@ -81,6 +81,8 @@ namespace ir {
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) : Inst(_optype) {
         ValueL = _ValueL;
         ValueR = _ValueR;
+        new Use(this,_ValueL);
+        new Use(this,_ValueR);
     }
 
 
@@ -245,6 +247,7 @@ namespace ir {
 
     int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
         phicont[basicblock] = value;
+        new Use(this,value);
         return 0;
     }
 
@@ -266,6 +269,8 @@ namespace ir {
     GetElementPtrInst::GetElementPtrInst(Value *_arr, Value* _offset) : AccessInst(OpType::GETELEMPTR){
         arr = _arr;
         offset = _offset;
+        new Use(this,arr);
+        new Use(this,offset);
     }
     AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
 
@@ -279,10 +284,13 @@ namespace ir {
 
     LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD){
         ptr = _ptr;
+        new Use(this,ptr);
     }
     StoreInst::StoreInst(Value *_ptr, Value *_val) :AccessInst(OpType::STORE) {
         ptr = _ptr;
         val = _val;
+        new Use(this,ptr);
+        new Use(this,val);
     }
 
     Value * IRBuilder::CreateStoreInst(Value *ptr, Value *val) {

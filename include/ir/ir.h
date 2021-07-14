@@ -228,10 +228,10 @@ namespace ir {
 
     class Use {
     public:
-        Inst *user;
+        Value *user;
         Value *value;
 
-        Use(Inst *_user, Value *_value);
+        Use(Value *_user, Value *_value);
     };
 
 
