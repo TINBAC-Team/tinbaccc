@@ -53,10 +53,7 @@ namespace ir {
             params.emplace_back(new FuncParam(i));
     }
 
-    Value::Value(OpType _optype) {
-        optype = _optype;
-    }
-
+    Value::Value(OpType _optype) : optype(_optype), bb(nullptr) {}
 
     int Value::addUse(Use *use) {
         uList.insert(use);
@@ -93,14 +90,15 @@ namespace ir {
 
     int BasicBlock::InsertAtEnd(Value *value) {
         iList.push_back(value);
+        value->bb = this;
         return 0;
     }
 
     int BasicBlock::InsertAtFront(Value *value) {
         iList.push_front(value);
+        value->bb = this;
         return 0;
     }
-
 
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;

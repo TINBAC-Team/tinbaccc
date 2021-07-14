@@ -83,6 +83,7 @@ namespace ir {
     public:
         UseList uList;
         OpType optype;
+        BasicBlock *bb;
 
         Value(OpType _optype);
 
