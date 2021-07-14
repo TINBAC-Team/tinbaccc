@@ -42,6 +42,8 @@ namespace ast {
         // Using two arrays isn't possible as we need to preserve the order.
         std::vector<Node *> entries;
 
+        CompUnit();
+
         ~CompUnit();
 
         void append_decls(std::vector<ast::Decl *> entries);
@@ -145,6 +147,8 @@ namespace ast {
                                                             is_global(false), type(VarType::INT) {}
 
         Decl(FuncFParam *param);
+
+        static Decl *create_param(const std::string n, std::vector<Exp *> d, VarType t = VarType::INT);
 
         ~Decl();
 
@@ -314,6 +318,8 @@ namespace ast {
         }
 
         ~Function();
+
+        static Function *create_extern(Type t, std::string n, std::vector<Decl *> p);
 
         void print(std::ofstream &ofd);
 

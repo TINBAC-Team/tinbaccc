@@ -1,6 +1,37 @@
 #include <ast/ast.h>
 
 namespace ast {
+    CompUnit::CompUnit() {
+        entries.emplace_back(Function::create_extern(Function::Type::INT, "getint", {}));
+        entries.emplace_back(Function::create_extern(Function::Type::INT, "getch", {}));
+        entries.emplace_back(Function::create_extern(Function::Type::INT,
+                                                     "getarray",
+                                                     {Decl::create_param("a", {new Exp(0)})})
+        );
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "putint",
+                                                     {Decl::create_param("a", {})})
+        );
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "putch",
+                                                     {Decl::create_param("a", {})})
+        );
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "putarray",
+                                                     {Decl::create_param("n", {}),
+                                                      Decl::create_param("a", {new Exp(0)})})
+        );
+        // TODO: printf
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "_sysy_starttime",
+                                                     {Decl::create_param("lineno", {})})
+        );
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "_sysy_stoptime",
+                                                     {Decl::create_param("lineno", {})})
+        );
+    }
+
     CompUnit::~CompUnit() noexcept {
         for (auto i:entries)
             delete i;
@@ -47,6 +78,14 @@ namespace ast {
             delete i;
     }
 
+    Decl *Decl::create_param(const std::string n, std::vector<Exp *> d, VarType t) {
+        Decl *ret = new Decl(n);
+        ret->type = t;
+        ret->array_dims = std::move(d);
+        ret->is_fparam = true;
+        return ret;
+    }
+
     int Decl::get_value(int offset) {
         if (!is_const)
             throw std::runtime_error(name + "isn't a constant.");
@@ -87,6 +126,12 @@ namespace ast {
         for (auto i:params)
             delete i;
         delete block;
+    }
+
+    Function *Function::create_extern(Type t, std::string n, std::vector<Decl *> p) {
+        Function *ret = new Function(t, n, nullptr);
+        ret->params = std::move(p);
+        return ret;
     }
 
     void Block::append_nodes(std::vector<ast::Node *> entries) {

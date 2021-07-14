@@ -193,6 +193,9 @@ namespace ast {
     }
 
     void Function::print(std::ofstream &ofd) {
+        // skip external functions
+        if(!block)
+            return;
         int count_func = count;
         ofd << "\tnode" << count_func << "[label=\"Function\"];\n";
         if (type == Type::VOID)

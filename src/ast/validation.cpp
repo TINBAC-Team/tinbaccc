@@ -237,7 +237,8 @@ namespace ast {
             for (const auto &node : this->params) {
                 node->validate(ctx);
             }
-            this->block->validate(ctx);
+            if(block)
+                block->validate(ctx);
         } catch (std::runtime_error &ex) {
             // make sure leave scope
             ctx.symbol_table.ExitScope();
