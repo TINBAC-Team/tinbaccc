@@ -79,7 +79,7 @@ namespace ir {
 
     }
 
-    Use::Use(Value *_user, Value *_value) {
+    Use::Use(Value *_user, Value *_value) : value(nullptr) {
         user = _user;
         if(_value)
             use(_value);
