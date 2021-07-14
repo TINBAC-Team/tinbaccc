@@ -84,7 +84,7 @@ namespace ir {
     }
 
 
-    BasicBlock::BasicBlock() {
+    BasicBlock::BasicBlock() : sealed(true) {
 
     }
 
@@ -104,26 +104,67 @@ namespace ir {
         parentInsts.push_back(inst);
     }
 
-    Value * BasicBlock::getVariable(ast::Decl *decl, IRBuilder &builder) {
+    Value *BasicBlock::getVariable(ast::Decl *decl, IRBuilder &builder) {
         // Local Value Numbering: lookup variable's current definition and return it.
         ir::Value *val = decl->lookup_var_def(this);
         if (val)
             return val;
 
         // Global Value Numbering: Lookup its definitions in BB predecessors.
-        // For BBs with a single predecessor, get Value from its parent block.
-        if (parentInsts.size() == 1)
-            return parentInsts.front()->bb->getVariable(decl, builder);
-        // Otherwise we need to create a Phi for all its predecessors
-        if(parentInsts.size() > 1) {
+        // CFG incomplete
+        if (!sealed) {
+            // construct an operand-less Phi, fill its operands later during sealing.
+            PhiInst *phi = builder.CreatePhi();
+            // record it as the current definition.
+            incompletePhis[decl] = phi;
+            val = phi;
+        } else if (parentInsts.size() == 1) {
+            // CFG complete. There won't be unknown predecessors:
+            // For BBs with a single predecessor, get Value from its parent block.
+            val = parentInsts.front()->bb->getVariable(decl, builder);
+        } else if (parentInsts.size() > 1) {
+            // Otherwise we need to create a Phi for all its predecessors
             // construct an operand-less Phi...
-            val = builder.CreatePhi();
-            // ...and record it as Decl's current definition.
-            decl->set_var_def(this, val);
-            // TODO: we need more infrastructure work...
+            PhiInst *phi = builder.CreatePhi();
+            // ...and record it as Decl's current definition to break possible endless loop.
+            decl->set_var_def(this, phi);
+            val = addPhiOperands(decl, phi, builder);
+            // phi may be invalid at this point. Reassign it below.
         }
-        // Variable used without assignment...
-        return builder.getConstant(0);
+        decl->set_var_def(this, val);
+        return val;
+    }
+
+    Value *BasicBlock::addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder) {
+        for (auto pred:parentInsts)
+            phi->InsertElem(pred->bb, pred->bb->getVariable(decl, builder));
+        return tryRemoveTrivialPhi(phi, builder);
+    }
+
+    Value *BasicBlock::tryRemoveTrivialPhi(PhiInst *phi, IRBuilder &builder) {
+        Value *same = nullptr;
+        for (auto op_it:phi->phicont) {
+            Value *op = op_it.second;
+            if (op == same || op == phi)
+                continue; // first unique value or self-reference
+            if (same)
+                return phi; // The phi merges at least two values: not trivial
+            same = op;
+        }
+
+        if (!same) // The phi is unreachable or in the start block
+            same = builder.getConstant(0); // FIXME: Do we have an Undef?
+
+        // TODO: Replace all users of this Phi with same. We need Use/User for this.
+
+        delete phi;
+        return same;
+    }
+
+    void BasicBlock::sealBlock(IRBuilder &builder) {
+        for(auto phi_it:incompletePhis)
+            addPhiOperands(phi_it.first, phi_it.second, builder);
+        sealed = true;
     }
 
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
