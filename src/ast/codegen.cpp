@@ -207,11 +207,12 @@ namespace ast {
             L = builder.getConstant(lhs->get_value());
         else
             L = lhs->codegen(builder);
-        if (rhs->is_const())
-            R = builder.getConstant(rhs->get_value());
-        else
-            R = rhs->codegen(builder);
-
+        if (rhs) {
+            if (rhs->is_const())
+                R = builder.getConstant(rhs->get_value());
+            else
+                R = rhs->codegen(builder);
+        }
         if (!L || !R) return nullptr;
         switch (op) {
             case Op::UNARY_PLUS:
