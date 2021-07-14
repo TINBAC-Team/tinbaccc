@@ -130,6 +130,9 @@ namespace ir {
 
         instList iList;
         instList parentInsts;
+        // true when constructed. It should be manually unsealed for while entry.
+        bool sealed;
+        std::unordered_map<ast::Decl *, PhiInst *> incompletePhis;
 
         int InsertAtEnd(Value *value);
 
@@ -138,6 +141,13 @@ namespace ir {
         void addParentInst(Inst *inst);
 
         Value *getVariable(ast::Decl *decl, IRBuilder &builder);
+
+        void sealBlock(IRBuilder &builder);
+
+    private:
+        Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
+
+        Value *tryRemoveTrivialPhi(PhiInst *phi, IRBuilder &builder);
     };
 
     class Inst : public Value {
