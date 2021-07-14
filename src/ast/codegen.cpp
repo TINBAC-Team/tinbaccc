@@ -145,7 +145,9 @@ namespace ast {
         ir::BasicBlock *f_old = builder.FalseBlock;
         ir::BasicBlock *cont_old = builder.WhileContBlock;
         ir::BasicBlock *e_old = builder.EntryBlock;
-        builder.EntryBlock = builder.CreateBlock();
+        builder.EntryBlock = new ir::BasicBlock();
+        builder.CreateJumpInst(builder.EntryBlock);
+        builder.appendBlock(builder.EntryBlock);
         builder.WhileContBlock = new ir::BasicBlock();
         builder.TrueBlock = new ir::BasicBlock();
         builder.FalseBlock = builder.WhileContBlock;
