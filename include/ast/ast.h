@@ -264,7 +264,7 @@ namespace ast {
 
         FuncCall() {}
 
-        FuncCall(std::string n, int l = 0) : name(std::move(n)), lineno(l) {}
+        FuncCall(std::string n, int l = 0);
 
         ~FuncCall() {
             for (auto i:params)
@@ -276,6 +276,9 @@ namespace ast {
         void validate(ValidationContext &ctx) override;
 
         ir::Value *codegen(ir::IRBuilder &builder);
+
+    private:
+        void mangle_params();
     };
 
     class Block;

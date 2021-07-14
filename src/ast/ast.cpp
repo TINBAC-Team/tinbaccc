@@ -134,6 +134,23 @@ namespace ast {
         return ret;
     }
 
+    FuncCall::FuncCall(std::string n, int l) : name(std::move(n)), lineno(l) {
+        mangle_params();
+    }
+
+    void FuncCall::mangle_params() {
+        if (name == "starttime") {
+            name = "_sysy_starttime";
+            params.emplace_back(new Exp(lineno));
+        } else if (name == "stoptime") {
+            name = "_sysy_stoptime";
+            params.emplace_back(new Exp(lineno));
+        } else if (name == "putf") {
+            name = "printf";
+            throw std::runtime_error("putf isn't implemented yet.");
+        }
+    }
+
     void Block::append_nodes(std::vector<ast::Node *> entries) {
         this->entries.insert(std::end(this->entries), std::begin(entries), std::end(entries));
     }
