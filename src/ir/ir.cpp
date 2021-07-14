@@ -100,6 +100,32 @@ namespace ir {
         return 0;
     }
 
+    void BasicBlock::addParentInst(Inst *inst) {
+        parentInsts.push_back(inst);
+    }
+
+    Value * BasicBlock::getVariable(ast::Decl *decl, IRBuilder &builder) {
+        // Local Value Numbering: lookup variable's current definition and return it.
+        ir::Value *val = decl->lookup_var_def(this);
+        if (val)
+            return val;
+
+        // Global Value Numbering: Lookup its definitions in BB predecessors.
+        // For BBs with a single predecessor, get Value from its parent block.
+        if (parentInsts.size() == 1)
+            return parentInsts.front()->bb->getVariable(decl, builder);
+        // Otherwise we need to create a Phi for all its predecessors
+        if(parentInsts.size() > 1) {
+            // construct an operand-less Phi...
+            val = builder.CreatePhi();
+            // ...and record it as Decl's current definition.
+            decl->set_var_def(this, val);
+            // TODO: we need more infrastructure work...
+        }
+        // Variable used without assignment...
+        return builder.getConstant(0);
+    }
+
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
@@ -179,6 +205,13 @@ namespace ir {
     int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
         phicont[basicblock] = value;
         return 0;
+    }
+
+    PhiInst *IRBuilder::CreatePhi() {
+        auto *instp = new PhiInst();
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtFront(instp);
+        return instp;
     }
 
     CallInst::CallInst(ast::Function *_function) : Inst(OpType::CALL) {

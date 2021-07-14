@@ -29,6 +29,8 @@ namespace ir {
 
     class Function;
 
+    class PhiInst;
+
     typedef std::unordered_map<int, ConstValue *> ConstPool;
     typedef std::vector<std::pair<BasicBlock *, Value *> > PhiParam;
     typedef std::unordered_map<BasicBlock *, Value *> PhiContent;
@@ -38,7 +40,7 @@ namespace ir {
     typedef std::list<GlobalVar *> GlobalVarList;
     typedef std::list<Function *> FunctionList;
     typedef std::list<BasicBlock *> BlockList;
-
+    typedef std::list<PhiInst *> PhiList;
 
     enum class OpType {
 #include "allop.inc"
@@ -73,6 +75,8 @@ namespace ir {
         Value *CreateCallInst();
 
         Value *CreateGlobalVar(ast::Decl *decl);
+
+        PhiInst *CreatePhi();
 
         Value *getConstant(int _value);
 
@@ -125,10 +129,15 @@ namespace ir {
         BasicBlock();
 
         instList iList;
+        instList parentInsts;
 
         int InsertAtEnd(Value *value);
 
         int InsertAtFront(Value *value);
+
+        void addParentInst(Inst *inst);
+
+        Value *getVariable(ast::Decl *decl, IRBuilder &builder);
     };
 
     class Inst : public Value {

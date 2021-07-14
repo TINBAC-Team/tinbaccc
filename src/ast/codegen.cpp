@@ -41,12 +41,7 @@ namespace ast {
             else return ptr;
         }
 
-        // Local Value Numbering: lookup variable's current definition and return it.
-        ir::Value *val = decl->lookup_var_def(builder.GetCurBlock());
-        if (val)
-            return val;
-        // TODO: Global Value Numbering: Lookup its definitions in BB predecessors and create Phi if needed.
-        return nullptr;
+        return builder.GetCurBlock()->getVariable(decl, builder);
     }
 
     ir::Value *Decl::codegen(ir::IRBuilder &builder) {
