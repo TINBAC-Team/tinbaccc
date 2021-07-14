@@ -16,15 +16,15 @@ namespace ast {
     }
 
     ir::Value *LVal::resolve_addr(ir::IRBuilder &builder) {
-        int cur_dim_index = 0;
         ir::Value *offset_val = builder.getConstant(0);
-        for (auto &i:array_dims) {
-            dim_value.push_back(i->codegen(builder));
-            ir::Value *cur_dim_multiplier = builder.getConstant(decl->array_multipliers[cur_dim_index]);
+        size_t array_dim_cnt = array_dims.size();
+        for (size_t i = 0; i < array_dim_cnt; i++) {
+            dim_value.push_back(array_dims[i]->codegen(builder));
+            ir::Value *cur_dim_multiplier = builder.getConstant(
+                    i == array_dim_cnt - 1 ? 1 : decl->array_multipliers[i + 1]);
             ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
                                                                  ir::OpType::MUL);
             offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
-            cur_dim_index++;
         }
         return builder.CreateGetElementPtrInst(decl->addr, offset_val);
     }
