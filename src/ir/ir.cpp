@@ -169,9 +169,25 @@ namespace ir {
         if (!same) // The phi is unreachable or in the start block
             same = builder.getConstant(0); // FIXME: Do we have an Undef?
 
-        // TODO: Replace all users of this Phi with same. We need Use/User for this.
+        // Replace all users of this Phi with same
+        for (auto cur_use:phi->uList) {
+            if(cur_use->value == phi)
+                continue;
+            cur_use->use(same);
+        }
 
-        delete phi;
+        // Try to recursively remove all phi users, which might have become trivial
+        for (auto cur_use:phi->uList) {
+            if (cur_use->value == phi)
+                continue;
+            PhiInst *curphi = dynamic_cast<ir::PhiInst *>(cur_use->user);
+            if (curphi)
+                curphi->bb->tryRemoveTrivialPhi(curphi, builder);
+        }
+
+        // delete phi; //We can't do this yet...
+        // eraseInst should consume this PHI
+        phi->bb->eraseInst(phi);
         return same;
     }
 
@@ -179,6 +195,10 @@ namespace ir {
         for(auto phi_it:incompletePhis)
             addPhiOperands(phi_it.first, phi_it.second, builder);
         sealed = true;
+    }
+
+    void BasicBlock::eraseInst(Inst *inst) {
+        iList.remove(inst);
     }
 
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {

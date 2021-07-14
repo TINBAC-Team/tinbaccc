@@ -168,6 +168,8 @@ namespace ir {
 
         void sealBlock(IRBuilder &builder);
 
+        void eraseInst(Inst *inst);
+
     private:
         Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 
