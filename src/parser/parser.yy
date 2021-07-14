@@ -190,7 +190,7 @@ UnaryExp: PrimaryExp { $$ = $1; }
         | UnaryOp UnaryExp { $$ = new ast::Exp($1, $2); }
         ;
 
-FuncCall: IDENT "(" FuncRParams ")" { $$ = new ast::FuncCall($1); std::swap($$->params, $3); }
+FuncCall: IDENT "(" FuncRParams ")" { $$ = new ast::FuncCall($1, @$.end.line); std::swap($$->params, $3); }
         | IDENT "(" ")" { $$ = new ast::FuncCall($1); }
         ;
 

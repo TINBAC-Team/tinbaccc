@@ -167,7 +167,7 @@ namespace ast {
 
     void FuncCall::print(std::ofstream &ofd) {
         int count_funcall = count;
-        ofd << "\tnode" << count_funcall << "[label=\"FuncCall\"];\n";
+        ofd << "\tnode" << count_funcall << "[label=\"FuncCall@" << lineno << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"" << name << "\"];\n";
         ofd << "\tnode" << count_funcall << "->node" << count << ";\n";
         if (!params.empty()) {

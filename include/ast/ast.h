@@ -256,10 +256,11 @@ namespace ast {
     public:
         std::string name;
         std::vector<Exp *> params;
+        int lineno;
 
         FuncCall() {}
 
-        FuncCall(std::string n) : name(std::move(n)) {}
+        FuncCall(std::string n, int l = 0) : name(std::move(n)), lineno(l) {}
 
         ~FuncCall() {
             for (auto i:params)
