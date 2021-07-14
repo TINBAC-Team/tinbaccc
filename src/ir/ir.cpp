@@ -116,8 +116,11 @@ namespace ir {
         return constp;
     }
 
-    Value *IRBuilder::CreateLoadInst() {
-        return nullptr;
+    Value *IRBuilder::CreateLoadInst(Value* ptr) {
+        auto* instp = new LoadInst(ptr);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
     }
 
     Value *IRBuilder::CreateCallInst() {
@@ -153,6 +156,13 @@ namespace ir {
         }
     }
 
+    Value *IRBuilder::CreateAllocaInst(int _size) {
+        auto* instp = new AllocaInst(_size);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
+
     PhiInst::PhiInst(const PhiParam &phiparam) : Inst(OpType::PHI) {
         for (auto &i:phiparam) {
             phicont.insert(i);
@@ -175,5 +185,27 @@ namespace ir {
 
     CallInst::CallInst(ast::Function *_function) : Inst(OpType::CALL) {
         function = _function;
+    }
+
+    AllocaInst::AllocaInst(int _size) :Inst(OpType::ALLOCA){
+        size = _size;
+    }
+
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value* _offset) : AccessInst(OpType::GETELEMPTR){
+        arr = _arr;
+        offset = _offset;
+    }
+    AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
+
+    }
+    Value *IRBuilder::CreateGetElementPtrInst(Value* arr, Value* offset){
+        auto instp = new GetElementPtrInst(arr,offset);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
+
+    LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD){
+        ptr = _ptr;
     }
 }

@@ -16,20 +16,43 @@ namespace ast {
     }
 
     ir::Value *LVal::codegen(ir::IRBuilder &builder) {
-        if(decl->is_array()) {
-            // TODO: resolve and return its address.
+        if (decl->is_array()) {
+            size_t req_size = array_dims.size();
+            size_t decl_size = decl->array_dims.size();
+
+            ir::Value *offset_val = builder.getConstant(0);
+            int cur_dim_index = 0;
+            for (auto &i:array_dims) {
+                dim_value.push_back(i->codegen(builder));
+                ir::Value *cur_dim_multiplier = builder.getConstant(decl->array_multipliers[cur_dim_index]);
+                ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
+                                                                     ir::OpType::MUL);
+                offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
+                cur_dim_index++;
+            }
+            auto ptr = builder.CreateGetElementPtrInst(decl->addr, offset_val);
+            if (req_size == decl_size) //Get element ptr and load
+                return builder.CreateLoadInst(ptr);
+            else return ptr;
             return nullptr;
         }
 
         // Local Value Numbering: lookup variable's current definition and return it.
-        ir::Value *val =decl->lookup_var_def(builder.GetCurBlock());
-        if(val)
+        ir::Value *val = decl->lookup_var_def(builder.GetCurBlock());
+        if (val)
             return val;
         // TODO: Global Value Numbering: Lookup its definitions in BB predecessors and create Phi if needed.
         return nullptr;
     }
 
-    ir::Value *Decl::codegen(ir::IRBuilder &builder) {}
+    ir::Value *Decl::codegen(ir::IRBuilder &builder) {
+        if (!is_array()) return nullptr;
+        int flattened_size = 1;
+        for (auto &i:array_dims) {
+            flattened_size *= i->get_value();
+        }
+        return addr = builder.CreateAllocaInst(flattened_size);
+    }
 
     ir::Value *Cond::codegen(ir::IRBuilder &builder) {
         return exp->codegen(builder);

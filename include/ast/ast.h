@@ -95,6 +95,7 @@ namespace ast {
         Decl *decl;
         std::string name;
         std::vector<Exp *> array_dims;
+        std::vector<ir::Value *> dim_value;
 
         LVal(const std::string n = "") : name(n) {}
 
@@ -122,9 +123,13 @@ namespace ast {
         bool is_const;
         bool is_fparam;
         bool is_global;
+
+        //codegen生成后数组的地址
+        ir::Value* addr;
+
         // 数组展开后的数组各维度乘数
         std::vector<int> array_multipliers;
-        // 数组展开后展开后的初始值
+        // 数组展开后的初始值
         std::vector<Exp *> initval_expanded;
 
         std::string name;

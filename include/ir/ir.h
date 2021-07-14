@@ -29,8 +29,6 @@ namespace ir {
 
     class Function;
 
-    typedef std::vector<Value *> ValueContainer;
-    typedef std::vector<BasicBlock *> BasicBlockContainer;
     typedef std::unordered_map<int, ConstValue *> ConstPool;
     typedef std::vector<std::pair<BasicBlock *, Value *> > PhiParam;
     typedef std::unordered_map<BasicBlock *, Value *> PhiContent;
@@ -64,7 +62,11 @@ namespace ir {
 
         Value *CreateBinaryInst(Value *_ValueL, Value *_ValueR, OpType optype);
 
-        Value *CreateLoadInst();
+        Value *CreateAllocaInst(int _size);
+
+        Value *CreateGetElementPtrInst(Value* arr, Value* offset);
+
+        Value *CreateLoadInst(Value* ptr);
 
         Value *CreateCallInst();
 
@@ -173,13 +175,28 @@ namespace ir {
     };
 
     class AccessInst : public Inst {
-
+    public:
+        AccessInst(OpType _optype);
     };
 
     class LoadInst : public AccessInst {
-
+    public:
+        Value* ptr;
+        LoadInst(Value* _ptr);
     };
 
+    class AllocaInst : public Inst{
+    public:
+        int size;
+        AllocaInst(int _size);
+    };
+
+    class GetElementPtrInst : public AccessInst{
+    public:
+        Value* arr;
+        Value* offset;
+        GetElementPtrInst(Value* _arr, Value* _offset);
+    };
 
     class Use {
     public:
