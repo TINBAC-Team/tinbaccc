@@ -9,6 +9,11 @@ namespace ir {
         return CurBlock;
     }
 
+    void IRBuilder::appendBlock(BasicBlock *block) {
+        curFunction->appendBlock(block);
+        CurBlock = block;
+    }
+
     Function *IRBuilder::CreateFunction() {
         auto *pFunc = new Function();
         functionList.push_back(pFunc);
@@ -25,6 +30,7 @@ namespace ir {
         TrueBlock = nullptr;
         FalseBlock = nullptr;
         ContBlock = nullptr;
+        EntryBlock = nullptr;
     }
 
     Value *IRBuilder::CreateBinaryInst(Value *_ValueL, Value *_ValueR, OpType optype) {
@@ -47,8 +53,12 @@ namespace ir {
 
     BasicBlock *Function::CreateBlock() {
         auto *BasicBlockp = new BasicBlock();
-        bList.push_back(BasicBlockp);
-        return bList.back();
+        appendBlock(BasicBlockp);
+        return BasicBlockp;
+    }
+
+    void Function::appendBlock(BasicBlock *block) {
+        bList.push_back(block);
     }
 
     void Function::setupParams(const std::vector<ast::Decl *> decls) {

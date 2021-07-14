@@ -55,11 +55,15 @@ namespace ir {
         GlobalVarList globalVarList;
         Function *curFunction;
         BasicBlock *CurBlock;
-        BasicBlock *TrueBlock, *FalseBlock, *ContBlock;
+        // Blocks for control flow instructions
+        // True/FalseBlock are for condition translation
+        // ContBlock is the block after current if
+        // EntryBlock is the while condition entry
+        BasicBlock *TrueBlock, *FalseBlock, *ContBlock, *WhileContBlock, *EntryBlock;
 
         BasicBlock *CreateBlock(); //create and enter the created block
 
-        void *appendBlock(BasicBlock *block); // append a manually created block
+        void appendBlock(BasicBlock *block); // append a manually created block
 
         Function *CreateFunction();
 
@@ -138,6 +142,8 @@ namespace ir {
          * @return pointer to the created block.
          */
         BasicBlock *CreateBlock();
+
+        void appendBlock(BasicBlock *block); // append a manually created block
 
         void setupParams(const std::vector<ast::Decl*> decls);
     };

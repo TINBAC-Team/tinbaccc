@@ -94,18 +94,91 @@ namespace ast {
         return exp->codegen(builder);
     }
 
-    ir::Value *IfStmt::codegen(ir::IRBuilder &builder) {}
+    ir::Value *IfStmt::codegen(ir::IRBuilder &builder) {
+        ir::BasicBlock *t_old = builder.TrueBlock, *f_old = builder.FalseBlock, *cont_old = builder.ContBlock;
+        builder.ContBlock = new ir::BasicBlock();
+        if(true_block)
+            builder.TrueBlock = new ir::BasicBlock();
+        else
+            builder.TrueBlock = builder.ContBlock;
 
-    ir::Value *WhileStmt::codegen(ir::IRBuilder &builder) {}
+        if(false_block)
+            builder.FalseBlock = new ir::BasicBlock();
+        else
+            builder.FalseBlock = builder.ContBlock;
 
-    ir::Value *BreakStmt::codegen(ir::IRBuilder &builder) {}
+        ir::Value *cond_val = cond->codegen(builder);
+        builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
 
-    ir::Value *ContinueStmt::codegen(ir::IRBuilder &builder) {}
+        if(true_block) {
+            builder.appendBlock(builder.TrueBlock);
+            true_block->codegen(builder);
+            builder.CreateJumpInst(builder.ContBlock);
+        }
+
+        if(false_block) {
+            builder.appendBlock(builder.FalseBlock);
+            false_block->codegen(builder);
+            builder.CreateJumpInst(builder.ContBlock);
+        }
+
+        builder.appendBlock(builder.ContBlock);
+        builder.TrueBlock = t_old;
+        builder.FalseBlock = f_old;
+        builder.ContBlock = cont_old;
+
+        return nullptr;
+    }
+
+    ir::Value *WhileStmt::codegen(ir::IRBuilder &builder) {
+        ir::BasicBlock *t_old = builder.TrueBlock;
+        ir::BasicBlock *f_old = builder.FalseBlock;
+        ir::BasicBlock *cont_old = builder.WhileContBlock;
+        ir::BasicBlock *e_old = builder.EntryBlock;
+        builder.EntryBlock = builder.CreateBlock();
+        builder.WhileContBlock = new ir::BasicBlock();
+        builder.TrueBlock = new ir::BasicBlock();
+        builder.FalseBlock = builder.WhileContBlock;
+
+        // incomplete CFG: TrueBlock can enter EntryBlock after its execution
+        builder.EntryBlock->sealed = false;
+        ir::Value *cond_val = cond->codegen(builder);
+        builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
+
+        builder.appendBlock(builder.TrueBlock);
+        block->codegen(builder);
+        builder.CreateJumpInst(builder.EntryBlock);
+        builder.EntryBlock->sealBlock(builder);
+        builder.appendBlock(builder.WhileContBlock);
+        builder.EntryBlock = e_old;
+        builder.WhileContBlock = cont_old;
+        builder.FalseBlock = f_old;
+        builder.TrueBlock = t_old;
+        return nullptr;
+    }
+
+    ir::Value *BreakStmt::codegen(ir::IRBuilder &builder) {
+        if(!builder.EntryBlock)
+            throw std::runtime_error("break outside a loop.");
+        auto ret = builder.CreateJumpInst(builder.WhileContBlock);
+        // new BB after Jump
+        builder.CreateBlock();
+        return ret;
+    }
+
+    ir::Value *ContinueStmt::codegen(ir::IRBuilder &builder) {
+        if(!builder.EntryBlock)
+            throw std::runtime_error("continue outside a loop.");
+        auto ret = builder.CreateJumpInst(builder.EntryBlock);
+        // new BB after Jump
+        builder.CreateBlock();
+        return ret;
+    }
 
     ir::Value *ReturnStmt::codegen(ir::IRBuilder &builder) {
-        if(ret)
-            return builder.CreateReturnInst(ret->codegen(builder));
-        return builder.CreateReturnInst(nullptr);
+        ir::Value *retInst = builder.CreateReturnInst(ret ? ret->codegen(builder) : nullptr);
+        builder.CreateBlock();
+        return retInst;
     }
 
     ir::Value *Exp::codegen(ir::IRBuilder &builder) {
