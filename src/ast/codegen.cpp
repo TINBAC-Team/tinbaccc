@@ -50,12 +50,16 @@ namespace ast {
     }
 
     ir::Value *Decl::codegen(ir::IRBuilder &builder) {
-        if (!is_array()) return nullptr;
-        int flattened_size = 1;
-        for (auto &i:array_dims) {
-            flattened_size *= i->get_value();
+        if (is_array()) {
+            addr = builder.CreateAllocaInst(array_multipliers[0]);
+            if (initval);// TODO: fill initial values somehow
+            return addr;
+        } else if (initval) {
+            ir::Value *val = initval_expanded[0]->codegen(builder);
+            set_var_def(builder.GetCurBlock(), val);
+            return val;
         }
-        return addr = builder.CreateAllocaInst(flattened_size);
+        return nullptr;
     }
 
     ir::Value *Cond::codegen(ir::IRBuilder &builder) {
@@ -83,7 +87,7 @@ namespace ast {
         ir::Value *val = exp->codegen(builder);
         if (lval->decl->is_array()) {
             auto ptr = lval->resolve_addr(builder);
-            return builder.CreateStoreInst(ptr,exp->codegen(builder));
+            return builder.CreateStoreInst(ptr, exp->codegen(builder));
         }
 
         // Local Value Numbering: save its current defining IR
