@@ -77,6 +77,8 @@ namespace ir {
 
         Value *CreateCallInst();
 
+        Value *CreateReturnInst(Value *val);
+
         Value *CreateGlobalVar(ast::Decl *decl);
 
         PhiInst *CreatePhi();
@@ -206,7 +208,9 @@ namespace ir {
     };
 
     class ReturnInst : public Inst {
-
+    public:
+        Use val;
+        ReturnInst(Value *v) : Inst(OpType::RETURN), val(this, v) {}
     };
 
     class AccessInst : public Inst {

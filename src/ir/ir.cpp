@@ -192,6 +192,13 @@ namespace ir {
         return instp;
     }
 
+    Value *IRBuilder::CreateReturnInst(Value *val) {
+        auto *instp = new ReturnInst(val);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
+
     Value *IRBuilder::CreateCallInst() {
         return nullptr;
     }

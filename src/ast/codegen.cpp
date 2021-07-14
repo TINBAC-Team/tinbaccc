@@ -103,7 +103,9 @@ namespace ast {
     ir::Value *ContinueStmt::codegen(ir::IRBuilder &builder) {}
 
     ir::Value *ReturnStmt::codegen(ir::IRBuilder &builder) {
-
+        if(ret)
+            return builder.CreateReturnInst(ret->codegen(builder));
+        return builder.CreateReturnInst(nullptr);
     }
 
     ir::Value *Exp::codegen(ir::IRBuilder &builder) {
