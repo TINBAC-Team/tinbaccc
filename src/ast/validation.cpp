@@ -27,7 +27,7 @@ namespace ast {
         if (is_const && !(initval && initval->is_const))
             throw std::runtime_error("Const variable isn't initialized with const values");
 
-        if(is_global && initval && !initval->is_const)
+        if (is_global && initval && !initval->is_const)
             throw std::runtime_error("Global variable isn't initialized with const values");
 
         if (is_array()) {
@@ -141,10 +141,15 @@ namespace ast {
             if (!rhs->is_const())
                 const_folding_possible = false;
         }
-        if (lval) {
+        if (op == Op::LVAL) {
             lval->validate(ctx);
             if (!lval->is_const())
                 const_folding_possible = false;
+        }
+
+        if (op == Op::FuncCall) {
+            funccall->validate(ctx);
+            return;
         }
 
         if (const_folding_possible) {
