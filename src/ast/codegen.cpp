@@ -66,6 +66,10 @@ namespace ast {
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
         ir::Function *irFunc = builder.CreateFunction();
         irFunc->setupParams(params);
+
+        // TODO: external functions?
+        if(!block)
+            return nullptr;
         // LLVM requires that the first block must have no predecessors. Create it here.
         builder.CreateBlock();
         return block->codegen(builder);
@@ -183,12 +187,24 @@ namespace ast {
 
     ir::Value *Exp::codegen(ir::IRBuilder &builder) {
         ir::Value *L = nullptr, *R = nullptr;
-        if (!lhs->is_const())
+        switch (op) {
+            case Op::CONST_VAL:
+                return builder.getConstant(get_value());
+            case Op::LVAL:
+                return lval->codegen(builder);
+            case Op::FuncCall:
+                return funccall->codegen(builder);
+            default:
+                break;
+        }
+        if (lhs->is_const())
             L = builder.getConstant(lhs->get_value());
-        else L = lhs->codegen(builder);
-        if (!rhs->is_const())
+        else
+            L = lhs->codegen(builder);
+        if (rhs->is_const())
             R = builder.getConstant(rhs->get_value());
-        else R = rhs->codegen(builder);
+        else
+            R = rhs->codegen(builder);
 
         if (!L || !R) return nullptr;
         switch (op) {
@@ -227,13 +243,6 @@ namespace ast {
                 return codegen_and(builder);
             case Op::LOGIC_OR:
                 return codegen_or(builder);
-
-            case Op::CONST_VAL:
-                return builder.getConstant(get_value());
-            case Op::LVAL:
-                return lval->codegen(builder);
-            case Op::FuncCall:
-                return funccall->codegen(builder);
             default:
                 throw std::runtime_error("Invalid op, exp codegen failed.");
         }

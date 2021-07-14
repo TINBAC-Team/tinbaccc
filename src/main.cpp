@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
     if (ast_path)
         driver.print_ast(ast_path);
 
+    driver.generate_code();
     return 0;
 }
 
