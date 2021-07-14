@@ -68,6 +68,8 @@ namespace ir {
 
         Value *CreateLoadInst(Value* ptr);
 
+        Value *CreateStoreInst(Value* ptr, Value* val);
+
         Value *CreateCallInst();
 
         Value *CreateGlobalVar(ast::Decl *decl);
@@ -183,6 +185,12 @@ namespace ir {
     public:
         Value* ptr;
         LoadInst(Value* _ptr);
+    };
+
+    class StoreInst : public AccessInst{
+    public:
+        Value* ptr, *val;
+        StoreInst(Value* _ptr, Value* _val);
     };
 
     class AllocaInst : public Inst{

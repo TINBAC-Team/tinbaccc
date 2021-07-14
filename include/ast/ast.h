@@ -115,6 +115,8 @@ namespace ast {
 
         int get_value();
 
+        ir::Value *resolve_addr(ir::IRBuilder &builder);
+
         ir::Value *codegen(ir::IRBuilder &builder);
     };
 

@@ -208,4 +208,15 @@ namespace ir {
     LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD){
         ptr = _ptr;
     }
+    StoreInst::StoreInst(Value *_ptr, Value *_val) :AccessInst(OpType::STORE) {
+        ptr = _ptr;
+        val = _val;
+    }
+
+    Value * IRBuilder::CreateStoreInst(Value *ptr, Value *val) {
+        auto instp = new StoreInst(ptr,val);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
 }

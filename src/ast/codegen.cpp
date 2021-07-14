@@ -15,26 +15,30 @@ namespace ast {
         return nullptr; // There's no ir::Value* for a module
     }
 
+    ir::Value *LVal::resolve_addr(ir::IRBuilder &builder) {
+        int cur_dim_index = 0;
+        ir::Value *offset_val = builder.getConstant(0);
+        for (auto &i:array_dims) {
+            dim_value.push_back(i->codegen(builder));
+            ir::Value *cur_dim_multiplier = builder.getConstant(decl->array_multipliers[cur_dim_index]);
+            ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
+                                                                 ir::OpType::MUL);
+            offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
+            cur_dim_index++;
+        }
+        return builder.CreateGetElementPtrInst(decl->addr, offset_val);
+    }
+
     ir::Value *LVal::codegen(ir::IRBuilder &builder) {
         if (decl->is_array()) {
             size_t req_size = array_dims.size();
             size_t decl_size = decl->array_dims.size();
 
-            ir::Value *offset_val = builder.getConstant(0);
-            int cur_dim_index = 0;
-            for (auto &i:array_dims) {
-                dim_value.push_back(i->codegen(builder));
-                ir::Value *cur_dim_multiplier = builder.getConstant(decl->array_multipliers[cur_dim_index]);
-                ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
-                                                                     ir::OpType::MUL);
-                offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
-                cur_dim_index++;
-            }
-            auto ptr = builder.CreateGetElementPtrInst(decl->addr, offset_val);
-            if (req_size == decl_size) //Get element ptr and load
+            auto ptr = resolve_addr(builder);
+
+            if (req_size == decl_size)
                 return builder.CreateLoadInst(ptr);
             else return ptr;
-            return nullptr;
         }
 
         // Local Value Numbering: lookup variable's current definition and return it.
@@ -78,7 +82,8 @@ namespace ast {
     ir::Value *AssignmentStmt::codegen(ir::IRBuilder &builder) {
         ir::Value *val = exp->codegen(builder);
         if (lval->decl->is_array()) {
-            // TODO: calculate address and load its value
+            auto ptr = lval->resolve_addr(builder);
+            return builder.CreateStoreInst(ptr,exp->codegen(builder));
         }
 
         // Local Value Numbering: save its current defining IR
