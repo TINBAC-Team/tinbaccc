@@ -79,6 +79,10 @@ namespace ir {
 
         Value *CreateReturnInst(Value *val);
 
+        Value *CreateJumpInst(BasicBlock * _to);
+
+        Value *CreateBranchInst(Value *c, BasicBlock *t, BasicBlock *f);
+
         Value *CreateGlobalVar(ast::Decl *decl);
 
         PhiInst *CreatePhi();
@@ -197,14 +201,25 @@ namespace ir {
     };
 
     class BranchInst : public Inst {
+    public:
+        Use cond;
         BasicBlock *true_block, *false_block;
-        BranchInst(BasicBlock *t, BasicBlock *f) : Inst(OpType::BRANCH), true_block(t),false_block(f){}
+
+        BranchInst(Value *c, BasicBlock *t, BasicBlock *f) :
+                Inst(OpType::BRANCH), cond(this, c), true_block(t), false_block(f) {
+            if (true_block)
+                true_block->addParentInst(this);
+            if (false_block)
+                false_block->addParentInst(this);
+        }
     };
 
     class JumpInst : public Inst {
     public:
         BasicBlock *to;
-        JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {};
+        JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {
+            to->addParentInst(this);
+        };
     };
 
     class ReturnInst : public Inst {

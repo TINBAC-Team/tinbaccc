@@ -199,6 +199,20 @@ namespace ir {
         return instp;
     }
 
+    Value * IRBuilder::CreateJumpInst(BasicBlock *_to) {
+        auto *instp = new JumpInst(_to);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
+
+    Value * IRBuilder::CreateBranchInst(Value *c, BasicBlock *t, BasicBlock *f) {
+        auto *instp = new BranchInst(c,t,f);
+        auto *curblock = GetCurBlock();
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
+
     Value *IRBuilder::CreateCallInst() {
         return nullptr;
     }
