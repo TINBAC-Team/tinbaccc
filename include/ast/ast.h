@@ -237,6 +237,11 @@ namespace ast {
         void validate(ValidationContext &ctx) override;
 
         ir::Value *codegen(ir::IRBuilder &builder);
+
+    private:
+        ir::Value *codegen_and(ir::IRBuilder &builder);
+
+        ir::Value *codegen_or(ir::IRBuilder &builder);
     };
 
     class Cond : public Node {

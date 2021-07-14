@@ -224,9 +224,9 @@ namespace ast {
                 return builder.CreateBinaryInst(L, R, ir::OpType::NE);
 
             case Op::LOGIC_AND:
-                return builder.CreateBinaryInst(L, R, ir::OpType::AND);
+                return codegen_and(builder);
             case Op::LOGIC_OR:
-                return builder.CreateBinaryInst(L, R, ir::OpType::OR);
+                return codegen_or(builder);
 
             case Op::CONST_VAL:
                 return builder.getConstant(get_value());
@@ -237,5 +237,23 @@ namespace ast {
             default:
                 throw std::runtime_error("Invalid op, exp codegen failed.");
         }
+    }
+
+    ir::Value * Exp::codegen_and(ir::IRBuilder &builder) {
+        ir::BasicBlock *t_old = builder.TrueBlock;
+        ir::Value *cond_val = lhs->codegen(builder);
+        builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
+        builder.CreateBlock();
+        builder.TrueBlock = t_old;
+        return rhs->codegen(builder);
+    }
+
+    ir::Value * Exp::codegen_or(ir::IRBuilder &builder) {
+        ir::BasicBlock *f_old = builder.FalseBlock;
+        ir::Value *cond_val = lhs->codegen(builder);
+        builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
+        builder.CreateBlock();
+        builder.FalseBlock = f_old;
+        return rhs->codegen(builder);
     }
 }
