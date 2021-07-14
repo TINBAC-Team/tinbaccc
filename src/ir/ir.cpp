@@ -1,6 +1,8 @@
 #include <ir/ir.h>
 #include <ast/ast.h>
 
+#include <utility>
+
 namespace ir {
     ConstPool ConstValue::const_pool;
 
@@ -243,10 +245,6 @@ namespace ir {
         return instp;
     }
 
-    Value *IRBuilder::CreateCallInst() {
-        return nullptr;
-    }
-
     Value *IRBuilder::getConstant(int valueL, int valueR, OpType optype) {
         switch (optype) {
             case OpType::ADD:
@@ -305,9 +303,7 @@ namespace ir {
         return instp;
     }
 
-    CallInst::CallInst(ast::Function *_function) : Inst(OpType::CALL) {
-        function = _function;
-    }
+    CallInst::CallInst(std::string n) : Inst(OpType::CALL), fname(std::move(n)) {}
 
     AllocaInst::AllocaInst(int _size) :Inst(OpType::ALLOCA){
         size = _size;

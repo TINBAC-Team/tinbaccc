@@ -8,6 +8,7 @@
 #include <list>
 #include <unordered_map>
 #include <memory>
+#include <string>
 
 namespace ast {
     class Function;
@@ -78,8 +79,6 @@ namespace ir {
         Value *CreateLoadInst(Value* ptr);
 
         Value *CreateStoreInst(Value* ptr, Value* val);
-
-        Value *CreateCallInst();
 
         Value *CreateReturnInst(Value *val);
 
@@ -203,9 +202,10 @@ namespace ir {
 
     class CallInst : public Inst {
     public:
-        ast::Function *function;
+        std::string fname;
 
-        explicit CallInst(ast::Function *_function);
+        std::vector<Value *> params;
+        explicit CallInst(std::string n);
     };
 
     class BranchInst : public Inst {

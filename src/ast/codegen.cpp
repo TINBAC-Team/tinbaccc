@@ -61,7 +61,13 @@ namespace ast {
         return exp->codegen(builder);
     }
 
-    ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {}
+    ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {
+        auto *inst = new ir::CallInst(name);
+        for(auto &i:params)
+            inst->params.emplace_back(i->codegen(builder));
+        builder.GetCurBlock()->InsertAtEnd(inst);
+        return inst;
+    }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
         ir::Function *irFunc = builder.CreateFunction();
