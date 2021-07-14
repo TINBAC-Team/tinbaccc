@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <memory>
 
 namespace ast {
     class Function;
@@ -32,8 +33,7 @@ namespace ir {
     class PhiInst;
 
     typedef std::unordered_map<int, ConstValue *> ConstPool;
-    typedef std::vector<std::pair<BasicBlock *, Value *> > PhiParam;
-    typedef std::unordered_map<BasicBlock *, Value *> PhiContent;
+    typedef std::unordered_map<BasicBlock *, std::unique_ptr<Use>> PhiContent;
 
     typedef std::list<Value *> instList;
     typedef std::set<Use *> UseList;
@@ -55,8 +55,11 @@ namespace ir {
         GlobalVarList globalVarList;
         Function *curFunction;
         BasicBlock *CurBlock;
+        BasicBlock *TrueBlock, *FalseBlock, *ContBlock;
 
         BasicBlock *CreateBlock(); //create and enter the created block
+
+        void *appendBlock(BasicBlock *block); // append a manually created block
 
         Function *CreateFunction();
 
@@ -94,6 +97,15 @@ namespace ir {
         int addUse(Use *use);
 
         virtual ~Value();
+    };
+
+    class Use {
+    public:
+        Value *user;
+        Value *value;
+
+        Use(Value *_user, Value *_value = nullptr);
+        void use(Value *v);
     };
 
     class GlobalVar : public Value {
@@ -159,7 +171,7 @@ namespace ir {
 
     class BinaryInst : public Inst {
     public:
-        Value *ValueL, *ValueR;
+        Use ValueL, ValueR;
 
         BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
     };
@@ -167,8 +179,6 @@ namespace ir {
     class PhiInst : public Inst {
     public:
         PhiContent phicont;
-
-        explicit PhiInst(const PhiParam &);
 
         PhiInst();
 
@@ -185,11 +195,14 @@ namespace ir {
     };
 
     class BranchInst : public Inst {
-
+        BasicBlock *true_block, *false_block;
+        BranchInst(BasicBlock *t, BasicBlock *f) : Inst(OpType::BRANCH), true_block(t),false_block(f){}
     };
 
     class JumpInst : public Inst {
-
+    public:
+        BasicBlock *to;
+        JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {};
     };
 
     class ReturnInst : public Inst {
@@ -203,13 +216,13 @@ namespace ir {
 
     class LoadInst : public AccessInst {
     public:
-        Value* ptr;
+        Use ptr;
         LoadInst(Value* _ptr);
     };
 
     class StoreInst : public AccessInst{
     public:
-        Value* ptr, *val;
+        Use ptr, val;
         StoreInst(Value* _ptr, Value* _val);
     };
 
@@ -221,19 +234,10 @@ namespace ir {
 
     class GetElementPtrInst : public AccessInst{
     public:
-        Value* arr;
-        Value* offset;
+        Use arr;
+        Use offset;
         GetElementPtrInst(Value* _arr, Value* _offset);
     };
-
-    class Use {
-    public:
-        Value *user;
-        Value *value;
-
-        Use(Value *_user, Value *_value);
-    };
-
 
     class ConstValue : public Value {
     public:

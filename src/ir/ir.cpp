@@ -22,6 +22,9 @@ namespace ir {
 
     IRBuilder::IRBuilder() {
         CurBlock = nullptr;
+        TrueBlock = nullptr;
+        FalseBlock = nullptr;
+        ContBlock = nullptr;
     }
 
     Value *IRBuilder::CreateBinaryInst(Value *_ValueL, Value *_ValueR, OpType optype) {
@@ -66,10 +69,14 @@ namespace ir {
 
     Use::Use(Value *_user, Value *_value) {
         user = _user;
-        value = _value;
-        value->addUse(this);
+        if(value)
+            use(_value);
     }
 
+    void Use::use(Value *v) {
+        value = v;
+        v->addUse(this);
+    }
 
     Inst::Inst(OpType _optype) : Value(_optype) {
     }
@@ -78,13 +85,8 @@ namespace ir {
 
     }
 
-    BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) : Inst(_optype) {
-        ValueL = _ValueL;
-        ValueR = _ValueR;
-        new Use(this,_ValueL);
-        new Use(this,_ValueR);
-    }
-
+    BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
+        Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
     BasicBlock::BasicBlock() : sealed(true) {
 
@@ -145,8 +147,8 @@ namespace ir {
 
     Value *BasicBlock::tryRemoveTrivialPhi(PhiInst *phi, IRBuilder &builder) {
         Value *same = nullptr;
-        for (auto op_it:phi->phicont) {
-            Value *op = op_it.second;
+        for (auto &op_it:phi->phicont) {
+            Value *op = op_it.second->value;
             if (op == same || op == phi)
                 continue; // first unique value or self-reference
             if (same)
@@ -230,15 +232,9 @@ namespace ir {
         return instp;
     }
 
-    PhiInst::PhiInst(const PhiParam &phiparam) : Inst(OpType::PHI) {
-        for (auto &i:phiparam) {
-            phicont.insert(i);
-        }
-    }
-
     Value *PhiInst::GetRelatedValue(BasicBlock *basicblock) {
         if (phicont.find(basicblock) == phicont.end()) return nullptr;
-        return phicont[basicblock];
+        return phicont[basicblock]->value;
     }
 
     PhiInst::PhiInst() : Inst(OpType::PHI) {
@@ -246,7 +242,7 @@ namespace ir {
     }
 
     int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
-        phicont[basicblock] = value;
+        phicont[basicblock] = std::make_unique<Use>(this, value);
         new Use(this,value);
         return 0;
     }
@@ -266,12 +262,9 @@ namespace ir {
         size = _size;
     }
 
-    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value* _offset) : AccessInst(OpType::GETELEMPTR){
-        arr = _arr;
-        offset = _offset;
-        new Use(this,arr);
-        new Use(this,offset);
-    }
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value* _offset) :
+        AccessInst(OpType::GETELEMPTR), arr(this, _arr), offset(this, _offset) {}
+
     AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
 
     }
@@ -282,16 +275,10 @@ namespace ir {
         return instp;
     }
 
-    LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD){
-        ptr = _ptr;
-        new Use(this,ptr);
-    }
-    StoreInst::StoreInst(Value *_ptr, Value *_val) :AccessInst(OpType::STORE) {
-        ptr = _ptr;
-        val = _val;
-        new Use(this,ptr);
-        new Use(this,val);
-    }
+    LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD), ptr(this, _ptr) {}
+
+    StoreInst::StoreInst(Value *_ptr, Value *_val) :
+        AccessInst(OpType::STORE),ptr(this, _ptr), val(this, _val) {}
 
     Value * IRBuilder::CreateStoreInst(Value *ptr, Value *val) {
         auto instp = new StoreInst(ptr,val);
