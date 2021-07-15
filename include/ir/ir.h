@@ -192,6 +192,8 @@ namespace ir {
 
         void eraseInst(Inst *inst);
 
+        void print(std::ostream &os) const;
+
     private:
         Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 
@@ -210,6 +212,8 @@ namespace ir {
         Use ValueL, ValueR;
 
         BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
+
+        void print(std::ostream &os) const;
     };
 
     class PhiInst : public Inst {
@@ -226,9 +230,11 @@ namespace ir {
     class CallInst : public Inst {
     public:
         std::string fname;
-
+        bool is_void;
         std::vector<Value *> params;
-        explicit CallInst(std::string n);
+        explicit CallInst(std::string n, bool _is_void);
+
+        void print(std::ostream &os) const;
     };
 
     class BranchInst : public Inst {

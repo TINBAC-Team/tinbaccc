@@ -6,14 +6,14 @@
 namespace ir {
     ConstPool ConstValue::const_pool;
 
-    GlobalVar::GlobalVar(ast::Decl *d)  :
-        Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
-        if(decl->is_array())
+    GlobalVar::GlobalVar(ast::Decl *d) :
+            Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
+        if (decl->is_array())
             len = decl->array_multipliers[0];
         else
             len = 1;
 
-        for(auto val:decl->initval_expanded)
+        for (auto val:decl->initval_expanded)
             initval.emplace_back(val ? val->get_value() : 0);
 
         decl->addr = this;
@@ -52,6 +52,7 @@ namespace ir {
         auto *constL = dynamic_cast<ConstValue *>(_ValueL);
         auto *constR = dynamic_cast<ConstValue *>(_ValueR);
         if (constL && constR) {
+
             return getConstant(constL->value, constR->value, optype);
         }
         auto *instp = new BinaryInst(optype, _ValueL, _ValueR);
@@ -82,7 +83,7 @@ namespace ir {
     }
 
     void Function::addParamsToBB(BasicBlock *block) {
-        for(auto i:params)
+        for (auto i:params)
             i->decl->set_var_def(block, i);
     }
 
@@ -99,7 +100,7 @@ namespace ir {
 
     Use::Use(Value *_user, Value *_value) : value(nullptr) {
         user = _user;
-        if(_value)
+        if (_value)
             use(_value);
     }
 
@@ -116,7 +117,7 @@ namespace ir {
     }
 
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
-        Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
+            Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
     BasicBlock::BasicBlock() : sealed(true) {
 
@@ -191,7 +192,7 @@ namespace ir {
 
         // Replace all users of this Phi with same
         for (auto cur_use:phi->uList) {
-            if(cur_use->value == phi)
+            if (cur_use->value == phi)
                 continue;
             cur_use->use(same);
         }
@@ -212,7 +213,7 @@ namespace ir {
     }
 
     void BasicBlock::sealBlock(IRBuilder &builder) {
-        for(auto phi_it:incompletePhis)
+        for (auto phi_it:incompletePhis)
             addPhiOperands(phi_it.first, phi_it.second, builder);
         sealed = true;
     }
@@ -235,8 +236,8 @@ namespace ir {
         return constp;
     }
 
-    Value *IRBuilder::CreateLoadInst(Value* ptr) {
-        auto* instp = new LoadInst(ptr);
+    Value *IRBuilder::CreateLoadInst(Value *ptr) {
+        auto *instp = new LoadInst(ptr);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -249,15 +250,15 @@ namespace ir {
         return instp;
     }
 
-    Value * IRBuilder::CreateJumpInst(BasicBlock *_to) {
+    Value *IRBuilder::CreateJumpInst(BasicBlock *_to) {
         auto *instp = new JumpInst(_to);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
     }
 
-    Value * IRBuilder::CreateBranchInst(Value *c, BasicBlock *t, BasicBlock *f) {
-        auto *instp = new BranchInst(c,t,f);
+    Value *IRBuilder::CreateBranchInst(Value *c, BasicBlock *t, BasicBlock *f) {
+        auto *instp = new BranchInst(c, t, f);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -293,7 +294,7 @@ namespace ir {
     }
 
     Value *IRBuilder::CreateAllocaInst(int _size) {
-        auto* instp = new AllocaInst(_size);
+        auto *instp = new AllocaInst(_size);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -310,7 +311,7 @@ namespace ir {
 
     int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
         phicont[basicblock] = std::make_unique<Use>(this, value);
-        new Use(this,value);
+        new Use(this, value);
         return 0;
     }
 
@@ -321,20 +322,21 @@ namespace ir {
         return instp;
     }
 
-    CallInst::CallInst(std::string n) : Inst(OpType::CALL), fname(std::move(n)) {}
+    CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
 
-    AllocaInst::AllocaInst(int _size) :Inst(OpType::ALLOCA){
+    AllocaInst::AllocaInst(int _size) : Inst(OpType::ALLOCA) {
         size = _size;
     }
 
-    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value* _offset) :
-        AccessInst(OpType::GETELEMPTR), arr(this, _arr), offset(this, _offset) {}
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value *_offset) :
+            AccessInst(OpType::GETELEMPTR), arr(this, _arr), offset(this, _offset) {}
 
     AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
 
     }
-    Value *IRBuilder::CreateGetElementPtrInst(Value* arr, Value* offset){
-        auto instp = new GetElementPtrInst(arr,offset);
+
+    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, Value *offset) {
+        auto instp = new GetElementPtrInst(arr, offset);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -343,10 +345,10 @@ namespace ir {
     LoadInst::LoadInst(Value *_ptr) : AccessInst(OpType::LOAD), ptr(this, _ptr) {}
 
     StoreInst::StoreInst(Value *_ptr, Value *_val) :
-        AccessInst(OpType::STORE),ptr(this, _ptr), val(this, _val) {}
+            AccessInst(OpType::STORE), ptr(this, _ptr), val(this, _val) {}
 
-    Value * IRBuilder::CreateStoreInst(Value *ptr, Value *val) {
-        auto instp = new StoreInst(ptr,val);
+    Value *IRBuilder::CreateStoreInst(Value *ptr, Value *val) {
+        auto instp = new StoreInst(ptr, val);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;

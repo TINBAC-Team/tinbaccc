@@ -268,6 +268,7 @@ namespace ast {
         std::string name;
         std::vector<Exp *> params;
         int lineno;
+        bool is_void;
 
         FuncCall() {}
 

@@ -226,6 +226,7 @@ namespace ast {
             throw std::runtime_error("Incorrect number of parameters, expect "
                                      + std::to_string(func->params.size()) + ", but get: " +
                                      std::to_string(this->params.size()));
+        is_void = func->type == ast::Function::Type::VOID;
         for (const auto &node : this->params)
             node->validate(ctx);
     }
