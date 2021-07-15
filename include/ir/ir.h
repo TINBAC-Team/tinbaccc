@@ -47,13 +47,17 @@ namespace ir {
 #include "allop.inc"
     };
 
+    class Module {
+    public:
+        FunctionList functionList;
+        GlobalVarList globalVarList;
+    };
 
     class IRBuilder {
     public:
-        IRBuilder();
+        IRBuilder(Module *m);
 
-        FunctionList functionList;
-        GlobalVarList globalVarList;
+        Module *module;
         Function *curFunction;
         BasicBlock *CurBlock;
         // Blocks for control flow instructions

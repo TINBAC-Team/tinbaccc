@@ -4,7 +4,15 @@
 # include <map>
 #include <memory>
 # include "tcc-sy-parser.hh"
-# include <ast/ast.h>
+
+namespace ast {
+    class CompUnit;
+}
+
+namespace ir {
+    class Module;
+}
+
 // Tell Flex the lexer's prototype ...
 # define YY_DECL \
   yy::tcc_sy_parser::symbol_type yylex (tcc_sy_driver& driver)
@@ -19,6 +27,8 @@ public:
 
     // Final AST
     std::unique_ptr<ast::CompUnit> comp_unit;
+    // IR
+    ir::Module *module;
     // Handling the scanner.
     void scan_begin ();
     void scan_end ();

@@ -18,7 +18,7 @@ namespace ir {
 
     Function *IRBuilder::CreateFunction() {
         auto *pFunc = new Function();
-        functionList.push_back(pFunc);
+        module->functionList.push_back(pFunc);
         curFunction = pFunc;
         return pFunc;
     }
@@ -27,7 +27,7 @@ namespace ir {
         return CurBlock;
     }
 
-    IRBuilder::IRBuilder() {
+    IRBuilder::IRBuilder(Module *m) : module(m) {
         CurBlock = nullptr;
         TrueBlock = nullptr;
         FalseBlock = nullptr;
@@ -49,7 +49,7 @@ namespace ir {
 
     Value *IRBuilder::CreateGlobalVar(ast::Decl *decl) {
         GlobalVar *var = new GlobalVar(decl);
-        globalVarList.push_back(var);
+        module->globalVarList.push_back(var);
         return var;
     }
 

@@ -1,4 +1,5 @@
 #include <parser/tcc-sy-driver.hh>
+#include <ast/ast.h>
 #include <ast/validation.h>
 #include <ir/ir.h>
 #include <fstream>
@@ -44,6 +45,7 @@ void tcc_sy_driver::validate_ast() {
 }
 
 void tcc_sy_driver::generate_code() {
-    ir::IRBuilder builder;
+    module = new ir::Module;
+    ir::IRBuilder builder(module);
     comp_unit->codegen(builder);
 }
