@@ -6,7 +6,8 @@
 namespace ir {
     ConstPool ConstValue::const_pool;
 
-    GlobalVar::GlobalVar(ast::Decl *d)  : Value(OpType::GLOBAL), decl(d), name(decl->name) {
+    GlobalVar::GlobalVar(ast::Decl *d)  :
+        Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
         if(decl->is_array())
             len = decl->array_multipliers[0];
         else

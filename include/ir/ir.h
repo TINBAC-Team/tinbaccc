@@ -127,6 +127,7 @@ namespace ir {
         std::string name;
         // number of i32 elements
         int len;
+        bool is_const;
         std::vector<int> initval;
 
         explicit GlobalVar(ast::Decl *d);
