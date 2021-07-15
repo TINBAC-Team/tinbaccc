@@ -6,6 +6,18 @@
 namespace ir {
     ConstPool ConstValue::const_pool;
 
+    GlobalVar::GlobalVar(ast::Decl *d)  : Value(OpType::GLOBAL), decl(d), name(decl->name) {
+        if(decl->is_array())
+            len = decl->array_multipliers[0];
+        else
+            len = 1;
+
+        for(auto val:decl->initval_expanded)
+            initval.emplace_back(val ? val->get_value() : 0);
+
+        decl->addr = this;
+    }
+
     BasicBlock *IRBuilder::CreateBlock() {
         CurBlock = curFunction->CreateBlock();
         return CurBlock;

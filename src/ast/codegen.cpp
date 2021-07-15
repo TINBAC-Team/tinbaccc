@@ -39,6 +39,8 @@ namespace ast {
             if (req_size == decl_size)
                 return builder.CreateLoadInst(ptr);
             else return ptr;
+        } else if (decl->is_global) {
+            return builder.CreateLoadInst(decl->addr);
         }
 
         return builder.GetCurBlock()->getVariable(decl, builder);
@@ -94,6 +96,8 @@ namespace ast {
         if (lval->decl->is_array()) {
             auto ptr = lval->resolve_addr(builder);
             return builder.CreateStoreInst(ptr, exp->codegen(builder));
+        } else if (lval->decl->is_global) {
+            return builder.CreateStoreInst(lval->decl->addr, exp->codegen(builder));
         }
 
         // Local Value Numbering: save its current defining IR

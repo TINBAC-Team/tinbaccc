@@ -124,8 +124,12 @@ namespace ir {
     class GlobalVar : public Value {
     public:
         ast::Decl *decl;
+        std::string name;
+        // number of i32 elements
+        int len;
+        std::vector<int> initval;
 
-        explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
+        explicit GlobalVar(ast::Decl *d);
     };
 
     class FuncParam : public Value {
