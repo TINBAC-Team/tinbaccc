@@ -77,7 +77,8 @@ namespace ast {
         if(!block)
             return nullptr;
         // LLVM requires that the first block must have no predecessors. Create it here.
-        builder.CreateBlock();
+        ir::BasicBlock *bb = builder.CreateBlock();
+        irFunc->addParamsToBB(bb);
         return block->codegen(builder);
     }
 

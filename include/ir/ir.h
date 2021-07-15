@@ -124,7 +124,7 @@ namespace ir {
         explicit GlobalVar(ast::Decl *d) : Value(OpType::GLOBAL), decl(d) {}
     };
 
-    class FuncParam : Value {
+    class FuncParam : public Value {
     public:
         ast::Decl *decl;
 
@@ -145,6 +145,8 @@ namespace ir {
         void appendBlock(BasicBlock *block); // append a manually created block
 
         void setupParams(const std::vector<ast::Decl*> decls);
+
+        void addParamsToBB(BasicBlock *block);
     };
 
     class BasicBlock {

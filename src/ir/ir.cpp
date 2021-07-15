@@ -68,6 +68,11 @@ namespace ir {
             params.emplace_back(new FuncParam(i));
     }
 
+    void Function::addParamsToBB(BasicBlock *block) {
+        for(auto i:params)
+            i->decl->set_var_def(block, i);
+    }
+
     Value::Value(OpType _optype) : optype(_optype), bb(nullptr) {}
 
     int Value::addUse(Use *use) {
