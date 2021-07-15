@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <iostream>
 
 namespace ast {
     class Function;
@@ -53,6 +54,8 @@ namespace ir {
         GlobalVarList globalVarList;
     };
 
+    std::ostream& operator<<(std::ostream& os, const Module& dt);
+
     class IRBuilder {
     public:
         IRBuilder(Module *m);
@@ -70,7 +73,7 @@ namespace ir {
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
-        Function *CreateFunction();
+        Function *CreateFunction(std::string name, bool return_int);
 
         BasicBlock *GetCurBlock() const;
 
@@ -109,6 +112,8 @@ namespace ir {
 
         int addUse(Use *use);
 
+        virtual void print(std::ostream &os) const;
+
         virtual ~Value();
     };
 
@@ -142,9 +147,12 @@ namespace ir {
 
     class Function {
     public:
+        std::string name;
+        bool return_int;
         BlockList bList;
         std::vector<FuncParam *> params;
 
+        explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
         /**
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
@@ -156,6 +164,10 @@ namespace ir {
         void setupParams(const std::vector<ast::Decl*> decls);
 
         void addParamsToBB(BasicBlock *block);
+
+        void print(std::ostream &os) const;
+
+        bool is_extern() const { return bList.empty(); }
     };
 
     class BasicBlock {

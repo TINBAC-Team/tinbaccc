@@ -29,8 +29,8 @@ namespace ir {
         CurBlock = block;
     }
 
-    Function *IRBuilder::CreateFunction() {
-        auto *pFunc = new Function();
+    Function *IRBuilder::CreateFunction(std::string name, bool return_int) {
+        auto *pFunc = new Function(name, return_int);
         module->functionList.push_back(pFunc);
         curFunction = pFunc;
         return pFunc;

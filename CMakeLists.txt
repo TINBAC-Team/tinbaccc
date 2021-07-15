@@ -30,7 +30,7 @@ set(SYMTAB_SOURCES
         src/ast/symtab.cpp)
 
 set(IR_SOURCES
-        src/ir/ir.cpp)
+        src/ir/ir.cpp src/ir/print.cpp)
 
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}

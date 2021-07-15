@@ -72,7 +72,7 @@ namespace ast {
     }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
-        ir::Function *irFunc = builder.CreateFunction();
+        ir::Function *irFunc = builder.CreateFunction(name, type == Type::INT);
         irFunc->setupParams(params);
 
         // TODO: external functions?

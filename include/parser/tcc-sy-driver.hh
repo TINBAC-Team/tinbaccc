@@ -46,6 +46,7 @@ public:
     void error (const std::string& m);
     void print_ast(const char *path);
     void validate_ast();
-    void generate_code();
+    void generate_ir();
+    void print_ir();
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH

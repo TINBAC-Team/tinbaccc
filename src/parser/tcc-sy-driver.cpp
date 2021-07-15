@@ -44,8 +44,12 @@ void tcc_sy_driver::validate_ast() {
     comp_unit->validate(ctx);
 }
 
-void tcc_sy_driver::generate_code() {
+void tcc_sy_driver::generate_ir() {
     module = new ir::Module;
     ir::IRBuilder builder(module);
     comp_unit->codegen(builder);
+}
+
+void tcc_sy_driver::print_ir() {
+    std::cout << *module;
 }
