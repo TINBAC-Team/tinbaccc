@@ -6,6 +6,7 @@ using std::endl;
 
 namespace ir {
     std::unordered_map<Value *, std::string> nameOfValue;
+    std::unordered_map<const BasicBlock * ,std::string> nameOfBB;
 
     static std::string generate_new_name() {
         static int seed = 0;
@@ -19,6 +20,12 @@ namespace ir {
         if (nameOfValue.find(val) == nameOfValue.end())
             nameOfValue[val] = generate_new_name();
         return "%" + nameOfValue[val];
+    }
+
+    static std::string get_name_of_BB(const BasicBlock *bb) {
+        if(nameOfBB.find(bb) == nameOfBB.end())
+            nameOfBB[bb] = generate_new_name();
+        return nameOfBB[bb];
     }
 
     ostream &operator<<(ostream &os, const Module &m) {
@@ -104,17 +111,20 @@ namespace ir {
                 os << "* ";
             os << "%" << p->decl->name;
         }
-        os << ") {" << endl;
+        os << ")";
+        if(!is_extern())
+            os << " #"<<get_name_of_BB(bList.front()) ;
+        os <<" {" << endl;
         //body
         for (auto &bb:bList) {
-            bb->print(os);
+                bb->print(os, bb == bList.front());
         }
         os << "}" << endl;
 
     }
 
-    void BasicBlock::print(std::ostream &os) const {
-        os << "; <label>" << std::endl;
+    void BasicBlock::print(std::ostream &os, bool is_first) const {
+        if (!is_first) os << "; <label>:"<<get_name_of_BB(this)<<":" << std::endl;
         for (auto &inst:iList) {
             os << "\t";
             inst->print(os);
@@ -144,8 +154,18 @@ namespace ir {
     void BinaryInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        if (optype == OpType::ADD || optype == OpType::SUB || optype == OpType::MUL || optype == OpType::SDIV) {
+        if (optype == OpType::ADD || optype == OpType::SUB || optype == OpType::MUL || optype == OpType::SDIV
+            || optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT || optype == OpType::SGE) {
             os << "i32 " << get_name_of_value(ValueL.value) << ", " << get_name_of_value(ValueR.value);
         }
+    }
+
+    void BranchInst::print(std::ostream &os) const{
+        Value::print(os);
+        os<<"i1 "<<get_name_of_value(cond.value)<<", label %"<<get_name_of_BB(true_block)<<", label %"<<get_name_of_BB(false_block);
+    }
+    void JumpInst::print(std::ostream &os) const{
+        Value::print(os);
+        os<<"label %"<<get_name_of_BB(to);
     }
 }

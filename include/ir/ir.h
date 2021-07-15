@@ -192,7 +192,7 @@ namespace ir {
 
         void eraseInst(Inst *inst);
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os, bool is_first) const;
 
     private:
         Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
@@ -249,6 +249,8 @@ namespace ir {
             if (false_block)
                 false_block->addParentInst(this);
         }
+
+        void print(std::ostream &os) const;
     };
 
     class JumpInst : public Inst {
@@ -257,6 +259,8 @@ namespace ir {
         JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {
             to->addParentInst(this);
         };
+
+        void print(std::ostream &os) const;
     };
 
     class ReturnInst : public Inst {
