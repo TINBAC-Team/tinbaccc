@@ -136,6 +136,8 @@ namespace ir {
         std::vector<int> initval;
 
         explicit GlobalVar(ast::Decl *d);
+
+        void print(std::ostream &os) const;
     };
 
     class FuncParam : public Value {
@@ -267,6 +269,8 @@ namespace ir {
     public:
         Use val;
         ReturnInst(Value *v) : Inst(OpType::RETURN), val(this, v) {}
+
+        void print(std::ostream &os) const;
     };
 
     class AccessInst : public Inst {
@@ -278,18 +282,24 @@ namespace ir {
     public:
         Use ptr;
         LoadInst(Value* _ptr);
+
+        void print(std::ostream &os) const;
     };
 
     class StoreInst : public AccessInst{
     public:
         Use ptr, val;
         StoreInst(Value* _ptr, Value* _val);
+
+        void print(std::ostream &os) const;
     };
 
     class AllocaInst : public Inst{
     public:
         int size;
         AllocaInst(int _size);
+
+        void print(std::ostream &os) const;
     };
 
     class GetElementPtrInst : public AccessInst{
@@ -297,6 +307,8 @@ namespace ir {
         Use arr;
         Use offset;
         GetElementPtrInst(Value* _arr, Value* _offset);
+
+        void print(std::ostream &os) const;
     };
 
     class ConstValue : public Value {

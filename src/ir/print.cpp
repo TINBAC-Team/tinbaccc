@@ -6,7 +6,7 @@ using std::endl;
 
 namespace ir {
     std::unordered_map<Value *, std::string> nameOfValue;
-    std::unordered_map<const BasicBlock * ,std::string> nameOfBB;
+    std::unordered_map<const BasicBlock *, std::string> nameOfBB;
 
     static std::string generate_new_name() {
         static int seed = 0;
@@ -17,20 +17,26 @@ namespace ir {
         if (auto const_val = dynamic_cast<ConstValue *>(val)) {
             return std::to_string(const_val->value);
         }
+        if (auto global_val = dynamic_cast<GlobalVar *>(val)) {
+            return "@" + global_val->name;
+        }
         if (nameOfValue.find(val) == nameOfValue.end())
             nameOfValue[val] = generate_new_name();
         return "%" + nameOfValue[val];
     }
 
     static std::string get_name_of_BB(const BasicBlock *bb) {
-        if(nameOfBB.find(bb) == nameOfBB.end())
+        if (nameOfBB.find(bb) == nameOfBB.end())
             nameOfBB[bb] = generate_new_name();
         return nameOfBB[bb];
     }
 
     ostream &operator<<(ostream &os, const Module &m) {
-        for (auto i:m.globalVarList)
+        for (auto i:m.globalVarList) {
             i->print(os);
+            os << std::endl;
+        }
+
         for (auto i:m.functionList)
             i->print(os);
         return os;
@@ -112,19 +118,19 @@ namespace ir {
             os << "%" << p->decl->name;
         }
         os << ")";
-        if(!is_extern())
-            os << " #"<<get_name_of_BB(bList.front()) ;
-        os <<" {" << endl;
+        if (!is_extern())
+            os << " #" << get_name_of_BB(bList.front());
+        os << " {" << endl;
         //body
         for (auto &bb:bList) {
-                bb->print(os, bb == bList.front());
+            bb->print(os, bb == bList.front());
         }
         os << "}" << endl;
 
     }
 
     void BasicBlock::print(std::ostream &os, bool is_first) const {
-        if (!is_first) os << "; <label>:"<<get_name_of_BB(this)<<":" << std::endl;
+        if (!is_first) os << "; <label>:" << get_name_of_BB(this) << ":" << std::endl;
         for (auto &inst:iList) {
             os << "\t";
             inst->print(os);
@@ -160,12 +166,83 @@ namespace ir {
         }
     }
 
-    void BranchInst::print(std::ostream &os) const{
+    void BranchInst::print(std::ostream &os) const {
         Value::print(os);
-        os<<"i1 "<<get_name_of_value(cond.value)<<", label %"<<get_name_of_BB(true_block)<<", label %"<<get_name_of_BB(false_block);
+        os << "i1 " << get_name_of_value(cond.value) << ", label %" << get_name_of_BB(true_block) << ", label %"
+           << get_name_of_BB(false_block);
     }
-    void JumpInst::print(std::ostream &os) const{
+
+    void JumpInst::print(std::ostream &os) const {
         Value::print(os);
-        os<<"label %"<<get_name_of_BB(to);
+        os << "label %" << get_name_of_BB(to);
+    }
+
+    void ReturnInst::print(std::ostream &os) const {
+        Value::print(os);
+        os << "i32 " << get_name_of_value(val.value);
+    }
+
+    void StoreInst::print(std::ostream &os) const {
+        Value::print(os);
+        os << "i32 " << get_name_of_value(val.value) << ", i32* " << get_name_of_value(ptr.value);
+    }
+
+    void LoadInst::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        os << "i32, i32* " << get_name_of_value(ptr.value);
+    }
+
+    void GlobalVar::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        if(decl->is_array())
+        {
+            os<<"i32 ["<<decl->array_multipliers[0]<<" x i32] ";
+            int array_size_rem = decl->array_multipliers[0];
+            if(!initval.empty())
+            {
+                os<<"[";
+                bool first_elem = true;
+                for(auto &i:initval){
+                    if(!first_elem) os<<", ";
+                    first_elem = false;
+                    array_size_rem--;
+                    os<<"i32 "<<i;
+                }
+                while(array_size_rem--)
+                {
+                    os<<"i32 0";
+                    if(array_size_rem) os<<", ";
+                }
+                os<<"]";
+            } else os<<"zeroinitializer";
+        } else
+        {
+            os<<"i32 ";
+            if(!initval.empty())
+                os<<initval[0];
+            else os<<"zeroinitializer";
+        }
+    }
+
+    void AllocaInst::print(std::ostream &os) const {
+        os<<get_name_of_value((Value*) this)<<" = ";
+        Value::print(os);
+        os<<"i32, i32 "<<size;
+        //TODO: initialize
+    }
+
+    void GetElementPtrInst::print(std::ostream &os) const{
+        os<<get_name_of_value((Value*) this)<<" = ";
+        Value::print(os);
+        int size;
+        if(auto arr_val = dynamic_cast<AllocaInst*>(arr.value)){
+            size = arr_val->size;
+        } else if(auto arr_val = dynamic_cast<GlobalVar*>(arr.value))
+        {
+            size = arr_val->decl->array_multipliers[0];
+        }
+        os<<"["<<size<<"x i32], "<<"["<<size<<"x i32]* "<<get_name_of_value(arr.value)<<" i32 0, i32 "<<get_name_of_value(offset.value);
     }
 }
