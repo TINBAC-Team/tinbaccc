@@ -95,9 +95,9 @@ namespace ast {
         ir::Value *val = exp->codegen(builder);
         if (lval->decl->is_array()) {
             auto ptr = lval->resolve_addr(builder);
-            return builder.CreateStoreInst(ptr, exp->codegen(builder));
+            return builder.CreateStoreInst(ptr, val);
         } else if (lval->decl->is_global) {
-            return builder.CreateStoreInst(lval->decl->addr, exp->codegen(builder));
+            return builder.CreateStoreInst(lval->decl->addr, val);
         }
 
         // Local Value Numbering: save its current defining IR

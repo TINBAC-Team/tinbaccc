@@ -65,7 +65,7 @@ namespace ast {
         array_dims.emplace_back(dim);
     }
 
-    Decl::Decl(FuncFParam *param) : initval(nullptr), is_const(false), is_fparam(true), type(param->type) {
+    Decl::Decl(FuncFParam *param) : initval(nullptr), is_const(false), is_fparam(true),is_global(false), type(param->type) {
         name = std::move(param->signature->name);
         array_dims = std::move(param->signature->array_dims);
         delete param;

@@ -113,9 +113,11 @@ namespace ir {
                 os << ", ";
             is_first = false;
             os << "i32 ";
-            if (p->decl->is_array())
+            if (p->decl->is_array()) {
                 os << "* ";
-            os << "%" << p->decl->name;
+                os << get_name_of_value(p->decl->addr);
+            } else os<<get_name_of_value(p);
+
         }
         os << ")";
         if (!is_extern())
@@ -196,53 +198,50 @@ namespace ir {
     void GlobalVar::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        if(decl->is_array())
-        {
-            os<<"i32 ["<<decl->array_multipliers[0]<<" x i32] ";
+        if (decl->is_array()) {
+            os << "i32 [" << decl->array_multipliers[0] << " x i32] ";
             int array_size_rem = decl->array_multipliers[0];
-            if(!initval.empty())
-            {
-                os<<"[";
+            if (!initval.empty()) {
+                os << "[";
                 bool first_elem = true;
-                for(auto &i:initval){
-                    if(!first_elem) os<<", ";
+                for (auto &i:initval) {
+                    if (!first_elem) os << ", ";
                     first_elem = false;
                     array_size_rem--;
-                    os<<"i32 "<<i;
+                    os << "i32 " << i;
                 }
-                while(array_size_rem--)
-                {
-                    os<<"i32 0";
-                    if(array_size_rem) os<<", ";
+                while (array_size_rem--) {
+                    os << "i32 0";
+                    if (array_size_rem) os << ", ";
                 }
-                os<<"]";
-            } else os<<"zeroinitializer";
-        } else
-        {
-            os<<"i32 ";
-            if(!initval.empty())
-                os<<initval[0];
-            else os<<"zeroinitializer";
+                os << "]";
+            } else os << "zeroinitializer";
+        } else {
+            os << "i32 ";
+            if (!initval.empty())
+                os << initval[0];
+            else os << "zeroinitializer";
         }
     }
 
     void AllocaInst::print(std::ostream &os) const {
-        os<<get_name_of_value((Value*) this)<<" = ";
+        os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        os<<"i32, i32 "<<size;
+        os << "i32, i32 " << size;
         //TODO: initialize
     }
 
-    void GetElementPtrInst::print(std::ostream &os) const{
-        os<<get_name_of_value((Value*) this)<<" = ";
+    void GetElementPtrInst::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
         int size;
-        if(auto arr_val = dynamic_cast<AllocaInst*>(arr.value)){
+        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
             size = arr_val->size;
-        } else if(auto arr_val = dynamic_cast<GlobalVar*>(arr.value))
-        {
+        } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
             size = arr_val->decl->array_multipliers[0];
         }
-        os<<"["<<size<<"x i32], "<<"["<<size<<"x i32]* "<<get_name_of_value(arr.value)<<" i32 0, i32 "<<get_name_of_value(offset.value);
+        os << "[" << size << "x i32], " << "[" << size << "x i32]* " << get_name_of_value(arr.value) << " i32 0, i32 "
+           << get_name_of_value(offset.value);
     }
+
 }

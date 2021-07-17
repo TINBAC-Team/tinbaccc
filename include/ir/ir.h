@@ -276,6 +276,7 @@ namespace ir {
     class AccessInst : public Inst {
     public:
         AccessInst(OpType _optype);
+
     };
 
     class LoadInst : public AccessInst {
