@@ -14,8 +14,12 @@ namespace asm_arm {
         Builder(Module *m);
 
         Function *createFunction(ir::Function *f);
+
         BasicBlock *createBlock();
 
+        LDRInst *createLDR(std::string s);
+
+        LDRInst *createLDR(int v);
     };
 }
 #endif //TINBACCC_BUILDER_H

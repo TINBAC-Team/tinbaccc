@@ -1,6 +1,8 @@
 #include <asm_arm/instructions.h>
 #include <ir/ir.h>
 
+#include <utility>
+
 namespace asm_arm {
 
     Operand *Operand::newImm(int v) {
@@ -44,6 +46,10 @@ namespace asm_arm {
             return true;
         return false;
     }
+
+    LDRInst::LDRInst(std::string l) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)) {}
+
+    LDRInst::LDRInst(int v) : Inst(Inst::Op::LDR), type(Type::IMM), value(v) {}
 
     void BasicBlock::insertAtEnd(Inst *inst) {
         insts.push_back(inst);

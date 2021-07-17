@@ -75,10 +75,25 @@ namespace asm_arm {
 
         Inst(Op o) : op(o) {}
 
-        virtual ~Inst();
+        virtual ~Inst() {};
+    };
+
+    class LDRInst : public Inst {
+    public:
+        enum class Type {
+            LABEL,
+            IMM
+        } type;
+        std::string label;
+        int value;
+
+        LDRInst(std::string l);
+
+        LDRInst(int v);
     };
 
     class BasicBlock {
+    public:
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
 

@@ -15,4 +15,16 @@ namespace asm_arm {
         curBlock = bb;
         return bb;
     }
+
+    LDRInst * Builder::createLDR(int v) {
+        auto ret = new LDRInst(v);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
+    LDRInst * Builder::createLDR(std::string s) {
+        auto ret = new LDRInst(s);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
 }
