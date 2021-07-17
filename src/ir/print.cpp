@@ -13,7 +13,7 @@ namespace ir {
         return std::to_string(seed++);
     };
 
-    static std::string get_name_of_value(Value *val) {
+    static std::string get_name_of_value(Value *val, const std::string& define_name = "") {
         if (auto const_val = dynamic_cast<ConstValue *>(val)) {
             return std::to_string(const_val->value);
         }
@@ -21,7 +21,11 @@ namespace ir {
             return "@" + global_val->name;
         }
         if (nameOfValue.find(val) == nameOfValue.end())
-            nameOfValue[val] = generate_new_name();
+        {
+            if(define_name.empty()) nameOfValue[val] = generate_new_name();
+            else nameOfValue[val] = define_name;
+        }
+
         return "%" + nameOfValue[val];
     }
 
@@ -115,8 +119,8 @@ namespace ir {
             os << "i32 ";
             if (p->decl->is_array()) {
                 os << "* ";
-                os << get_name_of_value(p->decl->addr);
-            } else os<<get_name_of_value(p);
+                os << get_name_of_value(p->decl->addr,p->decl->name);
+            } else os<<get_name_of_value(p,p->decl->name);
 
         }
         os << ")";
