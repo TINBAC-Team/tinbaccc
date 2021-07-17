@@ -11,7 +11,7 @@ namespace ir {
     void Function::codegen(asm_arm::Builder &builder) {
     }
 
-    Inst * Value::codegen(asm_arm::Builder &builder) {
+    asm_arm::Operand *Value::codegen(asm_arm::Builder &builder) {
         return nullptr;
     }
 }

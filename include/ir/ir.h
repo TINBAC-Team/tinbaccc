@@ -24,7 +24,7 @@ namespace ast {
 namespace asm_arm {
     class Builder;
 
-    class Inst;
+    class Operand;
 }
 
 namespace ir {
@@ -131,9 +131,9 @@ namespace ir {
         /**
          *
          * @param builder
-         * @return The last generated instruction from this SSA value
+         * @return The last generated reg operand from this SSA value
          */
-        virtual Inst* codegen(asm_arm::Builder &builder);
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
 
         virtual ~Value();
     };
