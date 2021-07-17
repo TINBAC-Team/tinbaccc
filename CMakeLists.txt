@@ -32,11 +32,15 @@ set(SYMTAB_SOURCES
 set(IR_SOURCES
         src/ir/ir.cpp src/ir/print.cpp)
 
+set(ASM_SOURCES
+        src/asm_arm/instructions.cpp src/asm_arm/builder.cpp)
+
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}
         ${AST_SOURCES}
         ${SYMTAB_SOURCES}
-        ${IR_SOURCES})
+        ${IR_SOURCES}
+        ${ASM_SOURCES})
 
 
 target_include_directories(tinbaccc
