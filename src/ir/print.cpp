@@ -278,6 +278,7 @@ namespace ir {
             if(!is_first) printf(", ");
             is_first = false;
             os<<"[ "<<get_name_of_value(i.second->value)<<", %"<<get_name_of_BB(i.first)<<" ]";
+
         }
     }
 }
