@@ -13,16 +13,15 @@ namespace ir {
         return std::to_string(seed++);
     };
 
-    static std::string get_name_of_value(Value *val, const std::string& define_name = "") {
+    static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
         if (auto const_val = dynamic_cast<ConstValue *>(val)) {
             return std::to_string(const_val->value);
         }
         if (auto global_val = dynamic_cast<GlobalVar *>(val)) {
             return "@" + global_val->name;
         }
-        if (nameOfValue.find(val) == nameOfValue.end())
-        {
-            if(define_name.empty()) nameOfValue[val] = generate_new_name();
+        if (nameOfValue.find(val) == nameOfValue.end()) {
+            if (define_name.empty()) nameOfValue[val] = generate_new_name();
             else nameOfValue[val] = define_name;
         }
 
@@ -119,24 +118,33 @@ namespace ir {
             os << "i32 ";
             if (p->decl->is_array()) {
                 os << "* ";
-                os << get_name_of_value(p->decl->addr,p->decl->name);
-            } else os<<get_name_of_value(p,p->decl->name);
+                os << get_name_of_value(p->decl->addr, p->decl->name);
+            } else os << get_name_of_value(p, p->decl->name);
 
         }
         os << ")";
-        if (!is_extern())
-            os << " #" << get_name_of_BB(bList.front());
+
         os << " {" << endl;
         //body
         for (auto &bb:bList) {
-            bb->print(os, bb == bList.front());
+            bb->print(os);
         }
         os << "}" << endl;
 
     }
 
-    void BasicBlock::print(std::ostream &os, bool is_first) const {
-        if (!is_first) os << "; <label>:" << get_name_of_BB(this) << ":" << std::endl;
+    void BasicBlock::print(std::ostream &os) const {
+        os << "; <label>:" << get_name_of_BB(this) << ":" ;
+        if(!parentInsts.empty()){
+            os<<"\t; preds = ";
+            bool is_first = true;
+            for(auto &i:parentInsts){
+                if(!is_first) os<<", ";
+                is_first = false;
+                os<<"%"<<get_name_of_BB(i->bb);
+            }
+        }
+        os<<std::endl;
         for (auto &inst:iList) {
             os << "\t";
             inst->print(os);
@@ -167,12 +175,26 @@ namespace ir {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
         if (optype == OpType::ADD || optype == OpType::SUB || optype == OpType::MUL || optype == OpType::SDIV
-            || optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT || optype == OpType::SGE) {
+            || optype == OpType::SREM|| optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT || optype == OpType::SGE ||
+              optype == OpType::EQ || optype == OpType::NE) {
             os << "i32 " << get_name_of_value(ValueL.value) << ", " << get_name_of_value(ValueR.value);
         }
     }
 
     void BranchInst::print(std::ostream &os) const {
+        bool need_i1_convert = true;
+        auto cond_val = dynamic_cast<BinaryInst*>(cond.value);
+        if(cond_val)
+        {
+            OpType op = cond_val->optype;
+            if(op == OpType::SLT || op == OpType::SLE || op == OpType::SGT || op == OpType::SGE ||
+               op == OpType::EQ || op == OpType::NE) need_i1_convert = false;
+        }
+        if(need_i1_convert){
+            BinaryInst(OpType::NE, cond.value,IRBuilder::getConstant(0) ).print(os);
+            os<<std::endl<<"\t";
+        }
+
         Value::print(os);
         os << "i1 " << get_name_of_value(cond.value) << ", label %" << get_name_of_BB(true_block) << ", label %"
            << get_name_of_BB(false_block);
@@ -247,5 +269,15 @@ namespace ir {
         os << "[" << size << "x i32], " << "[" << size << "x i32]* " << get_name_of_value(arr.value) << " i32 0, i32 "
            << get_name_of_value(offset.value);
     }
-
+    void PhiInst::print(std::ostream &os) const{
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        os<<"i32 ";
+        bool is_first = true;
+        for(auto &i:phicont){
+            if(!is_first) printf(", ");
+            is_first = false;
+            os<<"[ "<<get_name_of_value(i.second->value)<<", %"<<get_name_of_BB(i.first)<<" ]";
+        }
+    }
 }

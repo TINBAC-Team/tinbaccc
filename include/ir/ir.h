@@ -97,7 +97,7 @@ namespace ir {
 
         PhiInst *CreatePhi();
 
-        Value *getConstant(int _value);
+        static Value *getConstant(int _value);
 
         Value *getConstant(int valueL, int valueR, OpType optype);
     };
@@ -194,7 +194,7 @@ namespace ir {
 
         void eraseInst(Inst *inst);
 
-        void print(std::ostream &os, bool is_first) const;
+        void print(std::ostream &os) const;
 
     private:
         Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
@@ -227,6 +227,8 @@ namespace ir {
         Value *GetRelatedValue(BasicBlock *basicblock);
 
         int InsertElem(BasicBlock *basicblock, Value *value);
+
+        void print(std::ostream &os) const;
     };
 
     class CallInst : public Inst {
