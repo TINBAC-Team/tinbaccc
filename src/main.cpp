@@ -56,6 +56,8 @@ int main(int argc, char *argv[]) {
     driver.generate_ir();
 
     driver.print_ir(ir_path);
+
+    driver.generate_asm();
     return 0;
 }
 

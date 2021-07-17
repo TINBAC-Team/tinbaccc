@@ -2,6 +2,7 @@
 #include <ast/ast.h>
 #include <ast/validation.h>
 #include <ir/ir.h>
+#include <asm_arm/builder.h>
 #include <fstream>
 
 tcc_sy_driver::tcc_sy_driver()
@@ -61,4 +62,10 @@ void tcc_sy_driver::print_ir(const char *path) {
     } else {
         std::cout << *module;
     }
+}
+
+void tcc_sy_driver::generate_asm() {
+    asm_module = new asm_arm::Module();
+    asm_arm::Builder builder(asm_module);
+    module->codegen(builder);
 }

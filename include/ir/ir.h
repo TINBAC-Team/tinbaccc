@@ -21,6 +21,12 @@ namespace ast {
     class Exp;
 }
 
+namespace asm_arm {
+    class Builder;
+
+    class Inst;
+}
+
 namespace ir {
     class Inst;
 
@@ -56,6 +62,8 @@ namespace ir {
     public:
         FunctionList functionList;
         GlobalVarList globalVarList;
+
+        void codegen(asm_arm::Builder &builder);
     };
 
     std::ostream &operator<<(std::ostream &os, const Module &dt);
@@ -120,6 +128,13 @@ namespace ir {
 
         virtual void print(std::ostream &os) const;
 
+        /**
+         *
+         * @param builder
+         * @return The last generated instruction from this SSA value
+         */
+        virtual Inst* codegen(asm_arm::Builder &builder);
+
         virtual ~Value();
     };
 
@@ -176,6 +191,8 @@ namespace ir {
         void addParamsToBB(BasicBlock *block);
 
         void print(std::ostream &os) const;
+
+        void codegen(asm_arm::Builder &builder);
 
         bool is_extern() const { return bList.empty(); }
     };
