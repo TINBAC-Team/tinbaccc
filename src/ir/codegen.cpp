@@ -9,11 +9,15 @@ namespace ir {
     }
 
     void Function::codegen(asm_arm::Builder &builder) {
+        builder.createFunction(this);
         for (auto &i:bList)
             i->codegen(builder);
+        // TODO: generate return instructions
+        builder.curFunction->appendReturnBlock();
     }
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {
+        builder.createBlock();
         for (auto &i:iList)
             i->codegen(builder);
     }
