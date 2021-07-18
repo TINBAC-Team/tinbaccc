@@ -7,13 +7,15 @@ static const struct option long_options[] = {
         {"output",            required_argument, NULL, 'o'},
         {"optimization",      required_argument, NULL, 'O'},
         {"output-ast",        required_argument, NULL, 'a'},
+        {"output-ir",         required_argument, NULL, 'i'},
         {NULL,                no_argument,       NULL, 0}
 };
 
 int main(int argc, char *argv[]) {
     int ch;
     const char *ast_path = nullptr;
-    while ((ch = getopt_long(argc, argv, "So:O:a:", long_options, NULL)) != -1) {
+    const char *ir_path = nullptr;
+    while ((ch = getopt_long(argc, argv, "So:O:a:i:", long_options, NULL)) != -1) {
         switch (ch) {
             case 'S':
             case 'O':
@@ -22,6 +24,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'a':
                 ast_path = optarg;
+                break;
+            case 'i':
+                ir_path = optarg;
                 break;
             default:
                 return -1;
@@ -50,7 +55,7 @@ int main(int argc, char *argv[]) {
 
     driver.generate_ir();
 
-    driver.print_ir();
+    driver.print_ir(ir_path);
     return 0;
 }
 

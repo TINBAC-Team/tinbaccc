@@ -50,6 +50,15 @@ void tcc_sy_driver::generate_ir() {
     comp_unit->codegen(builder);
 }
 
-void tcc_sy_driver::print_ir() {
-    std::cout << *module;
+void tcc_sy_driver::print_ir(const char *path) {
+    if(path) {
+        std::ofstream ofs(path, std::ofstream::out);
+        if (!ofs.is_open()) {
+            std::cerr << "Failed to open ir\n";
+        }
+        ofs << *module;
+        ofs.close();
+    } else {
+        std::cout << *module;
+    }
 }

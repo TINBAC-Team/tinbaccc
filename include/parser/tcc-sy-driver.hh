@@ -47,6 +47,6 @@ public:
     void print_ast(const char *path);
     void validate_ast();
     void generate_ir();
-    void print_ir();
+    void print_ir(const char *path);
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH
