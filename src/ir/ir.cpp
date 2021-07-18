@@ -83,8 +83,12 @@ namespace ir {
     }
 
     void Function::addParamsToBB(BasicBlock *block) {
-        for (auto i:params)
-            i->decl->set_var_def(block, i);
+        for (auto i:params) {
+            if (i->decl->is_array())
+                i->decl->addr = i;
+            else
+                i->decl->set_var_def(block, i);
+        }
     }
 
     Value::Value(OpType _optype) : optype(_optype), bb(nullptr) {}
