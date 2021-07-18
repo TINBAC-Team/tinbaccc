@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include <unordered_map>
+#include <set>
 
 namespace ir {
     class Function;
@@ -67,6 +68,10 @@ namespace asm_arm {
     class Inst {
     public:
         BasicBlock *bb;
+        // TODO use
+        std::set<Operand*> use;
+        // TODO def
+        std::set<Operand*> def;
         enum class Op {
             LDR,
             STR,
@@ -232,6 +237,10 @@ namespace asm_arm {
     public:
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
+        // TODO OUT
+        std::set<Operand*> liveOut;
+        // TODO IN
+        std::set<Operand*> liveIn;
 
         void insertAtEnd(Inst *inst);
 
