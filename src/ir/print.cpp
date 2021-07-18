@@ -275,7 +275,7 @@ namespace ir {
         os<<"i32 ";
         bool is_first = true;
         for(auto &i:phicont){
-            if(!is_first) printf(", ");
+            if(!is_first) os << ", ";
             is_first = false;
             os<<"[ "<<get_name_of_value(i.second->value)<<", %"<<get_name_of_BB(i.first)<<" ]";
 
