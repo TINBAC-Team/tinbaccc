@@ -4,11 +4,18 @@
 
 namespace ir {
     void Module::codegen(asm_arm::Builder &builder) {
-        for (auto i:functionList)
+        for (auto &i:functionList)
             i->codegen(builder);
     }
 
     void Function::codegen(asm_arm::Builder &builder) {
+        for (auto &i:bList)
+            i->codegen(builder);
+    }
+
+    void BasicBlock::codegen(asm_arm::Builder &builder) {
+        for (auto &i:iList)
+            i->codegen(builder);
     }
 
     asm_arm::Operand *Value::codegen(asm_arm::Builder &builder) {

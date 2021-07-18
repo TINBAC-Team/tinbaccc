@@ -221,6 +221,8 @@ namespace ir {
 
         void print(std::ostream &os) const;
 
+        void codegen(asm_arm::Builder &builder);
+
     private:
         Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 
