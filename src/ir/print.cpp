@@ -228,7 +228,7 @@ namespace ir {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
         if (decl->is_array()) {
-            os << "i32 [" << decl->array_multipliers[0] << " x i32] ";
+            os << "[" << decl->array_multipliers[0] << " x i32] ";
             int array_size_rem = decl->array_multipliers[0];
             if (!initval.empty()) {
                 os << "[";
