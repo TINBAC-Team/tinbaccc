@@ -9,21 +9,22 @@ namespace asm_arm {
         curFunction = ret;
         return ret;
     }
-    BasicBlock * Builder::createBlock() {
+
+    BasicBlock *Builder::createBlock() {
         auto *bb = new BasicBlock();
         curFunction->appendBlock(bb);
         curBlock = bb;
         return bb;
     }
 
-    LDRInst * Builder::createLDR(int v) {
-        auto ret = new LDRInst(v);
+    LDRInst *Builder::createLDR(int v) {
+        auto ret = new LDRInst(v, Operand::newVReg());
         curBlock->insertAtEnd(ret);
         return ret;
     }
 
-    LDRInst * Builder::createLDR(std::string s) {
-        auto ret = new LDRInst(s);
+    LDRInst *Builder::createLDR(std::string s) {
+        auto ret = new LDRInst(s, Operand::newVReg());
         curBlock->insertAtEnd(ret);
         return ret;
     }

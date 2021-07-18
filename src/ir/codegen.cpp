@@ -20,8 +20,8 @@ namespace ir {
     }
 
     asm_arm::Operand *ConstValue::genreg(asm_arm::Builder &builder) {
-        builder.createLDR(value);
-        return nullptr;//TODO: REGISTER!!!
+        auto inst = builder.createLDR(value);
+        return inst->dst;
     }
 
     asm_arm::Operand *ConstValue::genop2(asm_arm::Builder &builder) {

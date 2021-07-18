@@ -86,10 +86,11 @@ namespace asm_arm {
         } type;
         std::string label;
         int value;
+        Operand *dst;
 
-        LDRInst(std::string l);
+        LDRInst(std::string l, Operand *d);
 
-        LDRInst(int v);
+        LDRInst(int v, Operand *d);
     };
 
     class BasicBlock {

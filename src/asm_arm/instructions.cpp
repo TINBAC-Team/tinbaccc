@@ -47,9 +47,9 @@ namespace asm_arm {
         return false;
     }
 
-    LDRInst::LDRInst(std::string l) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)) {}
+    LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {}
 
-    LDRInst::LDRInst(int v) : Inst(Inst::Op::LDR), type(Type::IMM), value(v) {}
+    LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {}
 
     void BasicBlock::insertAtEnd(Inst *inst) {
         insts.push_back(inst);
