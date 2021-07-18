@@ -124,13 +124,16 @@ namespace ir {
         }
         os << ")";
 
-        os << " {" << endl;
-        //body
-        for (auto &bb:bList) {
-            bb->print(os);
+        if (is_extern()) {
+            os << ";" << endl;
+        } else {
+            os << " {" << endl;
+            //body
+            for (auto &bb:bList) {
+                bb->print(os);
+            }
+            os << "}" << endl;
         }
-        os << "}" << endl;
-
     }
 
     void BasicBlock::print(std::ostream &os) const {
