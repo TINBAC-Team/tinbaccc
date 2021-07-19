@@ -243,6 +243,8 @@ namespace ir {
         BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR);
 
         void print(std::ostream &os) const;
+
+        asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class PhiInst : public Inst {
