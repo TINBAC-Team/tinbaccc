@@ -78,6 +78,8 @@ class Inst {
 		ADD,
 		SUB,
 		RSB,
+		MLA,
+		MLS,
 		MUL,
 		SDIV,
 	} op;

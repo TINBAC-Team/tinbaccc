@@ -58,7 +58,7 @@ namespace ir {
             lhs= builder.getOrCreateOperandOfValue(ValueL.value);
             rhs= builder.getOrCreateOperandOfValue(ValueR.value);
             asm_arm::Operand *divres = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
-            asm_arm::Operand *res = nullptr;// TODO: create a ternary MLS instruction
+            asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, lhs, divres, rhs)->dst;
             builder.setOperandOfValue(this, res);
             return res;
         }
