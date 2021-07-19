@@ -357,11 +357,13 @@ namespace ir {
 
         explicit ConstValue(int _value);
 
-        asm_arm::Operand* codegen(asm_arm::Builder &builder);
+        asm_arm::Operand* genimm(asm_arm::Builder &builder);
 
         asm_arm::Operand* genop2(asm_arm::Builder &builder);
 
         asm_arm::Operand* genreg(asm_arm::Builder &builder);
+
+        asm_arm::Operand* codegen(asm_arm::Builder &builder);
 
         ~ConstValue() override;
 

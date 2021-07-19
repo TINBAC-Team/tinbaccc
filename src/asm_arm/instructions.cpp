@@ -2,6 +2,7 @@
 #include <ir/ir.h>
 
 #include <utility>
+#include <stdexcept>
 
 namespace asm_arm {
 
@@ -84,45 +85,11 @@ namespace asm_arm {
 
     BInst::BInst(std::string lb, Type sf) : Inst(Inst::Op::B), label(lb), has_suffix(true), suffix(sf) {}
 
-    LABELofInst::LABELofInst(std::string lb) : Inst(Inst::Op::LABEL), label(lb) {}
-
-    Inst1::Inst1(Op o, Operand *d, Operand *s1, int s2_imm) : Inst(o), dst(d), src1(s1), type_operand2(Type::Imm) {
-        if (Operand::op2Imm(s2_imm))
-            src2 = Operand::newImm(s2_imm);
-        else {
-            src2 = Operand::newVReg();
-            src2->val = s2_imm;
-        }
+    BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
+        if(o == Op::MUL || o == Op::SDIV)
+            if(rhs->type == Operand::Type::Imm)
+                throw std::runtime_error("IMM not allowed in MUL/SDIV");
     }
-
-    Inst1::Inst1(Op o, Operand *d, Operand *s1, Operand *s2) : Inst(o), dst(d), src1(s1), src2(s2), type_operand2(Type::Reg) {}
-
-    Inst2::Inst2(Op o, Operand *d, Operand *s1, Operand *s2) : Inst(o), dst(d), src1(s1), src2(s2) {}
-
-    ADDInst::ADDInst(Operand *d, Operand *s1, int s2_imm) : Inst1(Inst::Op::ADD, d, s1, s2_imm) {}
-
-    ADDInst::ADDInst(Operand *d, Operand *s1, Operand *s2) : Inst1(Inst::Op::ADD, d, s1, s2) {}
-
-    SUBInst::SUBInst(Operand *d, Operand *s1, int s2_imm) : Inst1(Inst::Op::SUB, d, s1, s2_imm) {}
-
-    SUBInst::SUBInst(Operand *d, Operand *s1, Operand *s2) : Inst1(Inst::Op::SUB, d, s1, s2) {}
-
-    MULInst::MULInst(Operand *d, Operand *s1, Operand *s2) : Inst2(Inst::Op::MUL, d, s1, s2) {}
-
-    SDIVInst::SDIVInst(Operand *d, Operand *s1, Operand *s2) : Inst2(Inst::Op::SDIV, d, s1, s2) {}
-
-    ANDInst::ANDInst(Operand *d, Operand *s1, int s2_imm) : Inst1(Inst::Op::AND, d, s1, s2_imm) {}
-
-    ANDInst::ANDInst(Operand *d, Operand *s1, Operand *s2) : Inst1(Inst::Op::AND, d, s1, s2) {}
-
-    ORRInst::ORRInst(Operand *d, Operand *s1, int s2_imm) : Inst1(Inst::Op::ORR, d, s1, s2_imm) {}
-
-    ORRInst::ORRInst(Operand *d, Operand *s1, Operand *s2) : Inst1(Inst::Op::ORR, d, s1, s2) {}
-
-    EORInst::EORInst(Operand *d, Operand *s1, int s2_imm) : Inst1(Inst::Op::EOR, d, s1, s2_imm) {}
-
-    EORInst::EORInst(Operand *d, Operand *s1, Operand *s2) : Inst1(Inst::Op::EOR, d, s1, s2) {}
-
 
     void BasicBlock::insertAtEnd(Inst *inst) {
         insts.push_back(inst);

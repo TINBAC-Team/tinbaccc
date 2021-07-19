@@ -4,10 +4,35 @@
 namespace asm_arm {
     Builder::Builder(Module *m) : module(m) {}
 
+    Operand * Builder::getOperandOfValue(ir::Value *val) {
+        auto got = value_map.find(val);
+        if(got != value_map.end())
+            return got->second;
+        return nullptr;
+    }
+
+    void Builder::setOperandOfValue(ir::Value *val, Operand *operand) {
+        value_map[val] = operand;
+    }
+
+    Operand *Builder::getOrCreateOperandOfValue(ir::Value *val) {
+        Operand *ret = getOperandOfValue(val);
+        if(ret)
+            return ret;
+        // safety check for a hack: This function is designed specifically for constants.
+        // It's used to reduce some constant checks in BinaryInst generation.
+        if(val->optype!=ir::OpType::CONST)
+            throw std::runtime_error("Non-const value should have been created!");
+        ret = val->codegen(*this);
+        setOperandOfValue(val, ret);
+        return ret;
+    }
+
     Function *Builder::createFunction(ir::Function *f) {
         auto *ret = new Function(f);
         module->functionList.push_back(ret);
         curFunction = ret;
+        value_map.clear();
         return ret;
     }
 
@@ -48,54 +73,6 @@ namespace asm_arm {
         return ret;
     }
 
-    template<typename RT>
-    RT * Builder::createInst2_1(Inst::Op o, Operand *d, int s_imm) {
-        switch (o) {
-            case Inst::Op::MOV: {
-                MOVInst *ret = new MOVInst(d, s_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::CMP: {
-                CMPInst *ret = new CMPInst(d, s_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::TST: {
-                TSTInst *ret = new TSTInst(d, s_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            default:
-                std::cerr << "Error in Builder!\n";
-                return nullptr;
-        }
-    }
-
-    template<typename RT>
-    RT * Builder::createInst2_1_(Inst::Op o, Operand *d, Operand *s) {
-        switch (o) {
-            case Inst::Op::MOV: {
-                MOVInst *ret = new MOVInst(d, s);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::CMP: {
-                CMPInst *ret = new CMPInst(d, s);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::TST: {
-                TSTInst *ret = new TSTInst(d, s);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            default:
-                std::cerr << "Error in Builder!\n";
-                return nullptr;
-        }
-    }
-
     BInst * Builder::createBInst(std::string &lb) {
         BInst * ret = new BInst(lb);
         curBlock->insertAtEnd(ret);
@@ -108,95 +85,8 @@ namespace asm_arm {
         return ret;
     }
 
-    template <typename RT>
-    RT * Builder::createInst1(Inst::Op o, Operand *d, Operand * s1, int s2_imm) {
-        switch (o) {
-            case Inst::Op::ADD: {
-                ADDInst * ret = new ADDInst(d, s1, s2_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::SUB: {
-                SUBInst * ret = new SUBInst(d, s1, s2_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::AND: {
-                ANDInst * ret = new ANDInst(d, s1, s2_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::ORR: {
-                ORRInst * ret = new ORRInst(d, s1, s2_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::EOR: {
-                EORInst * ret = new EORInst(d, s1, s2_imm);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            default:
-                std::cerr << "Error in Builder!\n";
-                return nullptr;
-        }
-    }
-
-    template <typename RT>
-    RT * Builder::createInst1_(Inst::Op o, Operand * d, Operand * s1, Operand* s2) {
-        switch (o) {
-            case Inst::Op::ADD: {
-                ADDInst * ret = new ADDInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::SUB: {
-                SUBInst * ret = new SUBInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::AND: {
-                ANDInst * ret = new ANDInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::ORR: {
-                ORRInst * ret = new ORRInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::EOR: {
-                EORInst * ret = new EORInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            default:
-                std::cerr << "Error in Builder!\n";
-                return nullptr;
-        }
-    }
-
-    template <typename RT>
-    RT * Builder::createInst2(Inst::Op o, Operand *d, Operand *s1, Operand *s2) {
-        switch (o) {
-            case Inst::Op::MUL: {
-                MULInst *ret = new MULInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            case Inst::Op::SDIV: {
-                SDIVInst *ret = new SDIVInst(d, s1, s2);
-                curBlock->insertAtEnd(ret);
-                return ret;
-            }
-            default:
-                std::cerr << "Error in Builder!\n";
-                return nullptr;
-        }
-    }
-
-    LABELofInst * Builder::createLABELofInst(std::string& lb) {
-        LABELofInst *ret = new LABELofInst(lb);
+    BinaryInst *Builder::createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs) {
+        auto ret = new BinaryInst(op, Operand::newVReg(), lhs, rhs);
         curBlock->insertAtEnd(ret);
         return ret;
     }

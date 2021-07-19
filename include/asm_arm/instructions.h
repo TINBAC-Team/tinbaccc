@@ -77,13 +77,14 @@ class Inst {
 		EOR,
 		ADD,
 		SUB,
+		RSB,
 		MUL,
 		SDIV,
 	} op;
 
 	Inst(Op o) : op(o) {}
 
-	virtual void print();
+	virtual void print() {};
 
 	virtual ~Inst() {};
 };
@@ -179,88 +180,12 @@ class BInst : public Inst {
 	BInst(std::string lb, Type sf);
 };
 
-class LABELofInst : public Inst {
+class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
   public:
-	std::string label;
+	Operand *dst, *lhs, *rhs;
 
-	LABELofInst(std::string lb);
+	BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
 };
-
-
-class Inst1 : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
-  public:
-	enum class Type {
-		Imm,
-		Reg,
-	} type_operand2;
-//        enum class Type_shift {
-//            ASR,
-//            LSL,
-//            LSR,
-//            ROR
-//        } type_shift;
-//        unsigned num_shift;
-	Operand *dst, *src1, *src2;
-
-	Inst1(Op o, Operand *d, Operand *s1, int s2_imm); // 2 registers and 1 immediate number
-
-	Inst1(Op o, Operand *d, Operand *s1, Operand *s2); // 3 registers without shift
-};
-
-class Inst2 : public Inst { // 3 operands, including 3 registers
-  public:
-	Operand *dst, *src1, *src2;
-
-	Inst2(Op o, Operand *d, Operand *s1, Operand *s2);
-};
-
-class ADDInst : public Inst1 {
-  public:
-	ADDInst(Operand *d, Operand *s1, int s2_imm);
-
-	ADDInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-class SUBInst : public Inst1 {
-  public:
-	SUBInst(Operand *d, Operand *s1, int s2_imm);
-
-	SUBInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-class MULInst : public Inst2 {
-  public:
-	MULInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-class SDIVInst : public Inst2 {
-  public:
-	SDIVInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-class ANDInst : public Inst1 {
-  public:
-	ANDInst(Operand *d, Operand *s1, int s2_imm);
-
-	ANDInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-class ORRInst : public Inst1 {
-  public:
-	ORRInst(Operand *d, Operand *s1, int s2_imm);
-
-	ORRInst(Operand *d, Operand *s1, Operand *s2);
-
-};
-
-class EORInst : public Inst1 {
-  public:
-	EORInst(Operand *d, Operand *s1, int s2_imm);
-
-	EORInst(Operand *d, Operand *s1, Operand *s2);
-};
-
-
 
 class BasicBlock {
   public:

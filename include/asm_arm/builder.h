@@ -3,6 +3,7 @@
 
 #include <ir/ir.h>
 #include <asm_arm/instructions.h>
+#include <unordered_map>
 
 namespace asm_arm {
     class Builder {
@@ -10,8 +11,15 @@ namespace asm_arm {
         Module *module;
         Function *curFunction;
         BasicBlock *curBlock;
+        std::unordered_map<ir::Value*, Operand*> value_map;
 
         Builder(Module *m);
+
+        Operand *getOperandOfValue(ir::Value* val);
+
+        Operand *getOrCreateOperandOfValue(ir::Value* val);
+
+        void setOperandOfValue(ir::Value* val, Operand *operand);
 
         Function *createFunction(ir::Function *f);
 
@@ -27,26 +35,19 @@ namespace asm_arm {
 
         ADRInst * createADR(std::string& lb);
 
-        template<typename RT> // 使用时需要显示指定类型！(?)
-        RT * createInst2_1(Inst::Op o, Operand *d, int s_imm);
-
-        template<typename RT>
-        RT * createInst2_1_(Inst::Op o, Operand *d, Operand *s);
-
         BInst * createBInst(std::string& lb);
 
         BInst * createBInst(std::string& lb, BInst::Type sf);
 
-        template<typename RT>
-        RT * createInst1(Inst::Op o, Operand *d, Operand *s1, int s2_imm);
-
-        template<typename RT>
-        RT * createInst1_(Inst::Op o, Operand *d, Operand *s1, Operand *s2);
-
-        template<typename RT>
-        RT * createInst2(Inst::Op o, Operand *d, Operand *s1, Operand *s2);
-
-        LABELofInst * createLABELofInst(std::string& lb);
+        /**
+         * Create binary instruction with lhs and rhs as operand.
+         * Destination operand is a virtual register.
+         * @param op
+         * @param lhs
+         * @param rhs
+         * @return created instruction
+         */
+        BinaryInst *createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs);
     };
 }
 #endif //TINBACCC_BUILDER_H
