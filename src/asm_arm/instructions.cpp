@@ -91,6 +91,9 @@ namespace asm_arm {
                 throw std::runtime_error("IMM not allowed in MUL/SDIV");
     }
 
+    TernaryInst::TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3) :
+            Inst(o), dst(d), op1(o1), op2(o2), op3(o3) {}
+
     void BasicBlock::insertAtEnd(Inst *inst) {
         insts.push_back(inst);
         inst->bb = this;

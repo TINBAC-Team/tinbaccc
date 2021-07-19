@@ -187,6 +187,13 @@ class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Ope
 	BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
 };
 
+    class TernaryInst : public Inst {
+    public:
+        Operand *dst, *op1, *op2, *op3;
+
+        TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
+    };
+
 class BasicBlock {
   public:
 	std::list<Inst *> insts;

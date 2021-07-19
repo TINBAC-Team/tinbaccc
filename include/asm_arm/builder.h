@@ -48,6 +48,8 @@ namespace asm_arm {
          * @return created instruction
          */
         BinaryInst *createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs);
+
+        TernaryInst *createTernaryInst(Inst::Op op, Operand *o1, Operand *o2, Operand *o3);
     };
 }
 #endif //TINBACCC_BUILDER_H

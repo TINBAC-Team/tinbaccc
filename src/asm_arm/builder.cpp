@@ -90,4 +90,10 @@ namespace asm_arm {
         curBlock->insertAtEnd(ret);
         return ret;
     }
+
+    TernaryInst *Builder::createTernaryInst(Inst::Op op, Operand *o1, Operand *o2, Operand *o3) {
+        auto ret = new TernaryInst(op, Operand::newVReg(), o1, o2, o3);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
 }
