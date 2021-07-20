@@ -161,7 +161,7 @@ namespace ir {
             // CFG complete. There won't be unknown predecessors:
             // For BBs with a single predecessor, get Value from its parent block.
             val = parentInsts.front()->bb->getVariable(decl, builder);
-        } else if (parentInsts.size() > 1) {
+        } else {
             // Otherwise we need to create a Phi for all its predecessors
             // construct an operand-less Phi...
             PhiInst *phi = builder.CreatePhi();
