@@ -41,9 +41,7 @@ namespace asm_arm {
 
         LDRInst *createLDR(int v);
 
-        STRInst * createSTR(std::string& s);
-
-        STRInst * createSTR(int v);
+        STRInst * createSTR(Operand *v, Operand *a, Operand *o);
 
         ADRInst * createADR(std::string& lb);
 

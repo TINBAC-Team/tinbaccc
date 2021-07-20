@@ -129,19 +129,16 @@ namespace asm_arm {
         LDRInst(int v, Operand *d);
     };
 
+    /**
+     * STR Rt, Rn, Offset
+     * *(Rn+Offset) = Rt
+     * Offset can be imm12
+     */
     class STRInst : public Inst {
     public:
-        enum class Type {
-            LABEL,
-            IMM
-        } type;
-        std::string label;
-        int value;
-        Operand *dst;
+        Operand *val, *addr, *offset;
 
-        STRInst(std::string l, Operand *d);
-
-        STRInst(int v, Operand *d);
+        STRInst(Operand *v, Operand *a, Operand *o);
     };
 
     class ADRInst : public Inst {
