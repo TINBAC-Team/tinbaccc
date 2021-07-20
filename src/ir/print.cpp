@@ -198,6 +198,7 @@ namespace ir {
     void BranchInst::print(std::ostream &os) const {
         bool need_i1_convert = true;
         auto cond_val = dynamic_cast<BinaryInst*>(cond.value);
+        Value* i1_val = cond.value;
         if(cond_val)
         {
             OpType op = cond_val->optype;
@@ -205,12 +206,12 @@ namespace ir {
                op == OpType::EQ || op == OpType::NE) need_i1_convert = false;
         }
         if(need_i1_convert){
-            BinaryInst(OpType::NE, cond.value,IRBuilder::getConstant(0) ).print(os);
+            i1_val = new BinaryInst(OpType::NE, cond.value,IRBuilder::getConstant(0) );
+            i1_val->print(os);
             os<<std::endl<<"\t";
         }
-
         Value::print(os);
-        os << "i1 " << get_name_of_value(cond.value) << ", label %" << get_name_of_BB(true_block) << ", label %"
+        os << "i1 " << get_name_of_value(i1_val) << ", label %" << get_name_of_BB(true_block) << ", label %"
            << get_name_of_BB(false_block);
     }
 
