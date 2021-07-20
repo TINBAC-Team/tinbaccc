@@ -5,194 +5,194 @@
 #include <list>
 
 namespace ir {
-class Function;
+    class Function;
 }
 
 namespace asm_arm {
-class BasicBlock;
+    class BasicBlock;
 
-enum class Reg {
-	r0,
-	r1,
-	r2,
-	r3,
-	r4,
-	r5,
-	r6,
-	r7,
-	r8,
-	r9,
-	r10,
-	r11,
-	r12,
-	sp,
-	lr,
-	pc
-};
+    enum class Reg {
+        r0,
+        r1,
+        r2,
+        r3,
+        r4,
+        r5,
+        r6,
+        r7,
+        r8,
+        r9,
+        r10,
+        r11,
+        r12,
+        sp,
+        lr,
+        pc
+    };
 
-class Operand {
-  public:
-	enum class Type {
-		Reg,
-		VReg,
-		Imm
-	} type;
-	Reg reg;
-	int val;
+    class Operand {
+    public:
+        enum class Type {
+            Reg,
+            VReg,
+            Imm
+        } type;
+        Reg reg;
+        int val;
 
-	Operand(Type t) : type(t) {};
+        Operand(Type t) : type(t) {};
 
-	static Operand *newImm(int v);
+        static Operand *newImm(int v);
 
-	static Operand *newReg(Reg r);
+        static Operand *newReg(Reg r);
 
-	static Operand *newVReg();
+        static Operand *newVReg();
 
-	/**
-	 * OP2 of binary operations in ARM can be a immediate value encoded
-	 * with 8-bit number with 4-bit rotation.
-	 * This function checks if a number can be encoded this way.
-	 * code are taken from GCC
-	 *
-	 * @param val to be checked
-	 * @return whether the value can be encoded this way
-	 */
-	static bool op2Imm(int val);
-};
+        /**
+         * OP2 of binary operations in ARM can be a immediate value encoded
+         * with 8-bit number with 4-bit rotation.
+         * This function checks if a number can be encoded this way.
+         * code are taken from GCC
+         *
+         * @param val to be checked
+         * @return whether the value can be encoded this way
+         */
+        static bool op2Imm(int val);
+    };
 
-class Inst {
-  public:
-	BasicBlock *bb;
-	enum class Op {
-		LDR,
-		STR,
-		ADR,
-		MOV,
-		CMP,
-		TST,
-		B,
-		LABEL,
-		AND,
-		ORR,
-		EOR,
-		ADD,
-		SUB,
-		RSB,
-		MLA,
-		MLS,
-		MUL,
-		SDIV,
-	} op;
+    class Inst {
+    public:
+        BasicBlock *bb;
+        enum class Op {
+            LDR,
+            STR,
+            ADR,
+            MOV,
+            CMP,
+            TST,
+            B,
+            LABEL,
+            AND,
+            ORR,
+            EOR,
+            ADD,
+            SUB,
+            RSB,
+            MLA,
+            MLS,
+            MUL,
+            SDIV,
+        } op;
 
-	enum class OpCond {
-	    EQ = 0,
-	    NE,
-	    CS,
-	    CC,
-	    MI,
-	    PL,
-	    VS,
-	    VC,
-	    HI,
-	    LS,
-	    GE,
-	    LT,
-	    GT,
-	    LE,
-	    NONE,
-	    UNDEF
-	} cond;
+        enum class OpCond {
+            EQ = 0,
+            NE,
+            CS,
+            CC,
+            MI,
+            PL,
+            VS,
+            VC,
+            HI,
+            LS,
+            GE,
+            LT,
+            GT,
+            LE,
+            NONE,
+            UNDEF
+        } cond;
 
-	Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
+        Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
-	virtual void print() {};
+        virtual void print() {};
 
-	virtual ~Inst() {};
-};
+        virtual ~Inst() {};
+    };
 
-class LDRInst : public Inst {
-  public:
-	enum class Type {
-		LABEL,
-		IMM
-	} type;
-	std::string label;
-	int value;
-	Operand *dst;
+    class LDRInst : public Inst {
+    public:
+        enum class Type {
+            LABEL,
+            IMM
+        } type;
+        std::string label;
+        int value;
+        Operand *dst;
 
-	LDRInst(std::string l, Operand *d);
+        LDRInst(std::string l, Operand *d);
 
-	LDRInst(int v, Operand *d);
-};
+        LDRInst(int v, Operand *d);
+    };
 
-class STRInst : public Inst {
-  public:
-	enum class Type {
-		LABEL,
-		IMM
-	} type;
-	std::string label;
-	int value;
-	Operand *dst;
+    class STRInst : public Inst {
+    public:
+        enum class Type {
+            LABEL,
+            IMM
+        } type;
+        std::string label;
+        int value;
+        Operand *dst;
 
-	STRInst(std::string l, Operand *d);
+        STRInst(std::string l, Operand *d);
 
-	STRInst(int v, Operand *d);
-};
+        STRInst(int v, Operand *d);
+    };
 
-class ADRInst : public Inst {
-  public:
-	Operand *dst;
-	std::string label;
+    class ADRInst : public Inst {
+    public:
+        Operand *dst;
+        std::string label;
 
-	ADRInst(Operand *d, std::string lb);
-};
+        ADRInst(Operand *d, std::string lb);
+    };
 
-class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
-  public:
-	enum class Type {
-		Imm,
-		Reg,
-	} type_operand2;
-	Operand *dst, *src;
+    class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
+    public:
+        enum class Type {
+            Imm,
+            Reg,
+        } type_operand2;
+        Operand *dst, *src;
 
-	Inst2_1(Op o, Operand *d, int s_imm);
+        Inst2_1(Op o, Operand *d, int s_imm);
 
-	Inst2_1(Op o, Operand *d, Operand *s);
-};
+        Inst2_1(Op o, Operand *d, Operand *s);
+    };
 
-class MOVInst : public Inst {
-    Operand *dst, *src;
-  public:
-	MOVInst(Operand *d, Operand *s);
-};
+    class MOVInst : public Inst {
+        Operand *dst, *src;
+    public:
+        MOVInst(Operand *d, Operand *s);
+    };
 
-class CMPInst : public Inst {
-    Operand *lhs, *rhs;
-  public:
-	CMPInst(Operand *l, Operand *r);
-};
+    class CMPInst : public Inst {
+        Operand *lhs, *rhs;
+    public:
+        CMPInst(Operand *l, Operand *r);
+    };
 
-class TSTInst : public Inst2_1 {
-  public:
-	TSTInst(Operand *d, int s_imm);
+    class TSTInst : public Inst2_1 {
+    public:
+        TSTInst(Operand *d, int s_imm);
 
-	TSTInst(Operand *d, Operand *s);
-};
+        TSTInst(Operand *d, Operand *s);
+    };
 
-class BInst : public Inst {
-  public:
-	BasicBlock *tgt;
+    class BInst : public Inst {
+    public:
+        BasicBlock *tgt;
 
-	BInst(OpCond c = OpCond::NONE);
-};
+        BInst(OpCond c = OpCond::NONE);
+    };
 
-class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
-  public:
-	Operand *dst, *lhs, *rhs;
+    class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
+    public:
+        Operand *dst, *lhs, *rhs;
 
-	BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
-};
+        BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
+    };
 
     class TernaryInst : public Inst {
     public:
@@ -201,37 +201,37 @@ class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Ope
         TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
     };
 
-class BasicBlock {
-  public:
-	std::list<Inst *> insts;
-	std::list<Inst *>::const_iterator it_branch;
+    class BasicBlock {
+    public:
+        std::list<Inst *> insts;
+        std::list<Inst *>::const_iterator it_branch;
 
-	void insertAtEnd(Inst *inst);
+        void insertAtEnd(Inst *inst);
 
-	void markBranch();
+        void markBranch();
 
-	void insertBeforeBranch(Inst *inst);
+        void insertBeforeBranch(Inst *inst);
 
-};
+    };
 
-class Function {
-  public:
-	std::string name;
-	ir::Function *func;
-	std::list<BasicBlock *> bList;
-	BasicBlock *ret_block;
+    class Function {
+    public:
+        std::string name;
+        ir::Function *func;
+        std::list<BasicBlock *> bList;
+        BasicBlock *ret_block;
 
-	Function(ir::Function *f);
+        Function(ir::Function *f);
 
-	void appendBlock(BasicBlock *block);
+        void appendBlock(BasicBlock *block);
 
-	void appendReturnBlock();
-};
+        void appendReturnBlock();
+    };
 
-class Module {
-  public:
-	std::list<Function *> functionList;
-};
+    class Module {
+    public:
+        std::list<Function *> functionList;
+    };
 
 }
 #endif //TINBACCC_INSTRUCTIONS_H
