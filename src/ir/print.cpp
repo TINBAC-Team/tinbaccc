@@ -281,12 +281,14 @@ namespace ir {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
         int size = 0;
+        bool from_alloca = 0;
         if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
             size = arr_val->size;
+            from_alloca = 1;
         } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
             size = arr_val->decl->array_multipliers[0];
         }
-        if (size > 0) {
+        if (size > 0 && !from_alloca) {
             os << "[" << size << " x i32], " << "[" << size << " x i32]* " << get_name_of_value(arr.value)
                << ", i32 0, i32 "
                << get_name_of_value(offset.value);
