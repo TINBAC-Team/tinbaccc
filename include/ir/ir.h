@@ -15,6 +15,10 @@ namespace ast {
     class Function;
 
     class Decl;
+
+    class FuncCall;
+
+    class Exp;
 }
 
 namespace ir {
@@ -54,7 +58,7 @@ namespace ir {
         GlobalVarList globalVarList;
     };
 
-    std::ostream& operator<<(std::ostream& os, const Module& dt);
+    std::ostream &operator<<(std::ostream &os, const Module &dt);
 
     class IRBuilder {
     public:
@@ -81,21 +85,23 @@ namespace ir {
 
         Value *CreateAllocaInst(int _size);
 
-        Value *CreateGetElementPtrInst(Value* arr, Value* offset);
+        Value *CreateGetElementPtrInst(Value *arr, Value *offset);
 
-        Value *CreateLoadInst(Value* ptr);
+        Value *CreateLoadInst(Value *ptr);
 
-        Value *CreateStoreInst(Value* ptr, Value* val);
+        Value *CreateStoreInst(Value *ptr, Value *val);
 
         Value *CreateReturnInst(Value *val);
 
-        Value *CreateJumpInst(BasicBlock * _to);
+        Value *CreateJumpInst(BasicBlock *_to);
 
         Value *CreateBranchInst(Value *c, BasicBlock *t, BasicBlock *f);
 
         Value *CreateGlobalVar(ast::Decl *decl);
 
         PhiInst *CreatePhi(BasicBlock *tgt_block);
+
+        Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params);
 
         static Value *getConstant(int _value);
 
@@ -123,6 +129,7 @@ namespace ir {
         Value *value;
 
         Use(Value *_user, Value *_value = nullptr);
+
         void use(Value *v);
     };
 
@@ -155,6 +162,7 @@ namespace ir {
         std::vector<FuncParam *> params;
 
         explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
+
         /**
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
@@ -163,7 +171,7 @@ namespace ir {
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
-        void setupParams(const std::vector<ast::Decl*> decls);
+        void setupParams(const std::vector<ast::Decl *> decls);
 
         void addParamsToBB(BasicBlock *block);
 
@@ -197,7 +205,7 @@ namespace ir {
         void print(std::ostream &os) const;
 
     private:
-        Value* addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
+        Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 
         Value *tryRemoveTrivialPhi(PhiInst *phi, IRBuilder &builder);
     };
@@ -235,7 +243,8 @@ namespace ir {
     public:
         std::string fname;
         bool is_void;
-        std::vector<Value *> params;
+        std::vector<Use> params;
+
         explicit CallInst(std::string n, bool _is_void);
 
         void print(std::ostream &os) const;
@@ -260,6 +269,7 @@ namespace ir {
     class JumpInst : public Inst {
     public:
         BasicBlock *to;
+
         JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {
             to->addParentInst(this);
         };
@@ -270,6 +280,7 @@ namespace ir {
     class ReturnInst : public Inst {
     public:
         Use val;
+
         ReturnInst(Value *v) : Inst(OpType::RETURN), val(this, v) {}
 
         void print(std::ostream &os) const;
@@ -284,32 +295,36 @@ namespace ir {
     class LoadInst : public AccessInst {
     public:
         Use ptr;
-        LoadInst(Value* _ptr);
+
+        LoadInst(Value *_ptr);
 
         void print(std::ostream &os) const;
     };
 
-    class StoreInst : public AccessInst{
+    class StoreInst : public AccessInst {
     public:
         Use ptr, val;
-        StoreInst(Value* _ptr, Value* _val);
+
+        StoreInst(Value *_ptr, Value *_val);
 
         void print(std::ostream &os) const;
     };
 
-    class AllocaInst : public Inst{
+    class AllocaInst : public Inst {
     public:
         int size;
+
         AllocaInst(int _size);
 
         void print(std::ostream &os) const;
     };
 
-    class GetElementPtrInst : public AccessInst{
+    class GetElementPtrInst : public AccessInst {
     public:
         Use arr;
         Use offset;
-        GetElementPtrInst(Value* _arr, Value* _offset);
+
+        GetElementPtrInst(Value *_arr, Value *_offset);
 
         void print(std::ostream &os) const;
     };

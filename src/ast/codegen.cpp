@@ -64,11 +64,8 @@ namespace ast {
     }
 
     ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {
-        auto *inst = new ir::CallInst(name, is_void);
-        for(auto &i:params)
-            inst->params.emplace_back(i->codegen(builder));
-        builder.GetCurBlock()->InsertAtEnd(inst);
-        return inst;
+        return builder.CreateFuncCall(name, is_void, params);
+
     }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {

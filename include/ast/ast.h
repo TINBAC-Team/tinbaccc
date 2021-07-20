@@ -133,7 +133,7 @@ namespace ast {
         bool is_global;
 
         //codegen生成后数组的地址
-        ir::Value* addr;
+        ir::Value *addr;
 
         // 数组展开后的数组各维度乘数
         std::vector<int> array_multipliers;

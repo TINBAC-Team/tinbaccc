@@ -9,16 +9,17 @@ namespace ir {
     std::unordered_map<const BasicBlock *, std::string> nameOfBB;
     int seed;
     int bb_seed;
+
     static std::string generate_new_name() {
-        return "x"+std::to_string(seed++);
+        return "x" + std::to_string(seed++);
     };
+
     static std::string generate_new_bb_name() {
         return "__bb" + std::to_string(bb_seed++);
     };
 
     static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
-        if(!val && define_name.empty())
-        {
+        if (!val && define_name.empty()) {
             //std::cerr<<"print ir: requesting name of nullptr"<<std::endl;
             return "*nullptr*";
         }
@@ -148,17 +149,17 @@ namespace ir {
 
     void BasicBlock::print(std::ostream &os) const {
 
-        os <<  get_name_of_BB(this) << ":" ;
-        if(!parentInsts.empty()){
-            os<<"\t; preds = ";
+        os << get_name_of_BB(this) << ":";
+        if (!parentInsts.empty()) {
+            os << "\t; preds = ";
             bool is_first = true;
-            for(auto &i:parentInsts){
-                if(!is_first) os<<", ";
+            for (auto &i:parentInsts) {
+                if (!is_first) os << ", ";
                 is_first = false;
-                os<<"%"<<get_name_of_BB(i->bb);
+                os << "%" << get_name_of_BB(i->bb);
             }
         }
-        os<<std::endl;
+        os << std::endl;
         for (auto &inst:iList) {
             os << "\t";
             inst->print(os);
@@ -179,11 +180,11 @@ namespace ir {
             if (!is_first)
                 os << ", ";
             is_first = false;
-            auto par = dynamic_cast<ir::GetElementPtrInst*>(p);
-            if(par)
-                os<<"i32* ";
+            auto par = dynamic_cast<ir::GetElementPtrInst *>(p.value);
+            if (par)
+                os << "i32* ";
             else os << "i32 ";
-            os << get_name_of_value(p);
+            os << get_name_of_value(p.value);
         }
         os << ")";
     }
@@ -192,26 +193,27 @@ namespace ir {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
         if (optype == OpType::ADD || optype == OpType::SUB || optype == OpType::MUL || optype == OpType::SDIV
-            || optype == OpType::SREM|| optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT || optype == OpType::SGE ||
-              optype == OpType::EQ || optype == OpType::NE) {
+            || optype == OpType::SREM || optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT ||
+            optype == OpType::SGE ||
+            optype == OpType::EQ || optype == OpType::NE) {
             os << "i32 " << get_name_of_value(ValueL.value) << ", " << get_name_of_value(ValueR.value);
         }
     }
 
     void BranchInst::print(std::ostream &os) const {
         bool need_i1_convert = true;
-        auto cond_val = dynamic_cast<BinaryInst*>(cond.value);
-        Value* i1_val = cond.value;
-        if(cond_val)
-        {
+        auto cond_val = dynamic_cast<BinaryInst *>(cond.value);
+        Value *i1_val = cond.value;
+        if (cond_val) {
             OpType op = cond_val->optype;
-            if(op == OpType::SLT || op == OpType::SLE || op == OpType::SGT || op == OpType::SGE ||
-               op == OpType::EQ || op == OpType::NE) need_i1_convert = false;
+            if (op == OpType::SLT || op == OpType::SLE || op == OpType::SGT || op == OpType::SGE ||
+                op == OpType::EQ || op == OpType::NE)
+                need_i1_convert = false;
         }
-        if(need_i1_convert){
-            i1_val = new BinaryInst(OpType::NE, cond.value,IRBuilder::getConstant(0) );
+        if (need_i1_convert) {
+            i1_val = new BinaryInst(OpType::NE, cond.value, IRBuilder::getConstant(0));
             i1_val->print(os);
-            os<<std::endl<<"\t";
+            os << std::endl << "\t";
         }
         Value::print(os);
         os << "i1 " << get_name_of_value(i1_val) << ", label %" << get_name_of_BB(true_block) << ", label %"
@@ -225,9 +227,9 @@ namespace ir {
 
     void ReturnInst::print(std::ostream &os) const {
         Value::print(os);
-        if(val.value)
+        if (val.value)
             os << "i32 " << get_name_of_value(val.value);
-        else os<<"void";
+        else os << "void";
     }
 
     void StoreInst::print(std::ostream &os) const {
@@ -292,22 +294,22 @@ namespace ir {
             os << "[" << size << " x i32], " << "[" << size << " x i32]* " << get_name_of_value(arr.value)
                << ", i32 0, i32 "
                << get_name_of_value(offset.value);
-        } else
-        {
+        } else {
             os << "i32, i32* " << get_name_of_value(arr.value)
-               << ", i32 "<< get_name_of_value(offset.value);
+               << ", i32 " << get_name_of_value(offset.value);
         }
 
     }
-    void PhiInst::print(std::ostream &os) const{
+
+    void PhiInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        os<<"i32 ";
+        os << "i32 ";
         bool is_first = true;
-        for(auto &i:phicont){
-            if(!is_first) os << ", ";
+        for (auto &i:phicont) {
+            if (!is_first) os << ", ";
             is_first = false;
-            os<<"[ "<<get_name_of_value(i.second->value)<<", %"<<get_name_of_BB(i.first)<<" ]";
+            os << "[ " << get_name_of_value(i.second->value) << ", %" << get_name_of_BB(i.first) << " ]";
 
         }
     }

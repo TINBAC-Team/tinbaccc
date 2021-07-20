@@ -355,4 +355,13 @@ namespace ir {
         curblock->InsertAtEnd(instp);
         return instp;
     }
+
+    Value *IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
+        auto instp = new ir::CallInst(name, is_void);
+        auto *curblock = GetCurBlock();
+        for (auto &i:params)
+            instp->params.emplace_back(Use(instp, i->codegen(*this)));
+        curblock->InsertAtEnd(instp);
+        return instp;
+    }
 }
