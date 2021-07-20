@@ -9,8 +9,12 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include <memory>
+#include <ir/ir.h>
 
 namespace ir {
+    class Use;
+
     class Value;
 
     class BasicBlock;
@@ -143,7 +147,7 @@ namespace ast {
         } type;
         InitVal *initval; //非空指针有效
         std::vector<Exp *> array_dims; //数组各维度长度，0维为单变量
-        std::unordered_map<const ir::BasicBlock *, ir::Value *> var_defs; // variable definition in BBs
+        std::unordered_map<const ir::BasicBlock *, std::unique_ptr<ir::Use>> var_defs; // variable definition in BBs
 
         Decl(std::string n = "", InitVal *init = nullptr) : name(n), initval(init), is_const(false), is_fparam(false),
                                                             is_global(false), type(VarType::INT) {}

@@ -97,12 +97,12 @@ namespace ast {
     ir::Value *Decl::lookup_var_def(const ir::BasicBlock *b) {
         auto got = var_defs.find(b);
         if (got != var_defs.end())
-            return got->second;
+            return got->second->value;
         return nullptr;
     }
 
     void Decl::set_var_def(const ir::BasicBlock *b, ir::Value *v) {
-        var_defs[b] = v;
+        var_defs[b] = std::make_unique<ir::Use>(nullptr, v);
     }
 
     Exp::~Exp() noexcept {
