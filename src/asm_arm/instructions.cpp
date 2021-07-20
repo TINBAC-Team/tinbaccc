@@ -69,9 +69,7 @@ namespace asm_arm {
 
     Inst2_1::Inst2_1(Op o, Operand *d, Operand *s) : Inst(o), dst(d), src(s), type_operand2(Type::Reg) {}
 
-    MOVInst::MOVInst(Operand *d, int s_imm) : Inst2_1(Inst::Op::MOV, d, s_imm) {}
-
-    MOVInst::MOVInst(Operand *d, Operand *s) : Inst2_1(Inst::Op::MOV, d, s) {}
+    MOVInst::MOVInst(Operand *d, Operand *s) : Inst(Inst::Op::MOV), dst(d), src(s) {}
 
     CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {}
 

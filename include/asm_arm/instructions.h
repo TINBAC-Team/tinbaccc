@@ -161,10 +161,9 @@ class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
 	Inst2_1(Op o, Operand *d, Operand *s);
 };
 
-class MOVInst : public Inst2_1 {
+class MOVInst : public Inst {
+    Operand *dst, *src;
   public:
-	MOVInst(Operand *d, int s_imm);
-
 	MOVInst(Operand *d, Operand *s);
 };
 

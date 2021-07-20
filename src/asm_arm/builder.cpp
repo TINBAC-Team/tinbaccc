@@ -130,4 +130,10 @@ namespace asm_arm {
         curBlock->insertAtEnd(ret);
         return ret;
     }
+
+    MOVInst *Builder::createMOVInst(Operand *dst, Operand *src) {
+        auto ret = new MOVInst(dst, src);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
 }
