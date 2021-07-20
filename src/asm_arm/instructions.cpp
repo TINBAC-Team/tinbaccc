@@ -88,6 +88,8 @@ namespace asm_arm {
 
     BInst::BInst(OpCond c) : Inst(Op::B, c) {}
 
+    CallInst::CallInst(int np, std::string l) : Inst(Inst::Op::BL), nparams(np), label(std::move(l)) {}
+
     BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
         if(o == Op::MUL || o == Op::SDIV)
             if(rhs->type == Operand::Type::Imm)

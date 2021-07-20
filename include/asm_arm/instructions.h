@@ -75,7 +75,7 @@ namespace asm_arm {
             CMP,
             TST,
             B,
-            LABEL,
+            BL,
             AND,
             ORR,
             EOR,
@@ -186,6 +186,18 @@ namespace asm_arm {
         BasicBlock *tgt;
 
         BInst(OpCond c = OpCond::NONE);
+    };
+
+    /**
+     * BL <label>
+     * Rename it to indicate that we are specifically using it for
+     * function call. It returns weird use/def for caller-preserved registers
+     */
+    class CallInst : public Inst {
+    public:
+        int nparams;
+        std::string label;
+        CallInst(int np, std::string l);
     };
 
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>

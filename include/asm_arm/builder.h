@@ -49,6 +49,8 @@ namespace asm_arm {
 
         BInst * createBInst(BasicBlock *bb, Inst::OpCond c = Inst::OpCond::NONE);
 
+        CallInst * createCall(std::string lb, int np);
+
         /**
          * Create binary instruction with lhs and rhs as operand.
          * Destination operand is a virtual register.

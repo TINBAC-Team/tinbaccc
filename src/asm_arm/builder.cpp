@@ -108,6 +108,12 @@ namespace asm_arm {
         return ret;
     }
 
+    CallInst *Builder::createCall(std::string lb, int np) {
+        auto ret = new CallInst(np, std::move(lb));
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
     BinaryInst *Builder::createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs) {
         auto ret = new BinaryInst(op, Operand::newVReg(), lhs, rhs);
         curBlock->insertAtEnd(ret);
