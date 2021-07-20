@@ -178,10 +178,11 @@ namespace ir {
     asm_arm::Operand *ReturnInst::codegen(asm_arm::Builder &builder) {
         if (val.value)
             builder.createMOVInst(
-                    asm_arm::Operand::newReg(asm_arm::Reg::r0),
+                    asm_arm::Operand::getReg(asm_arm::Reg::r0),
                     builder.getOrCreateOperandOfValue(val.value)
             );
         builder.createBInst(builder.curFunction->ret_block);
         builder.createBlock();
+        return nullptr;
     }
 }

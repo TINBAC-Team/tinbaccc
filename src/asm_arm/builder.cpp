@@ -53,6 +53,7 @@ namespace asm_arm {
     }
 
     Function *Builder::createFunction(ir::Function *f) {
+        Operand::resetRegMap();
         auto *ret = new Function(f);
         module->functionList.push_back(ret);
         curFunction = ret;

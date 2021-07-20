@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <unordered_map>
 
 namespace ir {
     class Function;
@@ -12,7 +13,7 @@ namespace asm_arm {
     class BasicBlock;
 
     enum class Reg {
-        r0,
+        r0 = 0,
         r1,
         r2,
         r3,
@@ -39,12 +40,15 @@ namespace asm_arm {
         } type;
         Reg reg;
         int val;
+        static std::unordered_map<Reg, Operand *> precolored_reg_map;
 
         Operand(Type t) : type(t) {};
 
         static Operand *newImm(int v);
 
-        static Operand *newReg(Reg r);
+        static Operand *getReg(Reg r);
+
+        static void resetRegMap();
 
         static Operand *newVReg();
 

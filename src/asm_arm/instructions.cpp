@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 namespace asm_arm {
+    std::unordered_map<Reg, Operand *>Operand::precolored_reg_map;
 
     Operand *Operand::newImm(int v) {
         auto ret = new Operand(Type::Imm);
@@ -12,10 +13,20 @@ namespace asm_arm {
         return ret;
     }
 
-    Operand *Operand::newReg(Reg r) {
+    Operand *Operand::getReg(Reg r) {
+        auto got = precolored_reg_map.find(r);
+        if (got != precolored_reg_map.end())
+            return got->second;
         auto ret = new Operand(Type::Reg);
         ret->reg = r;
+        precolored_reg_map[r] = ret;
         return ret;
+    }
+
+    void Operand::resetRegMap() {
+        for (auto &i:precolored_reg_map)
+            delete i.second;
+        precolored_reg_map.clear();
     }
 
     Operand *Operand::newVReg() {
