@@ -121,4 +121,55 @@ namespace ir {
         builder.setOperandOfValue(this, res);
         return res;
     }
+
+    asm_arm::Operand *BranchInst::codegen(asm_arm::Builder &builder) {
+        asm_arm::Operand *lhs = nullptr, *rhs = nullptr;
+        // Grab its cond value to generate cmp instruction
+        asm_arm::Inst::OpCond asmcond;
+        switch (cond.value->optype) {
+            case OpType::EQ:
+                asmcond = asm_arm::Inst::OpCond::EQ;
+                break;
+            case OpType::NE:
+                asmcond = asm_arm::Inst::OpCond::NE;
+                break;
+            case OpType::SLT:
+                asmcond = asm_arm::Inst::OpCond::LT;
+                break;
+            case OpType::SLE:
+                asmcond = asm_arm::Inst::OpCond::LE;
+                break;
+            case OpType::SGT:
+                asmcond = asm_arm::Inst::OpCond::GT;
+                break;
+            case OpType::SGE:
+                asmcond = asm_arm::Inst::OpCond::GE;
+                break;
+            default:
+                asmcond = asm_arm::Inst::OpCond::NE;
+                lhs = builder.getOrCreateOperandOfValue(cond.value);
+                rhs = asm_arm::Operand::newImm(0);
+                break;
+        }
+        if(!lhs) {
+            auto binop = dynamic_cast<BinaryInst*>(cond.value);
+            lhs = builder.getOrCreateOperandOfValue(binop->ValueL.value);
+            if (binop->ValueR.value->optype==OpType::CONST)
+                rhs = dynamic_cast<ConstValue *>(binop->ValueR.value)->genop2(builder);
+            else
+                rhs = builder.getOrCreateOperandOfValue(binop->ValueR.value);
+        }
+        builder.createBinaryInst(asm_arm::Inst::Op::CMP, lhs, rhs);
+        builder.curBlock->markBranch();
+        builder.createBInst(true_block, asmcond);
+        // XXX: This kind-of breaks the concept of "BasicBlock"...
+        builder.createBInst(false_block);
+        builder.createBlock();
+    }
+
+    asm_arm::Operand * JumpInst::codegen(asm_arm::Builder &builder) {
+        builder.createBInst(to);
+        builder.curBlock->markBranch();
+        builder.createBlock();
+    }
 }

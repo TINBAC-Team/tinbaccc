@@ -285,6 +285,13 @@ namespace ir {
         }
 
         void print(std::ostream &os) const;
+
+        /**
+         * generate conditional branch with its corresponding CMP
+         * @param builder
+         * @return
+         */
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class JumpInst : public Inst {
@@ -296,6 +303,8 @@ namespace ir {
         };
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class ReturnInst : public Inst {
