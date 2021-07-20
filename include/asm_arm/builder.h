@@ -62,6 +62,8 @@ namespace asm_arm {
         BinaryInst *createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs);
 
         TernaryInst *createTernaryInst(Inst::Op op, Operand *o1, Operand *o2, Operand *o3);
+
+        CMPInst *createCMPInst(Operand *lhs, Operand *rhs);
     };
 }
 #endif //TINBACCC_BUILDER_H

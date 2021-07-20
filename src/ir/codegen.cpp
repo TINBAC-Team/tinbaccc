@@ -159,17 +159,19 @@ namespace ir {
             else
                 rhs = builder.getOrCreateOperandOfValue(binop->ValueR.value);
         }
-        builder.createBinaryInst(asm_arm::Inst::Op::CMP, lhs, rhs);
+        builder.createCMPInst(lhs, rhs);
         builder.curBlock->markBranch();
         builder.createBInst(true_block, asmcond);
         // XXX: This kind-of breaks the concept of "BasicBlock"...
         builder.createBInst(false_block);
         builder.createBlock();
+        return nullptr;
     }
 
     asm_arm::Operand * JumpInst::codegen(asm_arm::Builder &builder) {
         builder.createBInst(to);
         builder.curBlock->markBranch();
         builder.createBlock();
+        return nullptr;
     }
 }

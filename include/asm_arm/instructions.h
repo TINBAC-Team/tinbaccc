@@ -148,7 +148,6 @@ class ADRInst : public Inst {
 	ADRInst(Operand *d, std::string lb);
 };
 
-//暂未考虑每条指令可能带有的的后缀S，即设置标志位
 class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
   public:
 	enum class Type {
@@ -169,11 +168,10 @@ class MOVInst : public Inst2_1 {
 	MOVInst(Operand *d, Operand *s);
 };
 
-class CMPInst : public Inst2_1 {
+class CMPInst : public Inst {
+    Operand *lhs, *rhs;
   public:
-	CMPInst(Operand *d, int s_imm);
-
-	CMPInst(Operand *d, Operand *s);
+	CMPInst(Operand *l, Operand *r);
 };
 
 class TSTInst : public Inst2_1 {

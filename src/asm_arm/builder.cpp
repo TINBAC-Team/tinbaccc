@@ -124,4 +124,10 @@ namespace asm_arm {
         curBlock->insertAtEnd(ret);
         return ret;
     }
+
+    CMPInst *Builder::createCMPInst(Operand *lhs, Operand *rhs) {
+        auto ret = new CMPInst(lhs, rhs);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
 }
