@@ -84,7 +84,26 @@ class Inst {
 		SDIV,
 	} op;
 
-	Inst(Op o) : op(o) {}
+	enum class OpCond {
+	    EQ = 0,
+	    NE,
+	    CS,
+	    CC,
+	    MI,
+	    PL,
+	    VS,
+	    VC,
+	    HI,
+	    LS,
+	    GE,
+	    LT,
+	    GT,
+	    LE,
+	    NONE,
+	    UNDEF
+	} cond;
+
+	Inst(Op o) : op(o), cond(OpCond::NONE) {}
 
 	virtual void print() {};
 
