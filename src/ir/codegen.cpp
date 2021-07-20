@@ -18,7 +18,8 @@ namespace ir {
     }
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {
-        builder.createBlock();
+        auto asmbb = builder.createBlock();
+        builder.setASMBBtoIRBB(this, asmbb);
         for (auto &i:iList)
             i->codegen(builder);
     }

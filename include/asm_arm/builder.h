@@ -12,6 +12,7 @@ namespace asm_arm {
         Function *curFunction;
         BasicBlock *curBlock;
         std::unordered_map<ir::Value*, Operand*> value_map;
+        std::unordered_map<ir::BasicBlock*, BasicBlock*> block_map;
 
         Builder(Module *m);
 
@@ -20,6 +21,10 @@ namespace asm_arm {
         Operand *getOrCreateOperandOfValue(ir::Value* val);
 
         void setOperandOfValue(ir::Value* val, Operand *operand);
+
+        BasicBlock* getASMBBfromIRBB(ir::BasicBlock* bb);
+
+        void setASMBBtoIRBB(ir::BasicBlock *irbb, BasicBlock *bb);
 
         Function *createFunction(ir::Function *f);
 

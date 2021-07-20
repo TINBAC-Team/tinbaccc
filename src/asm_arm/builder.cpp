@@ -28,11 +28,23 @@ namespace asm_arm {
         return ret;
     }
 
+    BasicBlock *Builder::getASMBBfromIRBB(ir::BasicBlock *bb) {
+        auto got = block_map.find(bb);
+        if (got != block_map.end())
+            return got->second;
+        return nullptr;
+    }
+
+    void Builder::setASMBBtoIRBB(ir::BasicBlock *irbb, BasicBlock *bb) {
+        block_map[irbb] = bb;
+    }
+
     Function *Builder::createFunction(ir::Function *f) {
         auto *ret = new Function(f);
         module->functionList.push_back(ret);
         curFunction = ret;
         value_map.clear();
+        block_map.clear();
         return ret;
     }
 
