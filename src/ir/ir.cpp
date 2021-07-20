@@ -153,7 +153,7 @@ namespace ir {
         // CFG incomplete
         if (!sealed) {
             // construct an operand-less Phi, fill its operands later during sealing.
-            PhiInst *phi = builder.CreatePhi();
+            PhiInst *phi = builder.CreatePhi(this);
             // record it as the current definition.
             incompletePhis[decl] = phi;
             val = phi;
@@ -164,7 +164,7 @@ namespace ir {
         } else {
             // Otherwise we need to create a Phi for all its predecessors
             // construct an operand-less Phi...
-            PhiInst *phi = builder.CreatePhi();
+            PhiInst *phi = builder.CreatePhi(this);
             // ...and record it as Decl's current definition to break possible endless loop.
             decl->set_var_def(this, phi);
             val = addPhiOperands(decl, phi, builder);
@@ -319,10 +319,9 @@ namespace ir {
         return 0;
     }
 
-    PhiInst *IRBuilder::CreatePhi() {
+    PhiInst *IRBuilder::CreatePhi(BasicBlock *tgt_block) {
         auto *instp = new PhiInst();
-        auto *curblock = GetCurBlock();
-        curblock->InsertAtFront(instp);
+        tgt_block->InsertAtFront(instp);
         return instp;
     }
 

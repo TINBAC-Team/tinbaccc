@@ -95,7 +95,7 @@ namespace ir {
 
         Value *CreateGlobalVar(ast::Decl *decl);
 
-        PhiInst *CreatePhi();
+        PhiInst *CreatePhi(BasicBlock *tgt_block);
 
         static Value *getConstant(int _value);
 
