@@ -81,7 +81,11 @@ namespace ast {
         // LLVM requires that the first block must have no predecessors. Create it here.
         ir::BasicBlock *bb = builder.CreateBlock();
         irFunc->addParamsToBB(bb);
-        return block->codegen(builder);
+        auto ret= block->codegen(builder);
+        if(irFunc->return_int)
+            builder.CreateReturnInst(builder.getConstant(0));
+        else builder.CreateReturnInst(nullptr);
+        return ret;
     }
 
     ir::Value *Block::codegen(ir::IRBuilder &builder) {

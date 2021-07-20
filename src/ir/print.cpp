@@ -17,6 +17,11 @@ namespace ir {
     };
 
     static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
+        if(!val && define_name.empty())
+        {
+            //std::cerr<<"print ir: requesting name of nullptr"<<std::endl;
+            return "*nullptr*";
+        }
         if (auto const_val = dynamic_cast<ConstValue *>(val)) {
             return std::to_string(const_val->value);
         }
