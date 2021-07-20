@@ -39,12 +39,26 @@ namespace asm_arm {
         block_map[irbb] = bb;
     }
 
+    void Builder::addPendingBBPtr(BasicBlock **pbb, ir::BasicBlock *bb) {
+        block_fill_list.emplace_back(pbb, bb);
+    }
+
+    void Builder::fillBBPtr() {
+        for (auto &i:block_fill_list) {
+            BasicBlock *tgt_bb = getASMBBfromIRBB(i.second);
+            if(!tgt_bb)
+                throw std::runtime_error("No ASM BasicBlock for IR BasicBlock.");
+            *i.first = tgt_bb;
+        }
+    }
+
     Function *Builder::createFunction(ir::Function *f) {
         auto *ret = new Function(f);
         module->functionList.push_back(ret);
         curFunction = ret;
         value_map.clear();
         block_map.clear();
+        block_fill_list.clear();
         return ret;
     }
 

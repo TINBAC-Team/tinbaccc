@@ -15,6 +15,8 @@ namespace ir {
             i->codegen(builder);
         // TODO: generate return instructions
         builder.curFunction->appendReturnBlock();
+        // fill incomplete BB pointers
+        builder.fillBBPtr();
     }
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {

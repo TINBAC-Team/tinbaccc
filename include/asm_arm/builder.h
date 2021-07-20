@@ -4,6 +4,8 @@
 #include <ir/ir.h>
 #include <asm_arm/instructions.h>
 #include <unordered_map>
+#include <list>
+#include <utility>
 
 namespace asm_arm {
     class Builder {
@@ -13,6 +15,7 @@ namespace asm_arm {
         BasicBlock *curBlock;
         std::unordered_map<ir::Value*, Operand*> value_map;
         std::unordered_map<ir::BasicBlock*, BasicBlock*> block_map;
+        std::list<std::pair<BasicBlock**, ir::BasicBlock*>> block_fill_list;
 
         Builder(Module *m);
 
@@ -25,6 +28,10 @@ namespace asm_arm {
         BasicBlock* getASMBBfromIRBB(ir::BasicBlock* bb);
 
         void setASMBBtoIRBB(ir::BasicBlock *irbb, BasicBlock *bb);
+
+        void addPendingBBPtr(BasicBlock **pbb, ir::BasicBlock *bb);
+
+        void fillBBPtr();
 
         Function *createFunction(ir::Function *f);
 
