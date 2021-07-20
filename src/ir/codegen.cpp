@@ -122,8 +122,14 @@ namespace ir {
         return res;
     }
 
+    asm_arm::Operand * PhiInst::codegen(asm_arm::Builder &builder) {
+        // TODO: implement it
+        throw std::runtime_error("not implemented");
+    }
+
     asm_arm::Operand *CallInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Operand *ret = nullptr;
+        // FIXME: SP should be 8-byte aligned
         if (params.size() > 4)
             builder.moveSP(true, (params.size() - 4) * 4);
         // setup parameters
@@ -218,5 +224,25 @@ namespace ir {
         builder.createBInst(builder.curFunction->ret_block);
         builder.createBlock();
         return nullptr;
+    }
+
+    asm_arm::Operand * LoadInst::codegen(asm_arm::Builder &builder) {
+        // TODO: implement it
+        throw std::runtime_error("not implemented");
+    }
+
+    asm_arm::Operand * StoreInst::codegen(asm_arm::Builder &builder) {
+        // TODO: implement it
+        throw std::runtime_error("not implemented");
+    }
+
+    asm_arm::Operand * AllocaInst::codegen(asm_arm::Builder &builder) {
+        // TODO: implement it
+        throw std::runtime_error("not implemented");
+    }
+
+    asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
+        // TODO: implement it
+        throw std::runtime_error("not implemented");
     }
 }

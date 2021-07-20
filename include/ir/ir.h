@@ -258,6 +258,8 @@ namespace ir {
         int InsertElem(BasicBlock *basicblock, Value *value);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class CallInst : public Inst {
@@ -333,6 +335,8 @@ namespace ir {
         LoadInst(Value *_ptr);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class StoreInst : public AccessInst {
@@ -342,6 +346,8 @@ namespace ir {
         StoreInst(Value *_ptr, Value *_val);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class AllocaInst : public Inst {
@@ -351,6 +357,8 @@ namespace ir {
         AllocaInst(int _size);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class GetElementPtrInst : public AccessInst {
@@ -361,6 +369,8 @@ namespace ir {
         GetElementPtrInst(Value *_arr, Value *_offset);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class ConstValue : public Value {
