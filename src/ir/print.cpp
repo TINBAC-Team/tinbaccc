@@ -7,10 +7,13 @@ using std::endl;
 namespace ir {
     std::unordered_map<Value *, std::string> nameOfValue;
     std::unordered_map<const BasicBlock *, std::string> nameOfBB;
-
+    int seed;
+    int bb_seed;
     static std::string generate_new_name() {
-        static int seed = 0;
-        return std::to_string(seed++);
+        return "x"+std::to_string(seed++);
+    };
+    static std::string generate_new_bb_name() {
+        return "__bb" + std::to_string(bb_seed++);
     };
 
     static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
@@ -30,7 +33,7 @@ namespace ir {
 
     static std::string get_name_of_BB(const BasicBlock *bb) {
         if (nameOfBB.find(bb) == nameOfBB.end())
-            nameOfBB[bb] = generate_new_name();
+            nameOfBB[bb] = generate_new_bb_name();
         return nameOfBB[bb];
     }
 
@@ -107,6 +110,8 @@ namespace ir {
     }
 
     void Function::print(std::ostream &os) const {
+        seed = 0;
+        bb_seed = 0;
         os << (is_extern() ? "declare " : "define ")
            << (return_int ? "i32 " : "void ")
            << "@" << name << " (";
@@ -137,7 +142,8 @@ namespace ir {
     }
 
     void BasicBlock::print(std::ostream &os) const {
-        os << "; <label>:" << get_name_of_BB(this) << ":" ;
+
+        os <<  get_name_of_BB(this) << ":" ;
         if(!parentInsts.empty()){
             os<<"\t; preds = ";
             bool is_first = true;
@@ -210,7 +216,9 @@ namespace ir {
 
     void ReturnInst::print(std::ostream &os) const {
         Value::print(os);
-        os << "i32 " << get_name_of_value(val.value);
+        if(val.value)
+            os << "i32 " << get_name_of_value(val.value);
+        else os<<"void";
     }
 
     void StoreInst::print(std::ostream &os) const {
@@ -269,7 +277,7 @@ namespace ir {
         } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
             size = arr_val->decl->array_multipliers[0];
         }
-        os << "[" << size << "x i32], " << "[" << size << "x i32]* " << get_name_of_value(arr.value) << " i32 0, i32 "
+        os << "[" << size << "x i32], " << "[" << size << "x i32]* " << get_name_of_value(arr.value) << ", i32 0, i32 "
            << get_name_of_value(offset.value);
     }
     void PhiInst::print(std::ostream &os) const{
