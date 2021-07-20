@@ -103,7 +103,7 @@ class Inst {
 	    UNDEF
 	} cond;
 
-	Inst(Op o) : op(o), cond(OpCond::NONE) {}
+	Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
 	virtual void print() {};
 
@@ -185,20 +185,9 @@ class TSTInst : public Inst2_1 {
 
 class BInst : public Inst {
   public:
-	std::string label;
-	bool has_suffix;
-	enum class Type {
-		EQ,
-		NE,
-		GT,
-		GE,
-		LT,
-		LE
-	} suffix;
+	BasicBlock *tgt;
 
-	BInst(std::string lb);
-
-	BInst(std::string lb, Type sf);
+	BInst(OpCond c = OpCond::NONE);
 };
 
 class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>

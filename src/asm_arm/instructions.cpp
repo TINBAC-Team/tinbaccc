@@ -81,9 +81,7 @@ namespace asm_arm {
 
     TSTInst::TSTInst(Operand *d, Operand *s) : Inst2_1(Inst::Op::TST, d, s) {}
 
-    BInst::BInst(std::string lb) : Inst(Inst::Op::B), label(lb), has_suffix(false) {}
-
-    BInst::BInst(std::string lb, Type sf) : Inst(Inst::Op::B), label(lb), has_suffix(true), suffix(sf) {}
+    BInst::BInst(OpCond c) : Inst(Op::B, c) {}
 
     BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
         if(o == Op::MUL || o == Op::SDIV)

@@ -99,15 +99,17 @@ namespace asm_arm {
         return ret;
     }
 
-    BInst * Builder::createBInst(std::string &lb) {
-        BInst * ret = new BInst(lb);
+    BInst *Builder::createBInst(ir::BasicBlock *bb, Inst::OpCond c) {
+        auto ret = new BInst(c);
         curBlock->insertAtEnd(ret);
+        addPendingBBPtr(&(ret->tgt), bb);
         return ret;
     }
 
-    BInst * Builder::createBInst(std::string &lb, BInst::Type sf) {
-        BInst * ret = new BInst(lb, sf);
+    BInst *Builder::createBInst(BasicBlock *bb, Inst::OpCond c) {
+        auto ret = new BInst(c);
         curBlock->insertAtEnd(ret);
+        ret->tgt = bb;
         return ret;
     }
 

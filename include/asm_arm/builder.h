@@ -47,9 +47,9 @@ namespace asm_arm {
 
         ADRInst * createADR(std::string& lb);
 
-        BInst * createBInst(std::string& lb);
+        BInst * createBInst(ir::BasicBlock *bb, Inst::OpCond c = Inst::OpCond::NONE);
 
-        BInst * createBInst(std::string& lb, BInst::Type sf);
+        BInst * createBInst(BasicBlock *bb, Inst::OpCond c = Inst::OpCond::NONE);
 
         /**
          * Create binary instruction with lhs and rhs as operand.
