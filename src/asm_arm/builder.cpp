@@ -108,14 +108,24 @@ namespace asm_arm {
         return ret;
     }
 
-    CallInst *Builder::createCall(std::string lb, int np) {
-        auto ret = new CallInst(np, std::move(lb));
+    CallInst *Builder::createCall(std::string lb, int np, bool is_void) {
+        auto ret = new CallInst(np, std::move(lb), is_void);
         curBlock->insertAtEnd(ret);
         return ret;
     }
 
     BinaryInst *Builder::createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs) {
         auto ret = new BinaryInst(op, Operand::newVReg(), lhs, rhs);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
+    BinaryInst *Builder::moveSP(bool is_sub, int len) {
+        auto ret = new BinaryInst(
+                is_sub ? Inst::Op::SUB : Inst::Op::ADD,
+                Operand::getReg(Reg::sp),
+                Operand::getReg(Reg::sp),
+                Operand::newImm(len));
         curBlock->insertAtEnd(ret);
         return ret;
     }

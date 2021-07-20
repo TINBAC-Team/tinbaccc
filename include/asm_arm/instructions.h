@@ -196,8 +196,9 @@ namespace asm_arm {
     class CallInst : public Inst {
     public:
         int nparams;
+        bool is_void;
         std::string label;
-        CallInst(int np, std::string l);
+        CallInst(int np, std::string l, bool _is_void);
     };
 
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>

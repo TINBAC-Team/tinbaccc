@@ -49,7 +49,7 @@ namespace asm_arm {
 
         BInst * createBInst(BasicBlock *bb, Inst::OpCond c = Inst::OpCond::NONE);
 
-        CallInst * createCall(std::string lb, int np);
+        CallInst * createCall(std::string lb, int np, bool is_void);
 
         /**
          * Create binary instruction with lhs and rhs as operand.
@@ -60,6 +60,8 @@ namespace asm_arm {
          * @return created instruction
          */
         BinaryInst *createBinaryInst(Inst::Op op, Operand *lhs, Operand *rhs);
+
+        BinaryInst *moveSP(bool is_sub, int len);
 
         TernaryInst *createTernaryInst(Inst::Op op, Operand *o1, Operand *o2, Operand *o3);
 

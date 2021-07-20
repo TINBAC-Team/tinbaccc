@@ -269,6 +269,8 @@ namespace ir {
         explicit CallInst(std::string n, bool _is_void);
 
         void print(std::ostream &os) const;
+
+        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class BranchInst : public Inst {

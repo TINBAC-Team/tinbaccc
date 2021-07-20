@@ -122,6 +122,40 @@ namespace ir {
         return res;
     }
 
+    asm_arm::Operand *CallInst::codegen(asm_arm::Builder &builder) {
+        asm_arm::Operand *ret = nullptr;
+        if (params.size() > 4)
+            builder.moveSP(true, (params.size() - 4) * 4);
+        // setup parameters
+        for (int i = params.size() - 1; i >= 0; i--) {
+            if (i >= 4) {
+                builder.createSTR(
+                        builder.getOrCreateOperandOfValue(params[i]),
+                        asm_arm::Operand::getReg(asm_arm::Reg::sp),
+                        asm_arm::Operand::newImm((i - 4) * 4)
+                );
+            } else {
+                builder.createMOVInst(
+                        asm_arm::Operand::getReg(static_cast<asm_arm::Reg>(i)),
+                        builder.getOrCreateOperandOfValue(params[i])
+                );
+            }
+        }
+        // call the function
+        builder.createCall(fname, params.size(), is_void);
+        if (!is_void) {
+            builder.createMOVInst(
+                    (ret = asm_arm::Operand::newVReg()),
+                    asm_arm::Operand::getReg(asm_arm::Reg::r0)
+            );
+            builder.setOperandOfValue(this, ret);
+        }
+        // restore sp
+        if (params.size() > 4)
+            builder.moveSP(false, (params.size() - 4) * 4);
+        return ret;
+    }
+
     asm_arm::Operand *BranchInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Operand *lhs = nullptr, *rhs = nullptr;
         // Grab its cond value to generate cmp instruction
