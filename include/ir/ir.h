@@ -314,6 +314,8 @@ namespace ir {
         ReturnInst(Value *v) : Inst(OpType::RETURN), val(this, v) {}
 
         void print(std::ostream &os) const;
+
+        asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };
 
     class AccessInst : public Inst {
