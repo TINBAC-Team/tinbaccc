@@ -1,6 +1,5 @@
 #include <ir/ir.h>
 #include <ast/ast.h>
-
 #include <utility>
 
 namespace ir {
@@ -196,14 +195,14 @@ namespace ir {
 
         // Replace all users of this Phi with same
         for (auto cur_use:phi->uList) {
-            if (cur_use->value == phi)
+            if (cur_use->user == phi || cur_use->value != phi)
                 continue;
             cur_use->use(same);
         }
 
         // Try to recursively remove all phi users, which might have become trivial
         for (auto cur_use:phi->uList) {
-            if (cur_use->value == phi)
+            if (cur_use->user == phi || cur_use->value != phi)
                 continue;
             PhiInst *curphi = dynamic_cast<ir::PhiInst *>(cur_use->user);
             if (curphi)
