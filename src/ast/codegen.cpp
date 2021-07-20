@@ -203,6 +203,7 @@ namespace ast {
     }
 
     ir::Value *Exp::codegen(ir::IRBuilder &builder) {
+
         ir::Value *L = nullptr, *R = nullptr;
         switch (op) {
             case Op::CONST_VAL:
@@ -228,12 +229,17 @@ namespace ast {
             else
                 R = rhs->codegen(builder);
         }
-        if (!L || !R) return nullptr;
+
+        if(op==Op::UNARY_MINUS || op==Op::UNARY_PLUS || op==Op::LOGIC_NOT)
+        {
+            if (!L) return nullptr;
+        } else if (!L || !R) return nullptr;
+
         switch (op) {
             case Op::UNARY_PLUS:
                 return L;
             case Op::UNARY_MINUS:
-                return builder.CreateBinaryInst(L, builder.getConstant(0), ir::OpType::SUB);
+                return builder.CreateBinaryInst(builder.getConstant(0) ,L, ir::OpType::SUB);
             case Op::LOGIC_NOT:
                 return builder.CreateBinaryInst(L, builder.getConstant(0), ir::OpType::NE);
 

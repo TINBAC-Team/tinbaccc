@@ -179,7 +179,10 @@ namespace ir {
             if (!is_first)
                 os << ", ";
             is_first = false;
-            os << "i32 ";
+            auto par = dynamic_cast<ir::GetElementPtrInst*>(p);
+            if(par)
+                os<<"i32* ";
+            else os << "i32 ";
             os << get_name_of_value(p);
         }
         os << ")";
@@ -277,14 +280,22 @@ namespace ir {
     void GetElementPtrInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        int size;
+        int size = 0;
         if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
             size = arr_val->size;
         } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
             size = arr_val->decl->array_multipliers[0];
         }
-        os << "[" << size << "x i32], " << "[" << size << "x i32]* " << get_name_of_value(arr.value) << ", i32 0, i32 "
-           << get_name_of_value(offset.value);
+        if (size > 0) {
+            os << "[" << size << " x i32], " << "[" << size << " x i32]* " << get_name_of_value(arr.value)
+               << ", i32 0, i32 "
+               << get_name_of_value(offset.value);
+        } else
+        {
+            os << "i32, i32* " << get_name_of_value(arr.value)
+               << ", i32 "<< get_name_of_value(offset.value);
+        }
+
     }
     void PhiInst::print(std::ostream &os) const{
         os << get_name_of_value((Value *) this) << " = ";
