@@ -82,6 +82,12 @@ namespace asm_arm {
         return ret;
     }
 
+    LDRInst *Builder::createLDR(Operand *s, Operand *o) {
+        auto ret = new LDRInst(Operand::newVReg(), s, o);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
     STRInst * Builder::createSTR(Operand *v, Operand *a, Operand *o)  {
         STRInst * ret = new STRInst(v, a, o);
         curBlock->insertAtEnd(ret);

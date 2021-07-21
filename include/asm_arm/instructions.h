@@ -118,15 +118,19 @@ namespace asm_arm {
     public:
         enum class Type {
             LABEL,
-            IMM
+            IMM,
+            REGOFFS,
         } type;
         std::string label;
         int value;
         Operand *dst;
+        Operand *src, *offs;
 
         LDRInst(std::string l, Operand *d);
 
         LDRInst(int v, Operand *d);
+
+        LDRInst(Operand *d, Operand *s, Operand *o);
     };
 
     /**

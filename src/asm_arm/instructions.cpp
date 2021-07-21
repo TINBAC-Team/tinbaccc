@@ -63,6 +63,8 @@ namespace asm_arm {
 
     LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {}
 
+    LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s), offs(o) {}
+
     STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o) {}
 
     ADRInst::ADRInst(Operand *d, std::string lb) : Inst(Inst::Op::ADR), dst(d), label(lb) {}

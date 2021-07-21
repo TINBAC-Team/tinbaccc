@@ -226,14 +226,29 @@ namespace ir {
         return nullptr;
     }
 
+    asm_arm::Operand * AccessInst::genptr(asm_arm::Builder &builder, Value *val) {
+        if(val->optype==OpType::GLOBAL) {
+            auto valglobal = dynamic_cast<GlobalVar*>(val);
+            auto ldrinst = builder.createLDR(valglobal->name);
+            return ldrinst->dst;
+        } else {
+            return builder.getOrCreateOperandOfValue(val);
+        }
+    }
+
     asm_arm::Operand * LoadInst::codegen(asm_arm::Builder &builder) {
-        // TODO: implement it
-        throw std::runtime_error("not implemented");
+        auto op = genptr(builder, ptr.value);
+        // TODO: Handle offset
+        auto inst = builder.createLDR(op, asm_arm::Operand::newImm(0));
+        return inst->dst;
     }
 
     asm_arm::Operand * StoreInst::codegen(asm_arm::Builder &builder) {
-        // TODO: implement it
-        throw std::runtime_error("not implemented");
+        auto addrop = genptr(builder, ptr.value);
+        auto valop = builder.getOrCreateOperandOfValue(val.value);
+        // TODO: Handle offset
+        builder.createSTR(addrop, valop, asm_arm::Operand::newImm(0));
+        return nullptr;
     }
 
     asm_arm::Operand * AllocaInst::codegen(asm_arm::Builder &builder) {
