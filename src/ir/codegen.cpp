@@ -261,6 +261,7 @@ namespace ir {
         auto mul4 = builder.createLDR(4);
         auto ptr = AccessInst::genptr(builder, arr.value);
         auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, ptr, builder.getOrCreateOperandOfValue(offset.value), mul4->dst);
+        builder.setOperandOfValue(this, res->dst);
         return res->dst;
     }
 }
