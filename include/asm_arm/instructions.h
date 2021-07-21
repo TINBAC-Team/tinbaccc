@@ -238,12 +238,15 @@ namespace asm_arm {
         ir::Function *func;
         std::list<BasicBlock *> bList;
         BasicBlock *ret_block;
+        unsigned int stack_size;
 
         Function(ir::Function *f);
 
         void appendBlock(BasicBlock *block);
 
         void appendReturnBlock();
+
+        unsigned int allocate_stack(unsigned int ni32s);
     };
 
     class Module {

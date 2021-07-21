@@ -70,6 +70,8 @@ namespace asm_arm {
         CMPInst *createCMPInst(Operand *lhs, Operand *rhs);
 
         MOVInst *createMOVInst(Operand *dst, Operand *src);
+
+        Operand *allocate_stack(unsigned int ni32s);
     };
 }
 #endif //TINBACCC_BUILDER_H

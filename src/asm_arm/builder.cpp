@@ -153,4 +153,26 @@ namespace asm_arm {
         curBlock->insertAtEnd(ret);
         return ret;
     }
+
+    /**
+     * Allocate stack space in current function and return its address relative to SP.
+     * Stack grows downward in arm, meaning we just subtract SP with the stack size of
+     * current function at the beginning and add an offset to SP to obtain allocated
+     * space.
+     * to be confirmed: It doesn't seem to matter if we don't know the exact stack size
+     * beforehand during function generation. We just need to deal with SP in function
+     * prologue after reg allocation.
+     * @param ni32s
+     * @return operand containing allocated address.
+     */
+    Operand * Builder::allocate_stack(unsigned int ni32s) {
+        // TODO: we actually want to keep SP and use SP-relative address in LDR
+        unsigned int stackptr = curFunction->allocate_stack(ni32s);
+        Operand *lhs = Operand::getReg(Reg::sp), *rhs;
+        if(Operand::op2Imm(stackptr))
+            rhs = Operand::newImm(stackptr);
+        else
+            rhs = createLDR(stackptr)->dst;
+        return createBinaryInst(Inst::Op::ADD, lhs, rhs)->dst;
+    }
 }

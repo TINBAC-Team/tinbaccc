@@ -116,7 +116,7 @@ namespace asm_arm {
         inst->bb = this;
     }
 
-    Function::Function(ir::Function *f) : func(f), name(f->name) {
+    Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0) {
         ret_block = new BasicBlock();
     }
 
@@ -126,5 +126,11 @@ namespace asm_arm {
 
     void Function::appendReturnBlock() {
         bList.push_back(ret_block);
+    }
+
+    unsigned int Function::allocate_stack(unsigned int ni32s) {
+        unsigned int retoffs = stack_size;
+        stack_size += ni32s * 4;
+        return retoffs;
     }
 }
