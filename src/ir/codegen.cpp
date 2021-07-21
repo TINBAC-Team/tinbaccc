@@ -257,7 +257,10 @@ namespace ir {
     }
 
     asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
-        // TODO: implement it
-        throw std::runtime_error("not implemented");
+        // TODO: offset...
+        auto mul4 = builder.createLDR(4);
+        auto ptr = AccessInst::genptr(builder, arr.value);
+        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, ptr, builder.getOrCreateOperandOfValue(offset.value), mul4->dst);
+        return res->dst;
     }
 }
