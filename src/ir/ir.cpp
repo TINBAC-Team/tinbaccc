@@ -360,7 +360,7 @@ namespace ir {
         auto instp = new ir::CallInst(name, is_void);
         auto *curblock = GetCurBlock();
         for (auto &i:params)
-            instp->params.emplace_back(Use(instp, i->codegen(*this)));
+            instp->params.emplace_back(instp, i->codegen(*this));
         curblock->InsertAtEnd(instp);
         return instp;
     }
