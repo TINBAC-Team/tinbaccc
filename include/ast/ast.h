@@ -105,6 +105,8 @@ namespace ast {
 
         LVal(const std::string n = "") : name(n) {}
 
+        LVal(Decl *_decl) : decl(_decl) {}
+
         ~LVal();
 
         void add_dim(int dim);

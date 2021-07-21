@@ -21,6 +21,12 @@ namespace ast {
                                                      {Decl::create_param("n", {}),
                                                       Decl::create_param("a", {new Exp(0)})})
         );
+        entries.emplace_back(Function::create_extern(Function::Type::VOID,
+                                                     "memset",
+                                                     {Decl::create_param("arr", {new Exp(0)}),
+                                                     Decl::create_param("num", {}),
+                                                      Decl::create_param("count", {})})
+        );
         // TODO: printf
         entries.emplace_back(Function::create_extern(Function::Type::VOID,
                                                      "_sysy_starttime",
