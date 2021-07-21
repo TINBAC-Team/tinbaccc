@@ -58,7 +58,7 @@ namespace ast {
                 for(auto &i:initval_expanded){
                     if(i==nullptr) break;
                     auto filling_addr = builder.CreateGetElementPtrInst(addr,builder.getConstant(index++));
-                    builder.CreateStoreInst(filling_addr,builder.getConstant(i->get_value()));
+                    builder.CreateStoreInst(filling_addr,i->codegen(builder));
                 }
             }
             return addr;
