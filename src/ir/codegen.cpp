@@ -13,8 +13,9 @@ namespace ir {
         builder.createFunction(this);
         for (auto &i:bList)
             i->codegen(builder);
-        // TODO: generate return instructions
         builder.curFunction->appendReturnBlock();
+        auto ret = new asm_arm::ReturnInst(return_int);
+        builder.curBlock->insertAtEnd(ret);
         // fill incomplete BB pointers
         builder.fillBBPtr();
     }

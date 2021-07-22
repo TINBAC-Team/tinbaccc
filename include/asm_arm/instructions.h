@@ -86,6 +86,7 @@ namespace asm_arm {
             MLS,
             MUL,
             SDIV,
+            RETURN, // not an actual instruction
         } op;
 
         enum class OpCond {
@@ -217,6 +218,13 @@ namespace asm_arm {
         Operand *dst, *op1, *op2, *op3;
 
         TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
+    };
+
+    class ReturnInst : public Inst {
+    public:
+        bool has_return_value;
+
+        ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {}
     };
 
     class BasicBlock {
