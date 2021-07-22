@@ -14,6 +14,7 @@ namespace ir {
         for (auto &i:bList)
             i->codegen(builder);
         builder.curFunction->appendReturnBlock();
+        builder.curBlock = builder.curFunction->ret_block;
         auto ret = new asm_arm::ReturnInst(return_int);
         builder.curBlock->insertAtEnd(ret);
         // fill incomplete BB pointers
@@ -246,6 +247,7 @@ namespace ir {
         auto op = genptr(builder, ptr.value);
         // TODO: Handle offset
         auto inst = builder.createLDR(op, asm_arm::Operand::newImm(0));
+        builder.setOperandOfValue(this, inst->dst);
         return inst->dst;
     }
 
