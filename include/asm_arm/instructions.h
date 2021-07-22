@@ -168,8 +168,9 @@ namespace asm_arm {
     };
 
     class MOVInst : public Inst {
-        Operand *dst, *src;
     public:
+        Operand *dst, *src;
+
         MOVInst(Operand *d, Operand *s);
     };
 

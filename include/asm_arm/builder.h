@@ -16,6 +16,12 @@ namespace asm_arm {
         std::unordered_map<ir::Value*, Operand*> value_map;
         std::unordered_map<ir::BasicBlock*, BasicBlock*> block_map;
         std::list<std::pair<BasicBlock**, ir::BasicBlock*>> block_fill_list;
+        struct PhiMOV {
+            ir::BasicBlock* irbb;
+            ir::Value* irval;
+            Operand *dst;
+        };
+        std::list<PhiMOV> phi_mov_list;
 
         Builder(Module *m);
 
@@ -32,6 +38,10 @@ namespace asm_arm {
         void addPendingBBPtr(BasicBlock **pbb, ir::BasicBlock *bb);
 
         void fillBBPtr();
+
+        void addPendingMOV(ir::BasicBlock* irbb, ir::Value* irval, Operand *dst);
+
+        void fillMOV();
 
         Function *createFunction(ir::Function *f);
 

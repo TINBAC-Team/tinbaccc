@@ -18,6 +18,7 @@ namespace ir {
         builder.curBlock->insertAtEnd(ret);
         // fill incomplete BB pointers
         builder.fillBBPtr();
+        builder.fillMOV();
     }
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {
@@ -124,8 +125,12 @@ namespace ir {
     }
 
     asm_arm::Operand * PhiInst::codegen(asm_arm::Builder &builder) {
-        // TODO: implement it
-        throw std::runtime_error("not implemented");
+        auto srcreg = asm_arm::Operand::newVReg();
+        auto dstmov = builder.createMOVInst(asm_arm::Operand::newVReg(), srcreg);
+        for (auto &i:phicont)
+            builder.addPendingMOV(i.first, i.second->value, srcreg);
+        builder.setOperandOfValue(this, dstmov->dst);
+        return dstmov->dst;
     }
 
     asm_arm::Operand *CallInst::codegen(asm_arm::Builder &builder) {
@@ -255,6 +260,7 @@ namespace ir {
     asm_arm::Operand * AllocaInst::codegen(asm_arm::Builder &builder) {
         auto ret = builder.allocate_stack(size);
         builder.setOperandOfValue(this, ret);
+        return ret;
     }
 
     asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {

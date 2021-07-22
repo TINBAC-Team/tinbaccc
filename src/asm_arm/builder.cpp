@@ -52,6 +52,22 @@ namespace asm_arm {
         }
     }
 
+    void Builder::addPendingMOV(ir::BasicBlock* irbb, ir::Value* irval, Operand *dst) {
+        PhiMOV mov = {irbb, irval, dst};
+        phi_mov_list.push_back(mov);
+    }
+
+    void Builder::fillMOV() {
+        for (auto &i:phi_mov_list) {
+            BasicBlock *tgt_bb = getASMBBfromIRBB(i.irbb);
+            if(!tgt_bb)
+                throw std::runtime_error("Fill MOV: No ASM BasicBlock for IR BasicBlock.");
+            Operand *src_op = getOrCreateOperandOfValue(i.irval);
+            auto mov = new MOVInst(i.dst, src_op);
+            tgt_bb->insertBeforeBranch(mov);
+        }
+    }
+
     Function *Builder::createFunction(ir::Function *f) {
         Operand::resetRegMap();
         auto *ret = new Function(f);
