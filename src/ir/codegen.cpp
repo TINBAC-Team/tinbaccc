@@ -142,14 +142,14 @@ namespace ir {
         for (int i = params.size() - 1; i >= 0; i--) {
             if (i >= 4) {
                 builder.createSTR(
-                        builder.getOrCreateOperandOfValue(params[i]),
+                        builder.getOrCreateOperandOfValue(params[i].value),
                         asm_arm::Operand::getReg(asm_arm::Reg::sp),
                         asm_arm::Operand::newImm((i - 4) * 4)
                 );
             } else {
                 builder.createMOVInst(
                         asm_arm::Operand::getReg(static_cast<asm_arm::Reg>(i)),
-                        builder.getOrCreateOperandOfValue(params[i])
+                        builder.getOrCreateOperandOfValue(params[i].value)
                 );
             }
         }
