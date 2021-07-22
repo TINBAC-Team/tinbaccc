@@ -68,9 +68,7 @@ namespace asm_arm {
     class Inst {
     public:
         BasicBlock *bb;
-        // TODO use
         std::set<Operand*> use;
-        // TODO def
         std::set<Operand*> def;
         enum class Op {
             LDR,
@@ -116,6 +114,10 @@ namespace asm_arm {
         Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
         virtual void print() {};
+
+        void add_use(Operand *op);
+
+        void add_def(Operand *op);
 
         virtual ~Inst() {};
     };
@@ -230,7 +232,7 @@ namespace asm_arm {
     public:
         bool has_return_value;
 
-        ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {}
+        ReturnInst(bool ret);
     };
 
     class BasicBlock {

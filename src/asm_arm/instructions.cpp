@@ -59,13 +59,33 @@ namespace asm_arm {
         return false;
     }
 
-    LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {}
+    void Inst::add_def(Operand *op) {
+        def.insert(op);
+    }
 
-    LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {}
+    void Inst::add_use(Operand *op) {
+        use.insert(op);
+    }
 
-    LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s), offs(o) {}
+    LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {
+        add_def(d);
+    }
 
-    STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o) {}
+    LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {
+        add_def(d);
+    }
+
+    LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s), offs(o) {
+        add_use(s);
+        add_use(o);
+        add_def(d);
+    }
+
+    STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o) {
+        add_use(v);
+        add_use(a);
+        add_use(o);
+    }
 
     ADRInst::ADRInst(Operand *d, std::string lb) : Inst(Inst::Op::ADR), dst(d), label(lb) {}
 
@@ -80,9 +100,15 @@ namespace asm_arm {
 
     Inst2_1::Inst2_1(Op o, Operand *d, Operand *s) : Inst(o), dst(d), src(s), type_operand2(Type::Reg) {}
 
-    MOVInst::MOVInst(Operand *d, Operand *s) : Inst(Inst::Op::MOV), dst(d), src(s) {}
+    MOVInst::MOVInst(Operand *d, Operand *s) : Inst(Inst::Op::MOV), dst(d), src(s) {
+        add_use(s);
+        add_def(d);
+    }
 
-    CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {}
+    CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {
+        add_use(l);
+        add_use(r);
+    }
 
     TSTInst::TSTInst(Operand *d, int s_imm) : Inst2_1(Inst::Op::TST, d, s_imm) {}
 
@@ -91,16 +117,56 @@ namespace asm_arm {
     BInst::BInst(OpCond c) : Inst(Op::B, c) {}
 
     CallInst::CallInst(int np, std::string l, bool _is_void) :
-        Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {}
+        Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
+        int opoffs = 0;
+
+        // r0-r3 are caller-preserved regs. set unused ones to def for register allocation.
+        if(np >= 1)
+            add_use(Operand::getReg(Reg::r0));
+        else
+            add_def(Operand::getReg(Reg::r0));
+
+        if(np >= 2)
+            add_use(Operand::getReg(Reg::r1));
+        else
+            add_def(Operand::getReg(Reg::r1));
+
+        if(np >= 3)
+            add_use(Operand::getReg(Reg::r2));
+        else
+            add_def(Operand::getReg(Reg::r2));
+
+        if(np >= 4)
+            add_use(Operand::getReg(Reg::r3));
+        else
+            add_def(Operand::getReg(Reg::r3));
+
+        add_def(Operand::getReg(Reg::r12));
+        add_def(Operand::getReg(Reg::lr));
+    }
 
     BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
         if(o == Op::MUL || o == Op::SDIV)
             if(rhs->type == Operand::Type::Imm)
                 throw std::runtime_error("IMM not allowed in MUL/SDIV");
+
+        add_use(l);
+        add_use(r);
+        add_def(d);
     }
 
     TernaryInst::TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3) :
-            Inst(o), dst(d), op1(o1), op2(o2), op3(o3) {}
+            Inst(o), dst(d), op1(o1), op2(o2), op3(o3) {
+        add_use(o1);
+        add_use(o2);
+        add_use(o3);
+        add_def(d);
+    }
+
+    ReturnInst::ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {
+        if(ret)
+            add_use(Operand::getReg(Reg::r0));
+    }
 
     void BasicBlock::insertAtEnd(Inst *inst) {
         insts.push_back(inst);
