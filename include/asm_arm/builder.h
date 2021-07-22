@@ -16,6 +16,7 @@ namespace asm_arm {
         std::unordered_map<ir::Value*, Operand*> value_map;
         std::unordered_map<ir::BasicBlock*, BasicBlock*> block_map;
         std::list<std::pair<BasicBlock**, ir::BasicBlock*>> block_fill_list;
+        bool params_prepared;
         struct PhiMOV {
             ir::BasicBlock* irbb;
             ir::Value* irval;
@@ -44,6 +45,8 @@ namespace asm_arm {
         void fillMOV();
 
         Function *createFunction(ir::Function *f);
+
+        void prepareFunctionParams();
 
         BasicBlock *createBlock();
 

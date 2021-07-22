@@ -1,4 +1,5 @@
 #include <asm_arm/builder.h>
+#include <ast/ast.h>
 #include <iostream>
 
 namespace asm_arm {
@@ -76,13 +77,30 @@ namespace asm_arm {
         value_map.clear();
         block_map.clear();
         block_fill_list.clear();
+        params_prepared = false;
         return ret;
+    }
+
+    void Builder::prepareFunctionParams() {
+        int cnt = 0;
+        for(auto &i:curFunction->func->params) {
+            if(cnt < 4) {
+                auto inst = createMOVInst(Operand::newVReg(), Operand::getReg(static_cast<Reg>(cnt)));
+                setOperandOfValue(i, inst->dst);
+            } else {
+                throw std::runtime_error("other params not implemented yet");
+            }
+            cnt++;
+        }
     }
 
     BasicBlock *Builder::createBlock() {
         auto *bb = new BasicBlock();
         curFunction->appendBlock(bb);
         curBlock = bb;
+        if (!params_prepared)
+            prepareFunctionParams();
+        params_prepared = true;
         return bb;
     }
 
@@ -175,9 +193,7 @@ namespace asm_arm {
      * Stack grows downward in arm, meaning we just subtract SP with the stack size of
      * current function at the beginning and add an offset to SP to obtain allocated
      * space.
-     * to be confirmed: It doesn't seem to matter if we don't know the exact stack size
-     * beforehand during function generation. We just need to deal with SP in function
-     * prologue after reg allocation.
+     *
      * @param ni32s
      * @return operand containing allocated address.
      */

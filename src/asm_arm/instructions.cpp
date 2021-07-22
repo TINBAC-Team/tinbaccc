@@ -118,7 +118,6 @@ namespace asm_arm {
 
     CallInst::CallInst(int np, std::string l, bool _is_void) :
         Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
-        int opoffs = 0;
 
         // r0-r3 are caller-preserved regs. set unused ones to def for register allocation.
         if(np >= 1)
