@@ -89,7 +89,9 @@ namespace asm_arm {
                 auto inst = createMOVInst(Operand::newVReg(), Operand::getReg(static_cast<Reg>(cnt)));
                 setOperandOfValue(i, inst->dst);
             } else {
-                throw std::runtime_error("other params not implemented yet");
+                // FIXME: This offset needs a fixup later
+                auto inst = createLDR(Operand::getReg(Reg::sp), nullptr);
+                setOperandOfValue(i, inst->dst);
             }
             cnt++;
         }
