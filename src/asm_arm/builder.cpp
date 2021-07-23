@@ -77,6 +77,7 @@ namespace asm_arm {
         value_map.clear();
         block_map.clear();
         block_fill_list.clear();
+        phi_mov_list.clear();
         params_prepared = false;
         return ret;
     }
