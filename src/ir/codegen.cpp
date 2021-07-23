@@ -85,10 +85,10 @@ namespace ir {
             case OpType::SUB:
                 op = asm_arm::Inst::Op::SUB;
                 if (lhs_const) {
-                    auto r_const_val = dynamic_cast<ConstValue *>(ValueR.value);
-                    if (asm_arm::Operand::op2Imm(r_const_val->value)) {
+                    auto l_const_val = dynamic_cast<ConstValue *>(ValueL.value);
+                    if (asm_arm::Operand::op2Imm(l_const_val->value)) {
                         op = asm_arm::Inst::Op::RSB;
-                        lhs = r_const_val->genimm(builder);
+                        lhs = l_const_val->genimm(builder);
                         rhs = builder.getOrCreateOperandOfValue(ValueL.value);
                         break;
                     }
