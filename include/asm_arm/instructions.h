@@ -43,8 +43,7 @@ namespace asm_arm {
         } type;
         Reg reg;
         int val;
-        static std::unordered_map<Reg, Operand *> precolored_reg_map;
-        static unsigned numVReg;
+        static std::unordered_map<Reg *, Operand *> precolored_reg_map;
 
         Operand(Type t) : type(t) {};
 
@@ -71,7 +70,6 @@ namespace asm_arm {
          */
         static bool op2Imm(int val);
     };
-    unsigned Operand::numVReg = 0;
 
     class Inst {
     public:
@@ -121,7 +119,7 @@ namespace asm_arm {
 
         Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
-        virtual void print(std::ostream &os) const;
+        virtual void print(std::ostream &os) const = 0;
 
         virtual std::string Op_to_string() const;
 
@@ -274,7 +272,6 @@ namespace asm_arm {
         // TODO IN
         std::set<Operand*> liveIn;
         std::string bb_label;
-        static int bb_seed;
 
         BasicBlock();
 
@@ -284,9 +281,8 @@ namespace asm_arm {
 
         void insertBeforeBranch(Inst *inst);
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os, bool single) const;
     };
-    int BasicBlock::bb_seed = 0;
 
     class Function {
     public:

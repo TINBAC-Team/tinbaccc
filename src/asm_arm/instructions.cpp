@@ -3,10 +3,9 @@
 
 #include <utility>
 #include <stdexcept>
-#include <unordered_map>
 
 namespace asm_arm {
-    std::unordered_map<Reg, Operand *> Operand::precolored_reg_map;
+    std::unordered_map<Reg *, Operand *> Operand::precolored_reg_map;
 
     Operand *Operand::newImm(int v) {
         auto ret = new Operand(Type::Imm);
@@ -15,12 +14,12 @@ namespace asm_arm {
     }
 
     Operand *Operand::getReg(Reg r) {
-        auto got = precolored_reg_map.find(r);
+        auto got = precolored_reg_map.find(&r);
         if (got != precolored_reg_map.end())
             return got->second;
         auto ret = new Operand(Type::Reg);
         ret->reg = r;
-        precolored_reg_map[r] = ret;
+        precolored_reg_map[&r] = ret;
         return ret;
     }
 
@@ -173,9 +172,10 @@ namespace asm_arm {
             add_use(Operand::getReg(Reg::r0));
     }
 
+    static int bb_seed2 = 0;
     BasicBlock::BasicBlock() {
         bb_label = ".L";
-        bb_label += std::to_string(BasicBlock::bb_seed++);
+        bb_label += std::to_string(bb_seed2++);
     }
 
     void BasicBlock::insertAtEnd(Inst *inst) {

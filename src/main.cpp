@@ -17,27 +17,30 @@ int main(int argc, char *argv[]) {
     const char *ast_path = nullptr;
     const char *ir_path = nullptr;
     const char *asm_path = nullptr;
-    while ((ch = getopt_long(argc, argv, "So:O:a:i:s:", long_options, NULL)) != -1) {
-        switch (ch) {
-            case 'S':
-            case 'O':
-                break;
-            case 'o':
-                break;
-            case 'a':
-                ast_path = optarg;
-                break;
-            case 'i':
-                ir_path = optarg;
-                break;
-            case 's':
-                asm_path = optarg;
-                break;
-            default:
-                return -1;
-        }
-    }
+//    while ((ch = getopt_long(argc, argv, "So:O:a:i:s:", long_options, NULL)) != -1) {
+//        switch (ch) {
+//            case 'S':
+//            case 'O':
+//                break;
+//            case 'o':
+//                break;
+//            case 'a':
+//                ast_path = optarg;
+//                break;
+//            case 'i':
+//                ir_path = optarg;
+//                break;
+//            case 's':
+//                asm_path = optarg;
+//                break;
+//            default:
+//                return -1;
+//        }
+//    }
 
+    ast_path = argv[2];
+    ir_path = argv[3];
+    asm_path = argv[4];
     tcc_sy_driver driver;
 
     if (optind == argc) {
@@ -55,8 +58,7 @@ int main(int argc, char *argv[]) {
 
     driver.validate_ast();
 
-    if (ast_path)
-        driver.print_ast(ast_path);
+    driver.print_ast(ast_path);
 
     driver.generate_ir();
 

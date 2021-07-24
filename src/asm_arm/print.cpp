@@ -63,6 +63,7 @@ namespace asm_arm {
         return ret;
     }
 
+    static unsigned numVReg = 0;
     std::string Operand::getVRegName() {
         std::string ret = "vr";
         ret += std::to_string(numVReg++);
@@ -221,7 +222,7 @@ namespace asm_arm {
     }
 
     void BInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << tgt->bb_label << std::endl;
+        os << "\t" << Op_to_string() << " " << tgt->bb_label << std::endl;
     }
 
     void CallInst::print(std::ostream &os) const {
@@ -246,16 +247,21 @@ namespace asm_arm {
         os << "\tMOV pc, lr\n";
     }
 
-    void BasicBlock::print(std::ostream &os) const {
-        os << bb_label << ":\n";
+    void BasicBlock::print(std::ostream &os, bool single) const {
+        if (!single)
+            os << bb_label << ":\n";
         for (auto &x : insts)
             x->print(os);
     }
 
     void Function::print(std::ostream &os) const {
         os << name << ":\n";
-        for (auto &x : bList)
-            x->print(os);
+        if (bList.size() == 1)
+            (*bList.begin())->print(os, true);
+        else {
+            for (auto &x : bList)
+                x->print(os, false);
+        }
     }
 
     void Module::print(std::ostream &os) const {
