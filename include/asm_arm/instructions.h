@@ -32,6 +32,8 @@ namespace asm_arm {
         pc
     };
 
+    std::string getRegName(Reg &reg);
+
     class Operand {
     public:
         enum class Type {
@@ -42,6 +44,7 @@ namespace asm_arm {
         Reg reg;
         int val;
         static std::unordered_map<Reg, Operand *> precolored_reg_map;
+        static unsigned numVReg;
 
         Operand(Type t) : type(t) {};
 
@@ -52,6 +55,10 @@ namespace asm_arm {
         static void resetRegMap();
 
         static Operand *newVReg();
+
+        static std::string getVRegName();
+
+        std::string getOperandName();
 
         /**
          * OP2 of binary operations in ARM can be a immediate value encoded
@@ -64,6 +71,7 @@ namespace asm_arm {
          */
         static bool op2Imm(int val);
     };
+    unsigned Operand::numVReg = 0;
 
     class Inst {
     public:
@@ -113,7 +121,9 @@ namespace asm_arm {
 
         Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
-        virtual void print() {};
+        virtual void print(std::ostream &os) const;
+
+        virtual std::string Op_to_string() const;
 
         void add_use(Operand *op);
 
@@ -139,6 +149,8 @@ namespace asm_arm {
         LDRInst(int v, Operand *d);
 
         LDRInst(Operand *d, Operand *s, Operand *o);
+
+        void print(std::ostream &os) const;
     };
 
     /**
@@ -151,6 +163,8 @@ namespace asm_arm {
         Operand *val, *addr, *offset;
 
         STRInst(Operand *v, Operand *a, Operand *o);
+
+        void print(std::ostream &os) const;
     };
 
     class ADRInst : public Inst {
@@ -159,6 +173,8 @@ namespace asm_arm {
         std::string label;
 
         ADRInst(Operand *d, std::string lb);
+
+        void print(std::ostream &os) const;
     };
 
     class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
@@ -179,12 +195,16 @@ namespace asm_arm {
         Operand *dst, *src;
 
         MOVInst(Operand *d, Operand *s);
+
+        void print(std::ostream &os) const;
     };
 
     class CMPInst : public Inst {
         Operand *lhs, *rhs;
     public:
         CMPInst(Operand *l, Operand *r);
+
+        void print(std::ostream &os) const;
     };
 
     class TSTInst : public Inst2_1 {
@@ -199,6 +219,8 @@ namespace asm_arm {
         BasicBlock *tgt;
 
         BInst(OpCond c = OpCond::NONE);
+
+        void print(std::ostream &os) const;
     };
 
     /**
@@ -212,6 +234,8 @@ namespace asm_arm {
         bool is_void;
         std::string label;
         CallInst(int np, std::string l, bool _is_void);
+
+        void print(std::ostream &os) const;
     };
 
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
@@ -219,6 +243,8 @@ namespace asm_arm {
         Operand *dst, *lhs, *rhs;
 
         BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
+
+        void print(std::ostream &os) const;
     };
 
     class TernaryInst : public Inst {
@@ -226,6 +252,8 @@ namespace asm_arm {
         Operand *dst, *op1, *op2, *op3;
 
         TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
+
+        void print(std::ostream &os) const;
     };
 
     class ReturnInst : public Inst {
@@ -233,6 +261,8 @@ namespace asm_arm {
         bool has_return_value;
 
         ReturnInst(bool ret);
+
+        void print(std::ostream &os) const;
     };
 
     class BasicBlock {
@@ -243,6 +273,10 @@ namespace asm_arm {
         std::set<Operand*> liveOut;
         // TODO IN
         std::set<Operand*> liveIn;
+        std::string bb_label;
+        static int bb_seed;
+
+        BasicBlock();
 
         void insertAtEnd(Inst *inst);
 
@@ -250,7 +284,9 @@ namespace asm_arm {
 
         void insertBeforeBranch(Inst *inst);
 
+        void print(std::ostream &os) const;
     };
+    int BasicBlock::bb_seed = 0;
 
     class Function {
     public:
@@ -267,11 +303,15 @@ namespace asm_arm {
         void appendReturnBlock();
 
         unsigned int allocate_stack(unsigned int ni32s);
+
+        void print(std::ostream &os) const;
     };
 
     class Module {
     public:
         std::list<Function *> functionList;
+
+        void print(std::ostream &os) const;
     };
 
 }

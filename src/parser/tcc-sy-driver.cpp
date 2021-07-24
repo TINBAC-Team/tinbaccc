@@ -69,3 +69,15 @@ void tcc_sy_driver::generate_asm() {
     asm_arm::Builder builder(asm_module);
     module->codegen(builder);
 }
+
+void tcc_sy_driver::print_asm(const char *path) {
+    if (path) {
+        std::ofstream ofs(path, std::ofstream::out);
+        if (!ofs.is_open())
+            std::cerr << "Failed to open asm path!\n";
+        asm_module->print(ofs);
+        ofs.close();
+    }
+    else
+        std::cerr << "asm path could not be empty!\n";
+}
