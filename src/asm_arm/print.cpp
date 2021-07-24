@@ -249,7 +249,7 @@ namespace asm_arm {
         if (!single)
             os << bb_label << ":\n";
         for (auto &x : insts)
-            x->print_body(os);
+            x->print(os);
     }
 
     void Function::print(std::ostream &os) const {
