@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <stdexcept>
+#include <algorithm>
 
 namespace asm_arm {
     std::unordered_map<Reg, Operand *>Operand::precolored_reg_map;
@@ -179,6 +180,15 @@ namespace asm_arm {
     void BasicBlock::insertBeforeBranch(Inst *inst) {
         insts.insert(it_branch, inst);
         inst->bb = this;
+    }
+
+    void BasicBlock::insertBefore(Inst *inst, Inst *before) {
+        if (*it_insert != before) {
+            it_insert = std::find(insts.begin(), insts.end(), before);
+            if(it_insert == insts.end())
+                throw std::runtime_error("instruction not found");
+        }
+        insts.insert(it_insert, inst);
     }
 
     Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0) {

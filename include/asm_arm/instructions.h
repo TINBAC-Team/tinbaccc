@@ -239,6 +239,7 @@ namespace asm_arm {
     public:
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
+        std::list<Inst *>::const_iterator it_insert;
         // TODO OUT
         std::set<Operand*> liveOut;
         // TODO IN
@@ -250,6 +251,7 @@ namespace asm_arm {
 
         void insertBeforeBranch(Inst *inst);
 
+        void insertBefore(Inst *inst, Inst *before);
     };
 
     class Function {
