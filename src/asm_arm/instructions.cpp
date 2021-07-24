@@ -36,6 +36,8 @@ namespace asm_arm {
         return new Operand(Type::VReg);
     }
 
+
+
     bool Operand::op2Imm(int i) {
         int lowbit;
 
@@ -62,13 +64,16 @@ namespace asm_arm {
         return false;
     }
 
-    void Inst::add_def(Operand *op) {
-        def.insert(op);
-    }
+
 
     void Inst::add_use(Operand *op) {
         use.insert(op);
     }
+
+    void Inst::add_def(Operand *op) {
+        def.insert(op);
+    }
+
 
     LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {
         add_def(d);
@@ -169,6 +174,11 @@ namespace asm_arm {
     ReturnInst::ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {
         if (ret)
             add_use(Operand::getReg(Reg::r0));
+    }
+
+    BasicBlock::BasicBlock() {
+        bb_label = ".L";
+        bb_label += std::to_string(BasicBlock::bb_seed++);
     }
 
     void BasicBlock::insertAtEnd(Inst *inst) {

@@ -85,6 +85,8 @@ namespace asm_arm {
         MOVInst *createMOVInst(Operand *dst, Operand *src);
 
         Operand *allocate_stack(unsigned int ni32s);
+
+        void print(std::ostream& os);
     };
 }
 #endif //TINBACCC_BUILDER_H
