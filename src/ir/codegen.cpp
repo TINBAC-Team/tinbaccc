@@ -10,6 +10,9 @@ namespace ir {
     }
 
     void Function::codegen(asm_arm::Builder &builder) {
+        // don't generate code for external functions
+        if(bList.empty())
+            return;
         builder.createFunction(this);
         for (auto &i:bList)
             i->codegen(builder);
