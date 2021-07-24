@@ -178,80 +178,78 @@ namespace asm_arm {
         return ret_s;
     }
 
-
-    void LDRInst::print(std::ostream &os) const {
+    void Inst::print(std::ostream &os) {
         os << "\t" << Op_to_string() << " ";
+        print_body(os);
+        os << std::endl;
+    }
+
+    void LDRInst::print_body(std::ostream &os) const {
         switch (type) {
             case Type::LABEL:
-                os << dst->getOperandName() << ", " << label << std::endl;
+                os << dst->getOperandName() << ", " << label;
                 break;
             case Type::IMM:
-                os << dst->getOperandName() << ", " << "=" + std::to_string(value) << std::endl;
+                os << dst->getOperandName() << ", " << "=" + std::to_string(value);
                 break;
             case Type::REGOFFS:
                 os << dst->getOperandName() << ", [" << src->getOperandName();
                 if (!offs)
-                    os << "]" << std::endl;
+                    os << "]";
                 else
-                    os << ", " << offs->getOperandName() << "]" << std::endl;
+                    os << ", " << offs->getOperandName() << "]";
                 break;
             default:
-                std::cerr << "Error in LDR print!\n";
+                std::cerr << "Error in LDR print_body!\n";
                 break;
         }
     }
 
-    void STRInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " " << val->getOperandName() << ", [" << addr->getOperandName();
+    void STRInst::print_body(std::ostream &os) const {
+        os << val->getOperandName() << ", [" << addr->getOperandName();
         if (offset)
-            os << ", " << offset->getOperandName() << "]" << std::endl;
+            os << ", " << offset->getOperandName() << "]";
         else
-            os << "]" << std::endl;
+            os << "]";
     }
 
-    void ADRInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " " << dst->getOperandName() << ", " << label << std::endl;
+    void ADRInst::print_body(std::ostream &os) const {
+        os << dst->getOperandName() << ", " << label;
     }
 
-    void MOVInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " " << dst->getOperandName() << ", " << src->getOperandName() << std::endl;
+    void MOVInst::print_body(std::ostream &os) const {
+        os << dst->getOperandName() << ", " << src->getOperandName();
     }
 
-    void CMPInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " " << lhs->getOperandName() << ", " << rhs->getOperandName() << std::endl;
+    void CMPInst::print_body(std::ostream &os) const {
+        os << lhs->getOperandName() << ", " << rhs->getOperandName();
     }
 
-    void BInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " " << tgt->bb_label << std::endl;
+    void BInst::print_body(std::ostream &os) const {
+        os << tgt->bb_label;
     }
 
-    void CallInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << label << std::endl;
+    void CallInst::print_body(std::ostream &os) const {
+        os << label;
     }
 
-    void BinaryInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " ";
-        os << dst->getOperandName() << ", " << lhs->getOperandName() << ", " << rhs->getOperandName() << std::endl;
+    void BinaryInst::print_body(std::ostream &os) const {
+        os << dst->getOperandName() << ", " << lhs->getOperandName() << ", " << rhs->getOperandName();
     }
 
-    void TernaryInst::print(std::ostream &os) const {
-        os << "\t" << Op_to_string() << " ";
-        os << dst->getOperandName() << ", " << op1->getOperandName() << ", " << op2->getOperandName() << ", " << op3->getOperandName() << std::endl;
+    void TernaryInst::print_body(std::ostream &os) const {
+        os << dst->getOperandName() << ", " << op1->getOperandName() << ", " << op2->getOperandName() << ", " << op3->getOperandName();
     }
 
-    void ReturnInst::print(std::ostream &os) const {
-        if (has_return_value)
-            // TODO
-            ;
-        // TODO
-        os << "\tMOV pc, lr\n";
+    void ReturnInst::print_body(std::ostream &os) const {
+        // do nothing here. actual return code will be handled in function print
     }
 
     void BasicBlock::print(std::ostream &os, bool single) const {
         if (!single)
             os << bb_label << ":\n";
         for (auto &x : insts)
-            x->print(os);
+            x->print_body(os);
     }
 
     void Function::print(std::ostream &os) const {

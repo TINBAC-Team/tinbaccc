@@ -120,7 +120,9 @@ namespace asm_arm {
 
         Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
-        virtual void print(std::ostream &os) const = 0;
+        virtual void print(std::ostream &os);
+
+        virtual void print_body(std::ostream &os) const = 0;
 
         virtual std::string Op_to_string() const;
 
@@ -149,7 +151,7 @@ namespace asm_arm {
 
         LDRInst(Operand *d, Operand *s, Operand *o);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     /**
@@ -163,7 +165,7 @@ namespace asm_arm {
 
         STRInst(Operand *v, Operand *a, Operand *o);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class ADRInst : public Inst {
@@ -173,7 +175,7 @@ namespace asm_arm {
 
         ADRInst(Operand *d, std::string lb);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class Inst2_1 : public Inst { // 2 operands, including 1 Reg and 1 <Operand2>
@@ -195,7 +197,7 @@ namespace asm_arm {
 
         MOVInst(Operand *d, Operand *s);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class CMPInst : public Inst {
@@ -203,7 +205,7 @@ namespace asm_arm {
     public:
         CMPInst(Operand *l, Operand *r);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class TSTInst : public Inst2_1 {
@@ -219,7 +221,7 @@ namespace asm_arm {
 
         BInst(OpCond c = OpCond::NONE);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     /**
@@ -234,7 +236,7 @@ namespace asm_arm {
         std::string label;
         CallInst(int np, std::string l, bool _is_void);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
@@ -243,7 +245,7 @@ namespace asm_arm {
 
         BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class TernaryInst : public Inst {
@@ -252,7 +254,7 @@ namespace asm_arm {
 
         TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class ReturnInst : public Inst {
@@ -261,7 +263,7 @@ namespace asm_arm {
 
         ReturnInst(bool ret);
 
-        void print(std::ostream &os) const;
+        void print_body(std::ostream &os) const;
     };
 
     class BasicBlock {
