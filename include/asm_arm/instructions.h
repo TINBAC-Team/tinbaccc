@@ -56,7 +56,7 @@ namespace asm_arm {
 
         static Operand *newVReg();
 
-        static std::string getVRegName();
+        std::string getVRegName();
 
         std::string getOperandName();
 

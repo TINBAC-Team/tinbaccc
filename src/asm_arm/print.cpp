@@ -7,7 +7,7 @@
 #include <asm_arm/builder.h>
 
 namespace asm_arm {
-
+    static std::unordered_map<Operand *, std::string> nameOfVReg;
     std::string getRegName(Reg &reg) {
         std::string ret;
         switch (reg) {
@@ -65,9 +65,10 @@ namespace asm_arm {
 
     static unsigned numVReg = 0;
     std::string Operand::getVRegName() {
-        std::string ret = "vr";
-        ret += std::to_string(numVReg++);
-        return ret;
+        auto it = nameOfVReg.find(this);
+        if (it != nameOfVReg.end())
+            return it->second;
+        return nameOfVReg[this] = "vr" + std::to_string(numVReg++);
     }
 
     std::string Operand::getOperandName() {
@@ -253,6 +254,7 @@ namespace asm_arm {
     }
 
     void Function::print(std::ostream &os) const {
+        nameOfVReg.clear();
         os << name << ":\n";
         if (bList.size() == 1)
             (*bList.begin())->print(os, true);
