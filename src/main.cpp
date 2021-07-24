@@ -8,7 +8,6 @@ static const struct option long_options[] = {
         {"optimization",      required_argument, NULL, 'O'},
         {"output-ast",        required_argument, NULL, 'a'},
         {"output-ir",         required_argument, NULL, 'i'},
-        {"output-asm_arm",    required_argument, NULL, 's'},
         {NULL,                no_argument,       NULL, 0}
 };
 
@@ -23,15 +22,13 @@ int main(int argc, char *argv[]) {
             case 'O':
                 break;
             case 'o':
+                asm_path = optarg;
                 break;
             case 'a':
                 ast_path = optarg;
                 break;
             case 'i':
                 ir_path = optarg;
-                break;
-            case 's':
-                asm_path = optarg;
                 break;
             default:
                 return -1;
@@ -60,7 +57,8 @@ int main(int argc, char *argv[]) {
 
     driver.generate_ir();
 
-    driver.print_ir(ir_path);
+    if(ir_path)
+        driver.print_ir(ir_path);
 
     driver.generate_asm();
 

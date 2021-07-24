@@ -59,8 +59,6 @@ void tcc_sy_driver::print_ir(const char *path) {
         }
         ofs << *module;
         ofs.close();
-    } else {
-        std::cout << *module;
     }
 }
 
@@ -77,7 +75,7 @@ void tcc_sy_driver::print_asm(const char *path) {
             std::cerr << "Failed to open asm path!\n";
         asm_module->print(ofs);
         ofs.close();
+    } else {
+        asm_module->print(std::cout);
     }
-    else
-        std::cerr << "asm path could not be empty!\n";
 }
