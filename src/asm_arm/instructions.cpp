@@ -176,9 +176,10 @@ namespace asm_arm {
             add_use(Operand::getReg(Reg::r0));
     }
 
+    static int bb_seed2 = 0;
     BasicBlock::BasicBlock() {
         bb_label = ".L";
-        bb_label += std::to_string(BasicBlock::bb_seed++);
+        bb_label += std::to_string(bb_seed2++);
     }
 
     void BasicBlock::insertAtEnd(Inst *inst) {

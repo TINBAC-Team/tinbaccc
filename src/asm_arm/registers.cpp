@@ -65,7 +65,7 @@ asm_arm::OperandList asm_arm::RegisterAllocator::adjacent(asm_arm::Operand *n) c
     return std::move(result);
 }
 
-bool asm_arm::RegisterAllocator::isMoveRelated(asm_arm::Operand *n) const {
+bool asm_arm::RegisterAllocator::isMoveRelated(asm_arm::Operand *n) {
     return !nodeMoves(n).empty();
 }
 

@@ -91,7 +91,7 @@ namespace asm_arm {
 
         MOVInstSet nodeMoves(Operand *n);
 
-        bool isMoveRelated(Operand *n) const;
+        bool isMoveRelated(Operand *n);
 
         bool isOK(Operand *t, Operand *r) const;
 
