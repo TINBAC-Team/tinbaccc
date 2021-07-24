@@ -6,7 +6,7 @@
 #include <algorithm>
 
 namespace asm_arm {
-    std::unordered_map<Reg, Operand *>Operand::precolored_reg_map;
+    Operand *Operand::precolored_reg_map[static_cast<int>(Reg::MAX)] = {};
 
     Operand *Operand::newImm(int v) {
         auto ret = new Operand(Type::Imm);
@@ -15,19 +15,21 @@ namespace asm_arm {
     }
 
     Operand *Operand::getReg(Reg r) {
-        auto got = precolored_reg_map.find(r);
-        if (got != precolored_reg_map.end())
-            return got->second;
+        if (precolored_reg_map[static_cast<int>(r)])
+            return precolored_reg_map[static_cast<int>(r)];
         auto ret = new Operand(Type::Reg);
         ret->reg = r;
-        precolored_reg_map[r] = ret;
+        precolored_reg_map[static_cast<int>(r)] = ret;
         return ret;
     }
 
     void Operand::resetRegMap() {
-        for (auto &i:precolored_reg_map)
-            delete i.second;
-        precolored_reg_map.clear();
+        for (auto &i:precolored_reg_map) {
+            if (i) {
+                delete i;
+                i = nullptr;
+            }
+        }
     }
 
     Operand *Operand::newVReg() {
@@ -76,7 +78,8 @@ namespace asm_arm {
         add_def(d);
     }
 
-    LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s), offs(o) {
+    LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s),
+                                                           offs(o) {
         add_use(s);
         add_use(o);
         add_def(d);
@@ -118,25 +121,25 @@ namespace asm_arm {
     BInst::BInst(OpCond c) : Inst(Op::B, c) {}
 
     CallInst::CallInst(int np, std::string l, bool _is_void) :
-        Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
+            Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
 
         // r0-r3 are caller-preserved regs. set unused ones to def for register allocation.
-        if(np >= 1)
+        if (np >= 1)
             add_use(Operand::getReg(Reg::r0));
         else
             add_def(Operand::getReg(Reg::r0));
 
-        if(np >= 2)
+        if (np >= 2)
             add_use(Operand::getReg(Reg::r1));
         else
             add_def(Operand::getReg(Reg::r1));
 
-        if(np >= 3)
+        if (np >= 3)
             add_use(Operand::getReg(Reg::r2));
         else
             add_def(Operand::getReg(Reg::r2));
 
-        if(np >= 4)
+        if (np >= 4)
             add_use(Operand::getReg(Reg::r3));
         else
             add_def(Operand::getReg(Reg::r3));
@@ -146,8 +149,8 @@ namespace asm_arm {
     }
 
     BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
-        if(o == Op::MUL || o == Op::SDIV)
-            if(rhs->type == Operand::Type::Imm)
+        if (o == Op::MUL || o == Op::SDIV)
+            if (rhs->type == Operand::Type::Imm)
                 throw std::runtime_error("IMM not allowed in MUL/SDIV");
 
         add_use(l);
@@ -164,7 +167,7 @@ namespace asm_arm {
     }
 
     ReturnInst::ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {
-        if(ret)
+        if (ret)
             add_use(Operand::getReg(Reg::r0));
     }
 
@@ -185,7 +188,7 @@ namespace asm_arm {
     void BasicBlock::insertBefore(Inst *inst, Inst *before) {
         if (*it_insert != before) {
             it_insert = std::find(insts.begin(), insts.end(), before);
-            if(it_insert == insts.end())
+            if (it_insert == insts.end())
                 throw std::runtime_error("instruction not found");
         }
         insts.insert(it_insert, inst);

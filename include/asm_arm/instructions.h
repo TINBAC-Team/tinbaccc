@@ -29,7 +29,8 @@ namespace asm_arm {
         r12,
         sp,
         lr,
-        pc
+        pc,
+        MAX
     };
 
     class Operand {
@@ -41,7 +42,7 @@ namespace asm_arm {
         } type;
         Reg reg;
         int val;
-        static std::unordered_map<Reg, Operand *> precolored_reg_map;
+        static Operand *precolored_reg_map[static_cast<int>(Reg::MAX)];
 
         Operand(Type t) : type(t) {};
 
