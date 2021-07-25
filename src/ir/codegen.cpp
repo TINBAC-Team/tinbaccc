@@ -5,6 +5,7 @@
 
 namespace ir {
     void Module::codegen(asm_arm::Builder &builder) {
+        builder.setIRModule(this);
         for (auto &i:functionList)
             i->codegen(builder);
     }

@@ -8,6 +8,8 @@
 
 namespace ir {
     class Function;
+
+    class Module;
 }
 
 namespace asm_arm {
@@ -343,6 +345,8 @@ namespace asm_arm {
     class Module {
     public:
         std::list<Function *> functionList;
+
+        ir::Module *irModule;
 
         void print(std::ostream &os) const;
     };

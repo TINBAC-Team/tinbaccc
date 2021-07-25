@@ -219,4 +219,8 @@ namespace asm_arm {
             rhs = createLDR(stackptr)->dst;
         return createBinaryInst(Inst::Op::ADD, lhs, rhs)->dst;
     }
+
+    void Builder::setIRModule(ir::Module *m) {
+        module->irModule = m;
+    }
 }

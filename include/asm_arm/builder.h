@@ -86,6 +86,9 @@ namespace asm_arm {
 
         Operand *allocate_stack(unsigned int ni32s);
 
+        // for global vars. we don't copy them again.
+        void setIRModule(ir::Module *m);
+
         void print(std::ostream& os);
     };
 }
