@@ -256,6 +256,14 @@ namespace asm_arm {
 
     void Function::print(std::ostream &os) const {
         nameOfVReg.clear();
+        os << "\t.align 2" << std::endl;
+        os << "\t.global " << name << std::endl;
+        os << "\t.arch armv8-a" << std::endl;
+        os << "\t.arch_extension crc" << std::endl;
+        os << "\t.syntax unified" << std::endl;
+        os << "\t.arm" << std::endl;
+        os << "\t.fpu vfp" << std::endl;
+        os << "\t.type " << name << ", %function" << std::endl;
         os << name << ":\n";
         if (bList.size() == 1)
             (*bList.begin())->print(os, true);
@@ -263,6 +271,7 @@ namespace asm_arm {
             for (auto &x : bList)
                 x->print(os, false);
         }
+        os << "\t.size " << name << ", .-" << name << std::endl;
     }
 
     void Module::printGlobalVar(std::ostream &os, ir::GlobalVar *v) {
@@ -301,6 +310,7 @@ namespace asm_arm {
     void Module::print(std::ostream &os) const {
         for (auto &x:irModule->globalVarList)
             printGlobalVar(os, x);
+        os << "\t.text" << std::endl;
         for (auto &x : functionList)
             x->print(os);
     }
