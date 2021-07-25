@@ -258,7 +258,7 @@ namespace ir {
         auto addrop = genptr(builder, ptr.value);
         auto valop = builder.getOrCreateOperandOfValue(val.value);
         // TODO: Handle offset
-        builder.createSTR(addrop, valop, asm_arm::Operand::newImm(0));
+        builder.createSTR(valop, addrop, asm_arm::Operand::newImm(0));
         return nullptr;
     }
 
