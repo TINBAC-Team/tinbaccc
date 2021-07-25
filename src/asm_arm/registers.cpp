@@ -24,10 +24,10 @@ void asm_arm::RegisterAllocator::build() {
                     live.erase(x);
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ def(I)
                 for (const auto &n : movInst->def)
-                    moveList[n].insert(inst);
+                    moveList[n].insert(movInst);
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ use(I)
                 for (const auto &n : movInst->use)
-                    moveList[n].insert(inst);
+                    moveList[n].insert(movInst);
                 // worklistMoves := worklistMoves ∪ {I}
                 for (const auto &x : movInst->def)
                     worklistMoves.insert(movInst);
@@ -57,12 +57,12 @@ asm_arm::OperandList asm_arm::RegisterAllocator::adjacent(asm_arm::Operand *n) c
     // tmp := selectStack ∪ coalescedNodes
     std::set_union(selectStack.rbegin(), selectStack.rend(),
                    coalescedNodes.begin(), coalescedNodes.end(),
-                   tmp);
+                   std::inserter(tmp, tmp.cbegin()));
     OperandList result;
     // result := adjList[n] \ tmp
     std::set_difference(iter->second.cbegin(), iter->second.cend(),
                         tmp.cbegin(), tmp.cend(),
-                        result);
+                        std::back_inserter(result));
     return std::move(result);
 }
 
@@ -161,7 +161,7 @@ void asm_arm::RegisterAllocator::coalesce() {
         auto adjU = adjacent(u);
         auto adjV = adjacent(v);
         OperandList adjUnion;
-        std::set_union(adjU.cbegin(), adjU.cend(), adjV.cbegin(), adjV.cend(), adjUnion);
+        std::set_union(adjU.cbegin(), adjU.cend(), adjV.cbegin(), adjV.cend(), std::back_inserter(adjUnion));
         return isConservative(adjUnion);
     }())) {
         coalescedMoves.insert(m);
@@ -234,7 +234,8 @@ void asm_arm::RegisterAllocator::assignColors() {
             // tmp := coloredNodes ∪ precolored
             OperandSet tmp;
             std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
-                           preColored.cbegin(), preColored.cend(), tmp);
+                           preColored.cbegin(), preColored.cend(),
+                           std::inserter(tmp, tmp.cbegin()));
             if (tmp.find(getAlias(w)) != tmp.cend())
                 okColors.erase(color[getAlias(w)]);
         }
@@ -253,7 +254,8 @@ void asm_arm::RegisterAllocator::rewriteProgram(asm_arm::OperandList nodes) {
     // initial := coloredNodes ∪ coalescedNodes ∪ {vi}
     initial.clear();
     std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
-                   coloredNodes.cbegin(), coloredNodes.cend(), initial);
+                   coloredNodes.cbegin(), coloredNodes.cend(),
+                   std::inserter(initial, initial.cbegin()));
     for (const auto & v : nodes) {
         // allocate memory locations and generate load and store instruction for spilled node
         int offs = function->allocate_stack(1);
@@ -326,9 +328,11 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
                 // use(n) ∪ (liveOut(n) − def (n))
                 OperandSet tmp;
                 std::set_difference(block->liveOut.cbegin(), block->liveOut.cend(),
-                                    block->def.cbegin(), block->def.cend(),tmp);
+                                    block->def.cbegin(), block->def.cend(),
+                                    std::inserter(tmp, tmp.cbegin()));
                 std::set_union(block->use.cbegin(), block->use.cend(),
-                               tmp.cbegin(), tmp.cend(), block->liveIn);
+                               tmp.cbegin(), tmp.cend(),
+                               std::inserter(block->liveIn, block->liveIn.cbegin()));
             }
         }
     }
@@ -350,11 +354,11 @@ asm_arm::MOVInstSet asm_arm::RegisterAllocator::nodeMoves(asm_arm::Operand *n) {
     MOVInstSet tmp, result;
     std::set_union(activeMoves.cbegin(), activeMoves.cend(),
                    worklistMoves.cbegin(), worklistMoves.cend(),
-                   tmp);
+                   std::inserter(tmp, tmp.cbegin()));
     // result := moveList[n] ∩ tmp
     std::set_intersection(iter->second.cbegin(), iter->second.cend(),
                           tmp.cbegin(), tmp.cend(),
-                          result);
+                          std::inserter(tmp, tmp.cbegin()));
     return std::move(result);
 }
 

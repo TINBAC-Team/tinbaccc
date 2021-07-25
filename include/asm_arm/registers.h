@@ -28,6 +28,7 @@ namespace asm_arm {
     typedef std::unordered_map<Operand *, OperandList> Operand2OperandList;
     typedef std::unordered_map<Operand *, InstSet> Operand2InstSet;
     typedef std::unordered_map<Operand *, InstList> Operand2InstList;
+    typedef std::unordered_map<Operand *, MOVInstSet> Operand2MOVInstSet;
     typedef std::unordered_map<Operand *, Operand *> Operand2Operand;
 
     typedef std::unordered_map<Operand *, int> Operand2Int;
@@ -58,7 +59,7 @@ namespace asm_arm {
         EdgeSet             adjSet;     // the symmetrical set of interference edges (u, v) in the graph.
         Operand2OperandList adjList;    // We represent adjSet as a hash table of integer pairs.
         Operand2Int         degree;     // an array containing the current degree of each node.
-        Operand2InstSet     moveList;   // a mapping from node to the list of moves it is associated with.
+        Operand2MOVInstSet     moveList;   // a mapping from node to the list of moves it is associated with.
         Operand2Operand     alias;      // (u, v) has been coalesced, and v put in coalescedNodes, then alias(v) = u.
         Operand2Int         color;      // the color chosen by the algorithm for a node.
 
