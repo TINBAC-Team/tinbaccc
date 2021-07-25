@@ -308,6 +308,8 @@ namespace asm_arm {
     }
 
     void Module::print(std::ostream &os) const {
+        os << "\t.arch armv8-a" << std::endl;
+        os << "\t.arch_extension crc" << std::endl;
         for (auto &x:irModule->globalVarList)
             printGlobalVar(os, x);
         os << "\t.text" << std::endl;
