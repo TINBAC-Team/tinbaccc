@@ -74,6 +74,14 @@ namespace asm_arm {
         def.insert(op);
     }
 
+    bool Inst::replace_use(Operand *orig, Operand *newop) {
+        return false;
+    }
+
+    bool Inst::replace_def(Operand *orig, Operand *newop) {
+        return false;
+    }
+
 
     LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {
         add_def(d);
@@ -90,10 +98,47 @@ namespace asm_arm {
         add_def(d);
     }
 
+    bool LDRInst::replace_def(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        def.erase(orig);
+        add_def(newop);
+        return true;
+    }
+
+    bool LDRInst::replace_use(Operand *orig, Operand *newop) {
+        if (type != Type::REGOFFS)
+            return false;
+        if (use.find(orig) == use.end())
+            return false;
+        if (src == orig)
+            src = newop;
+        if (offs == orig)
+            offs = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
     STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o) {
         add_use(v);
         add_use(a);
         add_use(o);
+    }
+
+    bool STRInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        if (val == orig)
+            val = newop;
+        if (addr == orig)
+            addr = newop;
+        if (offset == orig)
+            offset = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
     }
 
     ADRInst::ADRInst(Operand *d, std::string lb) : Inst(Inst::Op::ADR), dst(d), label(lb) {}
@@ -114,9 +159,39 @@ namespace asm_arm {
         add_def(d);
     }
 
+    bool MOVInst::replace_def(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        def.erase(orig);
+        add_def(newop);
+        return true;
+    }
+
+    bool MOVInst::replace_use(Operand *orig, Operand *newop) {
+        if (src != orig)
+            return false;
+        src = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
     CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {
         add_use(l);
         add_use(r);
+    }
+
+    bool CMPInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        if (lhs == orig)
+            lhs = newop;
+        if (rhs == orig)
+            rhs = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
     }
 
     TSTInst::TSTInst(Operand *d, int s_imm) : Inst2_1(Inst::Op::TST, d, s_imm) {}
@@ -145,6 +220,18 @@ namespace asm_arm {
         add_def(Operand::getReg(Reg::lr));
     }
 
+    bool CallInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        throw std::runtime_error("Call shouldn't be spilled?");
+    }
+
+    bool CallInst::replace_def(Operand *orig, Operand *newop) {
+        if (def.find(orig) == def.end())
+            return false;
+        throw std::runtime_error("Call shouldn't be spilled?");
+    }
+
     BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
         if (o == Op::MUL || o == Op::SDIV)
             if (rhs->type == Operand::Type::Imm)
@@ -155,6 +242,27 @@ namespace asm_arm {
         add_def(d);
     }
 
+    bool BinaryInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        if (lhs == orig)
+            lhs = newop;
+        if (rhs == orig)
+            rhs = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
+    bool BinaryInst::replace_def(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        def.erase(orig);
+        add_def(newop);
+        return true;
+    }
+
     TernaryInst::TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3) :
             Inst(o), dst(d), op1(o1), op2(o2), op3(o3) {
         add_use(o1);
@@ -163,9 +271,38 @@ namespace asm_arm {
         add_def(d);
     }
 
+    bool TernaryInst::replace_def(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        def.erase(orig);
+        add_def(newop);
+        return true;
+    }
+
+    bool TernaryInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        if (op1 == orig)
+            op1 = newop;
+        if (op2 == orig)
+            op2 = newop;
+        if (op3 == orig)
+            op3 = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
     ReturnInst::ReturnInst(bool ret) : Inst(Op::RETURN), has_return_value(ret) {
         if (ret)
             add_use(Operand::getReg(Reg::r0));
+    }
+
+    bool ReturnInst::replace_use(Operand *orig, Operand *newop) {
+        if (use.find(orig) == use.end())
+            return false;
+        throw std::runtime_error("Call shouldn't be spilled?");
     }
 
     static int bb_seed2 = 0;

@@ -130,9 +130,9 @@ namespace asm_arm {
 
         void add_def(Operand *op);
 
-        virtual bool replace_use(Operand *orig, Operand *op);
+        virtual bool replace_use(Operand *orig, Operand *newop);
 
-        virtual bool replace_def(Operand *orig, Operand *op);
+        virtual bool replace_def(Operand *orig, Operand *newop);
 
         virtual ~Inst() {};
     };
@@ -156,6 +156,10 @@ namespace asm_arm {
         LDRInst(Operand *d, Operand *s, Operand *o);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_def(Operand *orig, Operand *newop);
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     /**
@@ -170,6 +174,8 @@ namespace asm_arm {
         STRInst(Operand *v, Operand *a, Operand *o);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class ADRInst : public Inst {
@@ -202,6 +208,10 @@ namespace asm_arm {
         MOVInst(Operand *d, Operand *s);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_def(Operand *orig, Operand *newop);
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class CMPInst : public Inst {
@@ -210,6 +220,8 @@ namespace asm_arm {
         CMPInst(Operand *l, Operand *r);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class TSTInst : public Inst2_1 {
@@ -241,6 +253,10 @@ namespace asm_arm {
         CallInst(int np, std::string l, bool _is_void);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
+
+        bool replace_def(Operand *orig, Operand *newop);
     };
 
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
@@ -250,6 +266,10 @@ namespace asm_arm {
         BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_def(Operand *orig, Operand *newop);
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class TernaryInst : public Inst {
@@ -259,6 +279,10 @@ namespace asm_arm {
         TernaryInst(Op o, Operand *d, Operand *o1, Operand *o2, Operand *o3);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_def(Operand *orig, Operand *newop);
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class ReturnInst : public Inst {
@@ -268,6 +292,8 @@ namespace asm_arm {
         ReturnInst(bool ret);
 
         void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class BasicBlock {
