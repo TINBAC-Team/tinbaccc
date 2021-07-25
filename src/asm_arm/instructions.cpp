@@ -131,24 +131,16 @@ namespace asm_arm {
         // r0-r3 are caller-preserved regs. set unused ones to def for register allocation.
         if (np >= 1)
             add_use(Operand::getReg(Reg::r0));
-        else
-            add_def(Operand::getReg(Reg::r0));
-
         if (np >= 2)
             add_use(Operand::getReg(Reg::r1));
-        else
-            add_def(Operand::getReg(Reg::r1));
-
         if (np >= 3)
             add_use(Operand::getReg(Reg::r2));
-        else
-            add_def(Operand::getReg(Reg::r2));
-
         if (np >= 4)
             add_use(Operand::getReg(Reg::r3));
-        else
-            add_def(Operand::getReg(Reg::r3));
-
+        add_def(Operand::getReg(Reg::r0));
+        add_def(Operand::getReg(Reg::r1));
+        add_def(Operand::getReg(Reg::r2));
+        add_def(Operand::getReg(Reg::r3));
         add_def(Operand::getReg(Reg::r12));
         add_def(Operand::getReg(Reg::lr));
     }
