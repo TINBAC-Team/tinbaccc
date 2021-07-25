@@ -12,7 +12,7 @@ void asm_arm::RegisterAllocator::insertAdjList(asm_arm::Operand *u, asm_arm::Ope
 }
 
 void asm_arm::RegisterAllocator::build() {
-    for (const auto &b : function.bList) {
+    for (const auto &b : function->bList) {
         auto &live = b->liveOut;
         for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
             auto *inst = *iter;

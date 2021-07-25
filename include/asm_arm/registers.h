@@ -64,7 +64,7 @@ namespace asm_arm {
 
 
         asm_arm::Module *module;
-        asm_arm::Function function;
+        asm_arm::Function *function;
 
 
         void livenessAnalysis();
