@@ -90,7 +90,8 @@ namespace asm_arm {
                 setOperandOfValue(i, inst->dst);
             } else {
                 // FIXME: This offset needs a fixup later
-                auto inst = createLDR(Operand::getReg(Reg::sp), nullptr);
+                auto inst = createLDR(Operand::getReg(Reg::sp), asm_arm::Operand::newImm((cnt - 4) * 4));
+                curFunction->param_fixup_list.emplace_back(inst->offs);
                 setOperandOfValue(i, inst->dst);
             }
             cnt++;

@@ -325,6 +325,7 @@ namespace asm_arm {
         std::string name;
         ir::Function *func;
         std::list<BasicBlock *> bList;
+        std::list<Operand *> param_fixup_list;
         BasicBlock *ret_block;
         unsigned int stack_size;
 
