@@ -244,6 +244,7 @@ namespace asm_arm {
 
     void ReturnInst::print_body(std::ostream &os) const {
         // do nothing here. actual return code will be handled in function print
+        os << "@END OF FUNCTION";
     }
 
     void BasicBlock::print(std::ostream &os, bool single) const {

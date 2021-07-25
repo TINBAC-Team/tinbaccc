@@ -63,9 +63,17 @@ namespace asm_arm {
             BasicBlock *tgt_bb = getASMBBfromIRBB(i.irbb);
             if(!tgt_bb)
                 throw std::runtime_error("Fill MOV: No ASM BasicBlock for IR BasicBlock.");
-            Operand *src_op = getOrCreateOperandOfValue(i.irval);
-            auto mov = new MOVInst(i.dst, src_op);
-            tgt_bb->insertBeforeBranch(mov);
+            Operand *src_op = getOperandOfValue(i.irval);
+            Inst *inst;
+            if (src_op) {
+                inst = new MOVInst(i.dst, src_op);
+            } else {
+                auto iconst = dynamic_cast<ir::ConstValue *>(i.irval);
+                if(!iconst)
+                    throw std::runtime_error("Non-const value should have been created!");
+                inst = new LDRInst(iconst->value, i.dst);
+            }
+            tgt_bb->insertBeforeBranch(inst);
         }
     }
 
