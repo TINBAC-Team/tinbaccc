@@ -298,8 +298,40 @@ void asm_arm::RegisterAllocator::rewriteProgram(asm_arm::OperandList nodes) {
 }
 
 void asm_arm::RegisterAllocator::livenessAnalysis() {
-    // TODO liveness analysis
-    throw std::runtime_error("Not implemented yet!");
+    // calculate use and def
+    for (auto & b : function->bList)
+        for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
+            auto & i = *iter;
+            // def = def ∪ dst
+            b->def.insert(i->def.cbegin(), i->def.cend());
+            // use = (use \ def) ∪ src
+            b->use.erase( i->def.cbegin(), i->def.cend());
+            b->use.insert(i->use.cbegin(), i->use.cend());
+        }
+
+    // calculate liveOut and liveIn
+    bool flag = true; // change flag
+    while(flag) {
+        flag = false;
+        // in reverse topological order
+        for(auto iter = function->bList.rbegin(); iter !=function->bList.rend();iter++) {
+            auto * block = *iter;
+            //  newOut := ∪ liveIn(s), s ∈ succ(n)
+            OperandSet newOut;
+            for (auto & s : block->succ) newOut.insert(s->liveIn.cbegin(), s->liveIn.cend());
+            // liveOut changed <=> liveIn changed
+            if (newOut != block->liveOut) {
+                flag = true;
+                block->liveOut = std::move(newOut);
+                // use(n) ∪ (liveOut(n) − def (n))
+                OperandSet tmp;
+                std::set_difference(block->liveOut.cbegin(), block->liveOut.cend(),
+                                    block->def.cbegin(), block->def.cend(),tmp);
+                std::set_union(block->use.cbegin(), block->use.cend(),
+                               tmp.cbegin(), tmp.cend(), block->liveIn);
+            }
+        }
+    }
 }
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {

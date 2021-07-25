@@ -309,6 +309,9 @@ namespace asm_arm {
         std::set<Operand*> liveOut;
         // TODO IN
         std::set<Operand*> liveIn;
+        std::set<Operand*> use;
+        std::set<Operand*> def;
+        std::list<BasicBlock *> succ;
         std::string bb_label;
 
         BasicBlock();
