@@ -265,7 +265,42 @@ namespace asm_arm {
         }
     }
 
+    void Module::printGlobalVar(std::ostream &os, ir::GlobalVar *v) {
+        os << "\t.global " << v->name << std::endl;
+        os << "\t." << (v->initval.empty() ? "bss" : "data") << std::endl;
+        /**
+         * quote from binutil doc:
+         * For other systems, including ppc, i386 using a.out format,
+         * arm and strongarm, it is the number of low-order zero bits
+         * the location counter must have after advancement. For example
+         * ‘.align 3’ advances the location counter until it is a multiple of 8.
+         */
+        os << "\t.align 2" << std::endl;
+        os << "\t.type " << v->name << ", %object" << std::endl;
+        os << "\t.size " << v->name << ", " << v->len * 4 << std::endl;
+        os << v->name << ":" << std::endl;
+        int gen_space = 0;
+        int fold_zero = 0;
+        for (const auto &i:v->initval) {
+            if (i) {
+                if (fold_zero) {
+                    os << "\t.space " << fold_zero * 4 << std::endl;
+                    gen_space += fold_zero;
+                    fold_zero = 0;
+                }
+                os << "\t.word " << i << std::endl;
+                gen_space++;
+            } else {
+                fold_zero++;
+            }
+        }
+        if (gen_space < v->len)
+            os << "\t.space " << (v->len - gen_space) * 4 << std::endl;
+    }
+
     void Module::print(std::ostream &os) const {
+        for (auto &x:irModule->globalVarList)
+            printGlobalVar(os, x);
         for (auto &x : functionList)
             x->print(os);
     }

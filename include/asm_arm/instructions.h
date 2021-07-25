@@ -10,6 +10,8 @@ namespace ir {
     class Function;
 
     class Module;
+
+    class GlobalVar;
 }
 
 namespace asm_arm {
@@ -349,6 +351,9 @@ namespace asm_arm {
         ir::Module *irModule;
 
         void print(std::ostream &os) const;
+
+    private:
+        static void printGlobalVar(std::ostream &os, ir::GlobalVar *v);
     };
 
 }
