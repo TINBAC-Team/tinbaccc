@@ -139,9 +139,16 @@ namespace ir {
 
     asm_arm::Operand *CallInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Operand *ret = nullptr;
-        // FIXME: SP should be 8-byte aligned
-        if (params.size() > 4)
-            builder.moveSP(true, (params.size() - 4) * 4);
+        // SP should be 8-byte aligned
+        int sp_move_len = 0;
+        if (params.size() > 4) {
+            sp_move_len = params.size() - 4;
+            if (sp_move_len & 1)
+                sp_move_len++;
+            sp_move_len *= 4;
+        }
+        if (sp_move_len)
+            builder.moveSP(true, sp_move_len);
         // setup parameters
         for (int i = params.size() - 1; i >= 0; i--) {
             if (i >= 4) {
@@ -167,8 +174,8 @@ namespace ir {
             builder.setOperandOfValue(this, ret);
         }
         // restore sp
-        if (params.size() > 4)
-            builder.moveSP(false, (params.size() - 4) * 4);
+        if (sp_move_len)
+            builder.moveSP(false, sp_move_len);
         return ret;
     }
 
