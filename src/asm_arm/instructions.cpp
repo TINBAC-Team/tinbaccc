@@ -24,12 +24,7 @@ namespace asm_arm {
     }
 
     void Operand::resetRegMap() {
-        for (auto &i:precolored_reg_map) {
-            if (i) {
-                delete i;
-                i = nullptr;
-            }
-        }
+        /* do nothing. */
     }
 
     Operand *Operand::newVReg() {
