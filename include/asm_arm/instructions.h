@@ -130,6 +130,10 @@ namespace asm_arm {
 
         void add_def(Operand *op);
 
+        virtual bool replace_use(Operand *orig, Operand *op);
+
+        virtual bool replace_def(Operand *orig, Operand *op);
+
         virtual ~Inst() {};
     };
 

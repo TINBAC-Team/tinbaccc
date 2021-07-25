@@ -1,4 +1,5 @@
 #include <asm_arm/registers.h>
+#include <stdexcept>
 
 void asm_arm::RegisterAllocator::insertAdjList(asm_arm::Operand *u, asm_arm::Operand *v) {
     auto iter = adjList.find(u);
@@ -254,10 +255,43 @@ void asm_arm::RegisterAllocator::rewriteProgram(asm_arm::OperandList nodes) {
     std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
                    coloredNodes.cbegin(), coloredNodes.cend(), initial);
     for (const auto & v : nodes) {
-        // TODO allocate memory locations and generate load and store instruction for spilled node
-        for (const auto & vi : OperandList() /* TODO create a new temporary vi for each definition and each use*/) {
-            initial.insert(vi);
+        // allocate memory locations and generate load and store instruction for spilled node
+        int offs = function->allocate_stack(1);
+        Operand *new_op = Operand::newVReg();
+        for (auto &bb:function->bList) {
+            for(auto inst_it = bb->insts.begin();inst_it!=bb->insts.end();inst_it++) {
+                if((*inst_it)->replace_use(v, new_op)) {
+                    Operand *ldr_offs_op;
+                    if(Operand::op2Imm(offs)) {
+                    ldr_offs_op = Operand::newImm(offs);
+                    } else {
+                        ldr_offs_op = Operand::newVReg();
+                        auto ldrimm = new LDRInst(offs,new_op);
+                        bb->insts.insert(inst_it, ldrimm);
+                    }
+                    auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
+                    bb->insts.insert(inst_it, ldrinst);
+                    initial.insert(new_op);
+                    new_op = Operand::newVReg();
+                }
+                if((*inst_it)->replace_def(v, new_op)) {
+                    auto inst_next=std::next(inst_it);
+                    Operand *str_offs_op;
+                    if(Operand::op2Imm(offs)) {
+                        str_offs_op = Operand::newImm(offs);
+                    } else {
+                        str_offs_op = Operand::newVReg();
+                        auto ldrimm = new LDRInst(offs,new_op);
+                        bb->insts.insert(inst_it, ldrimm);
+                    }
+                    auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
+                    bb->insts.insert(inst_it, strinst);
+                    initial.insert(new_op);
+                    new_op = Operand::newVReg();
+                }
+            }
         }
+        delete new_op;
     }
     coloredNodes.clear();
     coalescedNodes.clear();
