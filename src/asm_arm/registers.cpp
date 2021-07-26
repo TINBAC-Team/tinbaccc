@@ -1,5 +1,6 @@
 #include <asm_arm/registers.h>
 #include <stdexcept>
+#include <iostream>
 void asm_arm::RegisterAllocator::build() {
     for (const auto &b : function->bList) {
         auto &live = b->liveOut;
@@ -305,8 +306,8 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
 
 void asm_arm::RegisterAllocator::livenessAnalysis() {
     // calculate use and def
-    for (auto & b : function->bList)
-        for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
+    for (auto & b : function->bList) {
+        for (auto iter = b->insts.begin(); iter != b->insts.end(); iter++) {
             auto & i = *iter;
 
             for (auto &u : b->use)
@@ -317,6 +318,9 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
                 if (d->type == Operand::Type::VReg)
                     b->def.erase(d);
         }
+        b->liveIn = b->use;
+        b->liveOut.clear();
+    }
 
 
     // calculate liveOut and liveIn
@@ -344,6 +348,7 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
                 std::set_union(block->use.cbegin(), block->use.cend(),
                                tmp.cbegin(), tmp.cend(),
                                std::inserter(block->liveIn, block->liveIn.cbegin()));
+
             }
         }
     }
