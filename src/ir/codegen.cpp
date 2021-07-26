@@ -222,14 +222,14 @@ namespace ir {
         builder.createBInst(true_block, asmcond);
         // XXX: This kind-of breaks the concept of "BasicBlock"...
         builder.createBInst(false_block);
-        builder.createBlock();
+        builder.curBlock = nullptr;
         return nullptr;
     }
 
     asm_arm::Operand * JumpInst::codegen(asm_arm::Builder &builder) {
         builder.createBInst(to);
         builder.curBlock->markBranch();
-        builder.createBlock();
+        builder.curBlock = nullptr;
         return nullptr;
     }
 
