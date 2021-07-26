@@ -5,6 +5,7 @@
 #include <list>
 #include <unordered_map>
 #include <set>
+#include <vector>
 
 namespace ir {
     class Function;
@@ -311,7 +312,6 @@ namespace asm_arm {
         std::set<Operand*> liveIn;
         std::set<Operand*> use;
         std::set<Operand*> def;
-        std::list<BasicBlock *> succ;
         std::string bb_label;
 
         BasicBlock();
@@ -323,6 +323,8 @@ namespace asm_arm {
         void insertBeforeBranch(Inst *inst);
 
         void insertBefore(Inst *inst, Inst *before);
+
+        std::vector<BasicBlock *> succ() const;
 
         void print(std::ostream &os, bool single) const;
     };

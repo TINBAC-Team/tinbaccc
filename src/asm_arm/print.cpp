@@ -5,9 +5,11 @@
 #include <asm_arm/instructions.h>
 #include <ir/ir.h>
 #include <asm_arm/builder.h>
+#include <sstream>
 
 namespace asm_arm {
     static std::unordered_map<Operand *, std::string> nameOfVReg;
+
     std::string getRegName(Reg &reg) {
         std::string ret;
         switch (reg) {
@@ -64,6 +66,7 @@ namespace asm_arm {
     }
 
     static unsigned numVReg = 0;
+
     std::string Operand::getVRegName() {
         auto it = nameOfVReg.find(this);
         if (it != nameOfVReg.end())
@@ -151,7 +154,7 @@ namespace asm_arm {
                 ret_s = "???";
                 break;
         }
-        switch(cond) {
+        switch (cond) {
             case OpCond::NONE:
                 break;
             case OpCond::EQ:
@@ -239,7 +242,8 @@ namespace asm_arm {
     }
 
     void TernaryInst::print_body(std::ostream &os) const {
-        os << dst->getOperandName() << ", " << op1->getOperandName() << ", " << op2->getOperandName() << ", " << op3->getOperandName();
+        os << dst->getOperandName() << ", " << op1->getOperandName() << ", " << op2->getOperandName() << ", "
+           << op3->getOperandName();
     }
 
     void ReturnInst::print_body(std::ostream &os) const {
@@ -248,8 +252,17 @@ namespace asm_arm {
     }
 
     void BasicBlock::print(std::ostream &os, bool single) const {
+        std::ostringstream bbcomment;
+        auto bbsucc = succ();
+        if (!bbsucc.empty()) {
+            bbcomment << " succ:";
+            for (auto &i:bbsucc)
+                bbcomment << " " << (i->bb_label);
+        }
         if (!single)
             os << bb_label << ":\n";
+        if (!bbcomment.str().empty())
+            os << "\t@" << bbcomment.str() << std::endl;
         for (auto &x : insts)
             x->print(os);
     }
@@ -317,7 +330,7 @@ namespace asm_arm {
             x->print(os);
     }
 
-    void Builder::print(std::ostream& os) {
+    void Builder::print(std::ostream &os) {
         module->print(os);
     }
 }

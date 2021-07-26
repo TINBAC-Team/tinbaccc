@@ -320,7 +320,7 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
             auto * block = *iter;
             //  newOut := ∪ liveIn(s), s ∈ succ(n)
             OperandSet newOut;
-            for (auto & s : block->succ) newOut.insert(s->liveIn.cbegin(), s->liveIn.cend());
+            for (auto & s : block->succ()) newOut.insert(s->liveIn.cbegin(), s->liveIn.cend());
             // liveOut changed <=> liveIn changed
             if (newOut != block->liveOut) {
                 flag = true;

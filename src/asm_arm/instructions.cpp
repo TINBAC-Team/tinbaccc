@@ -329,6 +329,20 @@ namespace asm_arm {
         insts.insert(it_insert, inst);
     }
 
+    std::vector<BasicBlock *> BasicBlock::succ() const {
+        std::vector<BasicBlock *> ret;
+        ret.reserve(2);
+        for (auto it=insts.rbegin();it!=insts.rend();it++){
+            auto binst = dynamic_cast<BInst *>(*it);
+            if(!binst)
+                break;
+            if(!binst->tgt)
+                throw std::runtime_error("Empty branch!");
+            ret.emplace_back(binst->tgt);
+        }
+        return ret;
+    }
+
     Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0) {
         ret_block = new BasicBlock();
     }
