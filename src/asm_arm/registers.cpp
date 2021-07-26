@@ -1,16 +1,15 @@
 #include <asm_arm/registers.h>
 #include <stdexcept>
-
 void asm_arm::RegisterAllocator::build() {
     for (const auto &b : function->bList) {
         auto &live = b->liveOut;
         for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
             auto *inst = *iter;
-            auto *movInst = dynamic_cast<MOVInst *>(inst);
-            if (movInst) {
+            if (auto *movInst = dynamic_cast<MOVInst *>(inst)) {
                 // live := live\use(I)
                 for (const auto &x : movInst->use)
-                    live.erase(x);
+                    if (x->type == Operand::Type::VReg)
+                        live.erase(x);
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ def(I)
                 for (const auto &n : movInst->def)
                     moveList[n].insert(movInst);
@@ -22,7 +21,7 @@ void asm_arm::RegisterAllocator::build() {
                     worklistMoves.insert(movInst);
             }
             // live := live ∪ def(I)
-            live.insert(inst->def.cbegin(), inst->def.cend());
+            for (auto & d : inst->def) live.insert(d);
 
             // AddEdge
             for (const auto &d : inst->def)
@@ -30,8 +29,8 @@ void asm_arm::RegisterAllocator::build() {
                     addEdge(l, d);
 
             // live := use(I) ∪ (live\def(I))
-            live.erase( inst->def.cbegin(), inst->def.cend());
-            live.insert(inst->use.cbegin(), inst->use.cend());
+            for (auto & d : inst->def) live.erase(d);
+            for (auto & u : inst->use) live.insert(u);
         }
     }
 }
@@ -309,12 +308,16 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
     for (auto & b : function->bList)
         for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
             auto & i = *iter;
-            // def = def ∪ dst
-            b->def.insert(i->def.cbegin(), i->def.cend());
-            // use = (use \ def) ∪ src
-            b->use.erase( i->def.cbegin(), i->def.cend());
-            b->use.insert(i->use.cbegin(), i->use.cend());
+
+            for (auto &u : b->use)
+                if (u->type == Operand::Type::VReg)
+                    b->use.insert(u);
+
+            for (auto d : i->def)
+                if (d->type == Operand::Type::VReg)
+                    b->def.erase(d);
         }
+
 
     // calculate liveOut and liveIn
     bool flag = true; // change flag
@@ -325,7 +328,9 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
             auto * block = *iter;
             //  newOut := ∪ liveIn(s), s ∈ succ(n)
             OperandSet newOut;
-            for (auto & s : block->succ()) newOut.insert(s->liveIn.cbegin(), s->liveIn.cend());
+            for (auto & s : block->succ())
+                for (auto & i : s->liveIn)
+                    newOut.insert(i);
             // liveOut changed <=> liveIn changed
             if (newOut != block->liveOut) {
                 flag = true;
@@ -342,6 +347,7 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
             }
         }
     }
+    bool finishLivenessAnalysis;
 }
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {
@@ -388,7 +394,7 @@ void asm_arm::RegisterAllocator::freeze() {
     simplifyWorklist.push_back(u);
     freezeMoves(u);
 }
-
+#include <iostream>
 void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
     this->function = func;
     while(true) {
@@ -410,11 +416,20 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
         if (spillWorklist.empty()) break;
         rewriteProgram();
     }
+    int x;
+    for (auto node : coloredNodes) {
+        node->assignReg(color[node]);
+        std::cout  << "!!!!!!!!!!!!!!" << color[node] << std::endl;
+    }
+
 }
 
 namespace asm_arm {
     void allocate_register(asm_arm::Module *module) {
-        for (auto &i:module->functionList)
-            asm_arm::RegisterAllocator().allocatedRegister(i);
+        for (auto &i:module->functionList) {
+            asm_arm::RegisterAllocator allocator;
+            allocator.allocatedRegister(i);
+        }
+
     }
 }

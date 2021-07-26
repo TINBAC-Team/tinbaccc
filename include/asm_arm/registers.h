@@ -64,7 +64,7 @@ namespace asm_arm {
         Operand2Int         color;      // the color chosen by the algorithm for a node.
 
 
-        asm_arm::Function *function;
+        asm_arm::Function *function = nullptr;
 
 
         void livenessAnalysis();
