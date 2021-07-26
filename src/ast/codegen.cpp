@@ -249,7 +249,7 @@ namespace ast {
             case Op::UNARY_MINUS:
                 return builder.CreateBinaryInst(builder.getConstant(0) ,L, ir::OpType::SUB);
             case Op::LOGIC_NOT:
-                return builder.CreateBinaryInst(L, builder.getConstant(0), ir::OpType::NE);
+                return builder.CreateBinaryInst(L, builder.getConstant(0), ir::OpType::EQ);
 
             case Op::PLUS:
                 return builder.CreateBinaryInst(L, R, ir::OpType::ADD);
