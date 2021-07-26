@@ -240,7 +240,7 @@ namespace ir {
                     builder.getOrCreateOperandOfValue(val.value)
             );
         builder.createBInst(builder.curFunction->ret_block);
-        builder.createBlock();
+        builder.curBlock = nullptr;
         return nullptr;
     }
 
