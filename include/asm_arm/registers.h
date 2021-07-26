@@ -42,7 +42,7 @@ namespace asm_arm {
         OperandList simplifyWorklist;   // list of low-degree non-move-related nodes.
         OperandSet  freezeWorklist;     // low-degree move-related nodes.
         OperandSet  spillWorklist;      // high-degree nodes.
-        OperandList spilledNodes;       // nodes marked for spilling during this round; initially empty.
+        OperandSet  spilledNodes;       // nodes marked for spilling during this round; initially empty.
         OperandSet  coalescedNodes;     // registers that have been coalesced.
         OperandList coloredNodes;       // nodes successfully colored.
         OperandList selectStack;        // stack containing temporaries removed from the graph.
@@ -111,7 +111,7 @@ namespace asm_arm {
 
         void freezeMoves(Operand *u);
 
-        void rewriteProgram(OperandList nodes);
+        void rewriteProgram();
 
     public:
 
