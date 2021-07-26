@@ -102,7 +102,7 @@ namespace asm_arm {
 
         void addWorkList(Operand *u);
 
-        void enableMoves(OperandList &nodes);
+        void enableMoves(OperandSet &nodes);
 
         void combine(Operand *u, Operand *v);
 
