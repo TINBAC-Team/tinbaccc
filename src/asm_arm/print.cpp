@@ -185,6 +185,8 @@ namespace asm_arm {
     void Inst::print(std::ostream &os) {
         os << "\t" << Op_to_string() << " ";
         print_body(os);
+        if (!comment.str().empty())
+            os << "  @" << comment.str() << std::endl;
         os << std::endl;
     }
 
