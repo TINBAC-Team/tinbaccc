@@ -79,7 +79,7 @@ void asm_arm::RegisterAllocator::mkWorklist() {
     }
 }
 
-void asm_arm::RegisterAllocator::enableMoves(asm_arm::OperandList &nodes) {
+void asm_arm::RegisterAllocator::enableMoves(OperandSet &nodes) {
     for (const auto &n : nodes) {
         for (const auto &m : nodeMoves(n)) {
             auto iter = activeMoves.find(m);
