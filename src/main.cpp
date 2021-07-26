@@ -5,6 +5,7 @@
 static const struct option long_options[] = {
         {"generate-assembly", no_argument,       NULL, 'S'},
         {"output",            required_argument, NULL, 'o'},
+        {"output-asm-tmp",    required_argument, NULL, 't'},
         {"optimization",      required_argument, NULL, 'O'},
         {"output-ast",        required_argument, NULL, 'a'},
         {"output-ir",         required_argument, NULL, 'i'},
@@ -16,7 +17,8 @@ int main(int argc, char *argv[]) {
     const char *ast_path = nullptr;
     const char *ir_path = nullptr;
     const char *asm_path = nullptr;
-    while ((ch = getopt_long(argc, argv, "So:O:a:i:s:", long_options, NULL)) != -1) {
+    const char *asm_tmp_path = nullptr;
+    while ((ch = getopt_long(argc, argv, "So:O:a:i:s:t:", long_options, NULL)) != -1) {
         switch (ch) {
             case 'S':
             case 'O':
@@ -29,6 +31,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'i':
                 ir_path = optarg;
+                break;
+            case 't':
+                asm_tmp_path = optarg;
                 break;
             default:
                 return -1;
@@ -61,7 +66,8 @@ int main(int argc, char *argv[]) {
         driver.print_ir(ir_path);
 
     driver.generate_asm();
-
+    driver.print_asm(asm_tmp_path);
+    driver.process_asm();
     driver.print_asm(asm_path);
     return 0;
 }

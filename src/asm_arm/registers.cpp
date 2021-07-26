@@ -412,4 +412,9 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
     }
 }
 
-void asm_op_allocate_register(asm)
+namespace asm_arm {
+    void allocate_register(asm_arm::Module *module) {
+        for (auto &i:module->functionList)
+            asm_arm::RegisterAllocator().allocatedRegister(i);
+    }
+}

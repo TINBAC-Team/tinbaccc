@@ -100,7 +100,7 @@ namespace asm_arm {
 
         Operand *getAlias(Operand *n);
 
-        void addWorkList(Operand *u);i
+        void addWorkList(Operand *u);
 
         void enableMoves(OperandList &nodes);
 

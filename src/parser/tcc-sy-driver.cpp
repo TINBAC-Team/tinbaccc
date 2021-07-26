@@ -3,6 +3,7 @@
 #include <ast/validation.h>
 #include <ir/ir.h>
 #include <asm_arm/builder.h>
+#include <asm_arm/asm_ops.h>
 #include <fstream>
 
 tcc_sy_driver::tcc_sy_driver()
@@ -78,4 +79,8 @@ void tcc_sy_driver::print_asm(const char *path) {
     } else {
         asm_module->print(std::cout);
     }
+}
+
+void tcc_sy_driver::process_asm() {
+    asm_arm::allocate_register(asm_module);
 }

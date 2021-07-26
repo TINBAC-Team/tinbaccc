@@ -31,8 +31,6 @@ namespace asm_arm {
         return new Operand(Type::VReg);
     }
 
-
-
     bool Operand::op2Imm(int i) {
         int lowbit;
 
@@ -59,7 +57,15 @@ namespace asm_arm {
         return false;
     }
 
-
+    void Operand::assignReg(int assigned_reg) {
+        if (type != Type::VReg)
+            throw std::runtime_error("Assining already-assigned vreg.");
+        // FIXME: LR can be assigned.
+        if (assigned_reg > 12)
+            throw std::runtime_error("invalid assignment.");
+        type = Type::Reg;
+        reg = static_cast<Reg>(assigned_reg);
+    }
 
     void Inst::add_use(Operand *op) {
         use.insert(op);

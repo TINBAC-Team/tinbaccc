@@ -55,5 +55,6 @@ public:
     void print_ir(const char *path);
     void generate_asm();
     void print_asm(const char *path);
+    void process_asm();
 };
 #endif //TINBACCC_TCC_SY_DRIVER_HH

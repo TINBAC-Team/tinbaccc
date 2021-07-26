@@ -54,6 +54,8 @@ namespace asm_arm {
 
         Operand(Type t) : type(t) {};
 
+        void assignReg(int assigned_reg);
+
         static Operand *newImm(int v);
 
         static Operand *getReg(Reg r);
