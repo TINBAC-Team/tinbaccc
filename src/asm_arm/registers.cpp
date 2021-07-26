@@ -1,17 +1,6 @@
 #include <asm_arm/registers.h>
 #include <stdexcept>
 
-void asm_arm::RegisterAllocator::insertAdjList(asm_arm::Operand *u, asm_arm::Operand *v) {
-    auto iter = adjList.find(u);
-    if (iter == adjList.cend()) {
-        adjList[u] = std::vector<Operand *>{v};
-        degree[u] = 1;
-    } else {
-        iter->second.push_back(v);
-        degree[u] = degree[u] + 1;
-    }
-}
-
 void asm_arm::RegisterAllocator::build() {
     for (const auto &b : function->bList) {
         auto &live = b->liveOut;
@@ -33,36 +22,43 @@ void asm_arm::RegisterAllocator::build() {
                     worklistMoves.insert(movInst);
             }
             // live := live ∪ def(I)
-            for (const auto &x : inst->def)
-                live.insert(x);
+            live.insert(inst->def.cbegin(), inst->def.cend());
+
             // AddEdge
             for (const auto &d : inst->def)
                 for (const auto &l : live)
                     addEdge(l, d);
 
             // live := use(I) ∪ (live\def(I))
-            for (const auto &x : inst->use)
-                live.insert(x);
-            for (const auto &x : inst->def)
-                live.erase(x);
-
+            live.erase( inst->def.cbegin(), inst->def.cend());
+            live.insert(inst->use.cbegin(), inst->use.cend());
         }
     }
 }
 
-asm_arm::OperandList asm_arm::RegisterAllocator::adjacent(asm_arm::Operand *n) const {
+asm_arm::OperandSet asm_arm::RegisterAllocator::adjacent(asm_arm::Operand *n) const {
     auto iter = adjList.find(n);
     if (iter == adjList.cend()) return {};
-    OperandSet tmp;
-    // tmp := selectStack ∪ coalescedNodes
-    std::set_union(selectStack.rbegin(), selectStack.rend(),
-                   coalescedNodes.begin(), coalescedNodes.end(),
+    OperandSet result{iter->second.cbegin(), iter->second.cend()};
+    // adjList[n] \ (selectStack ∪ coalescedNodes)
+    for (auto &t : selectStack) result.erase(t);
+    for (auto &t : coalescedNodes) result.erase(t);
+    return std::move(result);
+}
+
+asm_arm::MOVInstSet asm_arm::RegisterAllocator::nodeMoves(asm_arm::Operand *n) {
+    auto iter = moveList.find(n);
+    if (iter == moveList.cend())
+        return {};
+    // tmp := activeMoves ∪ worklistMoves
+    MOVInstSet tmp, result;
+    std::set_union(activeMoves.cbegin(), activeMoves.cend(),
+                   worklistMoves.cbegin(), worklistMoves.cend(),
                    std::inserter(tmp, tmp.cbegin()));
-    OperandList result;
-    // result := adjList[n] \ tmp
-    std::set_difference(iter->second.cbegin(), iter->second.cend(),
-                        tmp.cbegin(), tmp.cend(),
-                        std::back_inserter(result));
+    // result := moveList[n] ∩ tmp
+    std::set_intersection(iter->second.cbegin(), iter->second.cend(),
+                          tmp.cbegin(), tmp.cend(),
+                          std::inserter(tmp, tmp.cbegin()));
     return std::move(result);
 }
 
@@ -152,11 +148,11 @@ void asm_arm::RegisterAllocator::coalesce() {
         constrainedMoves.insert(m);
         addWorkList(u);
         addWorkList(v);
-    } else if (preColored.find(u) != preColored.cend() && [this, u, v]() {
+    } else if (preColored.find(u) != preColored.cend() && [this, u, v]() { // condition 1
         // u ∈ precolored ∧ (∀t ∈ Adjacent(v), isOK(t, u))
         auto adj = adjacent(v);
         return std::all_of(adj.cbegin(), adj.cend(), [this, u](Operand *t) { return isOK(t, u); });
-    }() || ( preColored.find(u) == preColored.cend() && [this, u, v]() {
+    }() || ( preColored.find(u) == preColored.cend() && [this, u, v]() { // condition 2
         // u ∉ precolored ∧ isConservative(Adjacent(u) ∪ Adjacent(v)
         auto adjU = adjacent(u);
         auto adjV = adjacent(v);
@@ -185,6 +181,7 @@ void asm_arm::RegisterAllocator::combine(asm_arm::Operand *u, asm_arm::Operand *
         freezeWorklist.erase(v);
     else
         spillWorklist.erase(v);
+
     coalescedNodes.insert(v);
     alias[v] = u;
 
@@ -348,36 +345,29 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
 }
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {
-    adjSet.insert({u, v});
-    if (preColored.find(u) == preColored.cend())
-        insertAdjList(u, v);
-    if (preColored.find(v) == preColored.cend())
-        insertAdjList(v, u);
+    if (adjSet.find({u, v}) != adjSet.cend() && u != v) {
+        adjSet.insert({u, v});
+        adjSet.insert({v, u});
+        if (preColored.find(u) != preColored.cend()) {
+            adjList[u].push_back(v);
+            degree[u] += 1;
+        }
+        if (preColored.find(v) != preColored.cend()) {
+            adjList[v].push_back(u);
+            degree[v] += 1;
+        }
+    }
 }
 
-asm_arm::MOVInstSet asm_arm::RegisterAllocator::nodeMoves(asm_arm::Operand *n) {
-    auto iter = moveList.find(n);
-    if (iter == moveList.cend())
-        return {};
-    // tmp := activeMoves ∪ worklistMoves
-    MOVInstSet tmp, result;
-    std::set_union(activeMoves.cbegin(), activeMoves.cend(),
-                   worklistMoves.cbegin(), worklistMoves.cend(),
-                   std::inserter(tmp, tmp.cbegin()));
-    // result := moveList[n] ∩ tmp
-    std::set_intersection(iter->second.cbegin(), iter->second.cend(),
-                          tmp.cbegin(), tmp.cend(),
-                          std::inserter(tmp, tmp.cbegin()));
-    return std::move(result);
-}
+
 
 void asm_arm::RegisterAllocator::decrementDegree(asm_arm::Operand *m) {
     int d = degree[m];
     degree[m] = d - 1;
     if (d == K) {
         // {m} ∪ Adjacent(m))
-        OperandList tmp = adjacent(m);
-        tmp.push_back(m);
+        OperandSet tmp = adjacent(m);
+        tmp.insert(m);
 
         enableMoves(tmp);
         spillWorklist.erase(m);
@@ -399,7 +389,8 @@ void asm_arm::RegisterAllocator::freeze() {
     freezeMoves(u);
 }
 
-void asm_arm::RegisterAllocator::allocatedRegister() {
+void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
+    this->function = func;
     while(true) {
         livenessAnalysis();
         build();
@@ -420,3 +411,5 @@ void asm_arm::RegisterAllocator::allocatedRegister() {
         rewriteProgram();
     }
 }
+
+void asm_op_allocate_register(asm)
