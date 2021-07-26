@@ -64,7 +64,6 @@ namespace asm_arm {
         Operand2Int         color;      // the color chosen by the algorithm for a node.
 
 
-        asm_arm::Module *module;
         asm_arm::Function *function;
 
 
@@ -73,8 +72,6 @@ namespace asm_arm {
         void build();
 
         void mkWorklist();
-
-        void insertAdjList(Operand *u, Operand *v);
 
         void addEdge(Operand *u, Operand *v);
 
@@ -88,7 +85,7 @@ namespace asm_arm {
 
         void assignColors();
 
-        OperandList adjacent(Operand *n) const;
+        OperandSet adjacent(Operand *n) const;
 
         MOVInstSet nodeMoves(Operand *n);
 
@@ -103,7 +100,7 @@ namespace asm_arm {
 
         Operand *getAlias(Operand *n);
 
-        void addWorkList(Operand *u);
+        void addWorkList(Operand *u);i
 
         void enableMoves(OperandList &nodes);
 
@@ -115,7 +112,7 @@ namespace asm_arm {
 
     public:
 
-        void allocatedRegister();
+        void allocatedRegister(Function *func);
 
     };
 }
