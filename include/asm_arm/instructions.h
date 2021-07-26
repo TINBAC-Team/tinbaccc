@@ -125,8 +125,10 @@ namespace asm_arm {
         } cond;
 
         std::ostringstream comment;
+        int move_stack;
+        bool need_pool;
 
-        Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
+        Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c), need_pool(false), move_stack(0) {}
 
         virtual void print(std::ostream &os);
 

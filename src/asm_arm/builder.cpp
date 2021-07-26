@@ -179,6 +179,7 @@ namespace asm_arm {
                 Operand::getReg(Reg::sp),
                 Operand::newImm(len));
         curBlock->insertAtEnd(ret);
+        ret->move_stack = is_sub ? -len : len;
         return ret;
     }
 

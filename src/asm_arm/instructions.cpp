@@ -83,6 +83,9 @@ namespace asm_arm {
     }
 
     LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {
+        // If the value can't be encoded with MOV/MVN, a literal pool is required.
+        if(!Operand::op2Imm(v) && !Operand::op2Imm(-v))
+            need_pool = true;
         add_def(d);
     }
 
