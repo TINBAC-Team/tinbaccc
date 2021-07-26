@@ -49,15 +49,16 @@ namespace ast {
         if (is_array()) {
             addr = builder.CreateAllocaInst(array_multipliers[0]);
             if (initval){
-                int index = 0;
+                int index = -1;
                 std::vector<ast::Exp*> memset_params;
                 memset_params.emplace_back(new Exp(new LVal(this)));
                 memset_params.emplace_back(new Exp(0));
                 memset_params.emplace_back(new Exp(array_multipliers[0]*4));
                 builder.CreateFuncCall("memset",true,memset_params);
                 for(auto &i:initval_expanded){
-                    if(i==nullptr) break;
-                    auto filling_addr = builder.CreateGetElementPtrInst(addr,builder.getConstant(index++));
+                    index++;
+                    if(i==nullptr) continue;
+                    auto filling_addr = builder.CreateGetElementPtrInst(addr,builder.getConstant(index));
                     builder.CreateStoreInst(filling_addr,i->codegen(builder));
                 }
             }
