@@ -262,6 +262,9 @@ void asm_arm::RegisterAllocator::rewriteProgram(asm_arm::OperandList nodes) {
         Operand *new_op = Operand::newVReg();
         for (auto &bb:function->bList) {
             for(auto inst_it = bb->insts.begin();inst_it!=bb->insts.end();inst_it++) {
+                // in case we generated spill code between function call instructions.
+                if((*inst_it)->move_stack)
+                    offs -= (*inst_it)->move_stack;
                 if((*inst_it)->replace_use(v, new_op)) {
                     Operand *ldr_offs_op;
                     if(Operand::op2Imm(offs)) {
