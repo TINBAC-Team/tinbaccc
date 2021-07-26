@@ -205,7 +205,12 @@ void asm_arm::RegisterAllocator::combine(asm_arm::Operand *u, asm_arm::Operand *
 }
 
 void asm_arm::RegisterAllocator::selectSpill() {
-    // TODO use heuristic algorithm to select a spill register
+    // TODO Use more reasonable cost estimates to design heuristic algorithms.
+    // Simply choose spilling node with maximum degree
+    Operand *m = *std::max_element(spilledNodes.cbegin(), spilledNodes.cend(),
+                                  [this](Operand *a, Operand *b) { return degree[a] < degree[b]; });
+    spilledNodes.erase(m);
+    simplifyWorklist.push_back(m);
     throw std::runtime_error("Not implemented yet!");
 }
 
@@ -240,7 +245,7 @@ void asm_arm::RegisterAllocator::assignColors() {
                 okColors.erase(color[getAlias(w)]);
         }
         if (okColors.empty()) {
-            spilledNodes.push_back(n);
+            spilledNodes.insert(n);
         } else {
             coloredNodes.push_back(n);
             color[n] = *okColors.cbegin();
@@ -250,13 +255,13 @@ void asm_arm::RegisterAllocator::assignColors() {
         color[n] = color[getAlias(n)];
 }
 
-void asm_arm::RegisterAllocator::rewriteProgram(asm_arm::OperandList nodes) {
+void asm_arm::RegisterAllocator::rewriteProgram() {
     // initial := coloredNodes ∪ coalescedNodes ∪ {vi}
     initial.clear();
     std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
                    coloredNodes.cbegin(), coloredNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
-    for (const auto & v : nodes) {
+    for (const auto & v : spilledNodes) {
         // allocate memory locations and generate load and store instruction for spilled node
         int offs = function->allocate_stack(1);
         Operand *new_op = Operand::newVReg();
@@ -333,6 +338,7 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
                 std::set_difference(block->liveOut.cbegin(), block->liveOut.cend(),
                                     block->def.cbegin(), block->def.cend(),
                                     std::inserter(tmp, tmp.cbegin()));
+                block->liveIn.clear();
                 std::set_union(block->use.cbegin(), block->use.cend(),
                                tmp.cbegin(), tmp.cend(),
                                std::inserter(block->liveIn, block->liveIn.cbegin()));
@@ -411,6 +417,6 @@ void asm_arm::RegisterAllocator::allocatedRegister() {
                    spillWorklist.empty()));
         assignColors();
         if (spillWorklist.empty()) break;
-        rewriteProgram(spilledNodes);
+        rewriteProgram();
     }
 }
