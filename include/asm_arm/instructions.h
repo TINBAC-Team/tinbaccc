@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <set>
 #include <vector>
+#include <sstream>
 
 namespace ir {
     class Function;
@@ -122,6 +123,8 @@ namespace asm_arm {
             NONE,
             UNDEF
         } cond;
+
+        std::ostringstream comment;
 
         Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c) {}
 
