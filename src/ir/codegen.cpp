@@ -92,8 +92,8 @@ namespace ir {
                     auto l_const_val = dynamic_cast<ConstValue *>(ValueL.value);
                     if (asm_arm::Operand::op2Imm(l_const_val->value)) {
                         op = asm_arm::Inst::Op::RSB;
-                        lhs = l_const_val->genimm(builder);
-                        rhs = builder.getOrCreateOperandOfValue(ValueL.value);
+                        rhs = l_const_val->genimm(builder);
+                        lhs = builder.getOrCreateOperandOfValue(ValueL.value);
                         break;
                     }
                 }
