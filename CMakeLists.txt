@@ -8,7 +8,7 @@ find_package(FLEX)
 
 include_directories(include)
 bison_target(tcc_sy_parser src/parser/parser.yy ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-parser.cpp
-        COMPILE_FLAGS -Wcounterexamples
+#        COMPILE_FLAGS -Wcounterexamples
         DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-parser.hh)
 flex_target(tcc_sy_scanner src/parser/scanner.ll  ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-scanner.cpp
         DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/tcc-sy-scanner.hh)
