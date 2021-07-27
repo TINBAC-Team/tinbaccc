@@ -224,6 +224,8 @@ namespace asm_arm {
         bool replace_def(Operand *orig, Operand *newop);
 
         bool replace_use(Operand *orig, Operand *newop);
+
+        void print(std::ostream &os);
     };
 
     class CMPInst : public Inst {
