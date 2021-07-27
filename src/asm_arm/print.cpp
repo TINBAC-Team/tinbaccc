@@ -193,7 +193,7 @@ namespace asm_arm {
     void LDRInst::print_body(std::ostream &os) const {
         switch (type) {
             case Type::LABEL:
-                os << dst->getOperandName() << ", " << label;
+                os << dst->getOperandName() << ", =" << label;
                 break;
             case Type::IMM:
                 os << dst->getOperandName() << ", " << "=" + std::to_string(value);
