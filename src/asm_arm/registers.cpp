@@ -9,7 +9,8 @@ void asm_arm::RegisterAllocator::build() {
             if (auto *movInst = dynamic_cast<MOVInst *>(inst)) {
                 // live := live\use(I)
                 for (const auto &x : movInst->use)
-                    if (x->type == Operand::Type::VReg)
+                    // XXX: do we even construct MOV IMM?
+                    if (x->type != Operand::Type::Imm)
                         live.erase(x);
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ def(I)
                 for (const auto &n : movInst->def)
@@ -18,8 +19,7 @@ void asm_arm::RegisterAllocator::build() {
                 for (const auto &n : movInst->use)
                     moveList[n].insert(movInst);
                 // worklistMoves := worklistMoves ∪ {I}
-                for (const auto &x : movInst->def)
-                    worklistMoves.insert(movInst);
+                worklistMoves.insert(movInst);
             }
             // live := live ∪ def(I)
             for (auto & d : inst->def) live.insert(d);
@@ -31,7 +31,9 @@ void asm_arm::RegisterAllocator::build() {
 
             // live := use(I) ∪ (live\def(I))
             for (auto & d : inst->def) live.erase(d);
-            for (auto & u : inst->use) live.insert(u);
+            for (auto &u : inst->use)
+                if (u->type != Operand::Type::Imm)
+                    live.insert(u);
         }
     }
 }
@@ -58,7 +60,7 @@ asm_arm::MOVInstSet asm_arm::RegisterAllocator::nodeMoves(asm_arm::Operand *n) {
     // result := moveList[n] ∩ tmp
     std::set_intersection(iter->second.cbegin(), iter->second.cend(),
                           tmp.cbegin(), tmp.cend(),
-                          std::inserter(tmp, tmp.cbegin()));
+                          std::inserter(result, result.cbegin()));
     return std::move(result);
 }
 
@@ -67,9 +69,7 @@ bool asm_arm::RegisterAllocator::isMoveRelated(asm_arm::Operand *n) {
 }
 
 void asm_arm::RegisterAllocator::mkWorklist() {
-    for (auto iter = initial.cbegin(); iter != initial.cend(); iter++) {
-        auto n = *iter;
-        iter = initial.erase(iter);
+    for (const auto &n:initial) {
         if (degree[n] >= K) // spill
             spillWorklist.insert(n);
         else if (isMoveRelated(n))
@@ -77,6 +77,7 @@ void asm_arm::RegisterAllocator::mkWorklist() {
         else
             simplifyWorklist.push_back(n);
     }
+    initial.clear();
 }
 
 void asm_arm::RegisterAllocator::enableMoves(OperandSet &nodes) {
