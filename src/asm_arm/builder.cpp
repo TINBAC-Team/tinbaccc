@@ -18,11 +18,17 @@ namespace asm_arm {
 
     Operand *Builder::getOrCreateOperandOfValue(ir::Value *val) {
         Operand *ret = getOperandOfValue(val);
-        if(ret)
+        if (ret)
             return ret;
-        // safety check for a hack: This function is designed specifically for constants.
+        auto binop = dynamic_cast<ir::BinaryInst *>(val);
+        if (binop)
+            return binop->codegen_value(*this);
+
+        // safety check for a hack: This function is designed for constants and binary instructions.
         // It's used to reduce some constant checks in BinaryInst generation.
-        if(val->optype!=ir::OpType::CONST)
+
+
+        if (val->optype != ir::OpType::CONST)
             throw std::runtime_error("Non-const value should have been created!");
         ret = val->codegen(*this);
         setOperandOfValue(val, ret);
@@ -122,6 +128,12 @@ namespace asm_arm {
         return ret;
     }
 
+    LDRInst *Builder::createLDR(int v, Operand *d) {
+        auto ret = new LDRInst(v, d);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
     LDRInst *Builder::createLDR(std::string s) {
         auto ret = new LDRInst(s, Operand::newVReg());
         curBlock->insertAtEnd(ret);
@@ -214,7 +226,7 @@ namespace asm_arm {
         // TODO: we actually want to keep SP and use SP-relative address in LDR
         unsigned int stackptr = curFunction->allocate_stack(ni32s);
         Operand *lhs = Operand::getReg(Reg::sp), *rhs;
-        if(Operand::op2Imm(stackptr))
+        if (Operand::op2Imm(stackptr))
             rhs = Operand::newImm(stackptr);
         else
             rhs = createLDR(stackptr)->dst;
@@ -223,5 +235,36 @@ namespace asm_arm {
 
     void Builder::setIRModule(ir::Module *m) {
         module->irModule = m;
+    }
+
+
+    asm_arm::Inst::OpCond Builder::toOpCond(ir::OpType optype) {
+        switch (optype) {
+            case ir::OpType::EQ:
+                return asm_arm::Inst::OpCond::EQ;
+                break;
+            case ir::OpType::NE:
+                return asm_arm::Inst::OpCond::NE;
+                break;
+            case ir::OpType::SLT:
+                return asm_arm::Inst::OpCond::LT;
+                break;
+            case ir::OpType::SLE:
+                return asm_arm::Inst::OpCond::LE;
+                break;
+            case ir::OpType::SGT:
+                return asm_arm::Inst::OpCond::GT;
+                break;
+            case ir::OpType::SGE:
+                return asm_arm::Inst::OpCond::GE;
+                break;
+            default:
+                throw std::runtime_error("Invalid op for function toOpCond()");
+        }
+    }
+
+    bool Builder::is_OpCond(ir::OpType optype) {
+        return optype == ir::OpType::EQ || optype == ir::OpType::NE || optype == ir::OpType::SLT ||
+               optype == ir::OpType::SLE || optype == ir::OpType::SGT || optype == ir::OpType::SGE;
     }
 }

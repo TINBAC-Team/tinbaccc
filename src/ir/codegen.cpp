@@ -129,6 +129,29 @@ namespace ir {
         return res;
     }
 
+    asm_arm::Operand *BinaryInst::codegen_value(asm_arm::Builder &builder) {
+        asm_arm::Operand *lhs = nullptr, *rhs = nullptr;
+        asm_arm::Inst::OpCond asmcond;
+        if(builder.is_OpCond(optype))
+        {
+            asmcond = builder.toOpCond(optype);
+        } else
+        {
+            return this->codegen(builder);
+        }
+        lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+        if (ValueR.value->optype==OpType::CONST)
+            rhs = dynamic_cast<ConstValue *>(ValueR.value)->genop2(builder);
+        else
+            rhs = builder.getOrCreateOperandOfValue(ValueR.value);
+        builder.createCMPInst(lhs,rhs);
+        auto ret = builder.createLDR(0);
+        auto meet_cond = builder.createLDR(1,ret->dst);
+        meet_cond->cond = asmcond;
+        return ret->dst;
+
+    }
+
     asm_arm::Operand * PhiInst::codegen(asm_arm::Builder &builder) {
         auto srcreg = asm_arm::Operand::newVReg();
         auto dstmov = builder.createMOVInst(asm_arm::Operand::newVReg(), srcreg);
@@ -184,30 +207,14 @@ namespace ir {
         asm_arm::Operand *lhs = nullptr, *rhs = nullptr;
         // Grab its cond value to generate cmp instruction
         asm_arm::Inst::OpCond asmcond;
-        switch (cond.value->optype) {
-            case OpType::EQ:
-                asmcond = asm_arm::Inst::OpCond::EQ;
-                break;
-            case OpType::NE:
-                asmcond = asm_arm::Inst::OpCond::NE;
-                break;
-            case OpType::SLT:
-                asmcond = asm_arm::Inst::OpCond::LT;
-                break;
-            case OpType::SLE:
-                asmcond = asm_arm::Inst::OpCond::LE;
-                break;
-            case OpType::SGT:
-                asmcond = asm_arm::Inst::OpCond::GT;
-                break;
-            case OpType::SGE:
-                asmcond = asm_arm::Inst::OpCond::GE;
-                break;
-            default:
-                asmcond = asm_arm::Inst::OpCond::NE;
-                lhs = builder.getOrCreateOperandOfValue(cond.value);
-                rhs = asm_arm::Operand::newImm(0);
-                break;
+        if(builder.is_OpCond(cond.value->optype))
+        {
+            asmcond = builder.toOpCond(cond.value->optype);
+        } else
+        {
+            asmcond = asm_arm::Inst::OpCond::NE;
+            lhs = builder.getOrCreateOperandOfValue(cond.value);
+            rhs = asm_arm::Operand::newImm(0);
         }
         if(!lhs) {
             auto binop = dynamic_cast<BinaryInst*>(cond.value);

@@ -245,6 +245,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        asm_arm::Operand* codegen_value(asm_arm::Builder &builder);
     };
 
     class PhiInst : public Inst {

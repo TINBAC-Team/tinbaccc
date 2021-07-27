@@ -54,6 +54,8 @@ namespace asm_arm {
 
         LDRInst *createLDR(int v);
 
+        LDRInst *createLDR(int v,Operand *d);
+
         LDRInst *createLDR(Operand *s, Operand *o);
 
         STRInst * createSTR(Operand *v, Operand *a, Operand *o);
@@ -90,6 +92,10 @@ namespace asm_arm {
         void setIRModule(ir::Module *m);
 
         void print(std::ostream& os);
+
+        static asm_arm::Inst::OpCond toOpCond(ir::OpType optype);
+
+        static bool is_OpCond(ir::OpType optype);
     };
 }
 #endif //TINBACCC_BUILDER_H
