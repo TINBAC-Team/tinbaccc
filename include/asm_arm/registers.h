@@ -69,6 +69,8 @@ namespace asm_arm {
 
         void livenessAnalysis();
 
+        void grabInitialVRegs();
+
         void build();
 
         void mkWorklist();
