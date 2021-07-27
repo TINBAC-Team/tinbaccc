@@ -344,6 +344,7 @@ namespace asm_arm {
         std::list<Operand *> param_fixup_list;
         BasicBlock *ret_block;
         unsigned int stack_size;
+        int max_reg;
 
         Function(ir::Function *f);
 
