@@ -279,6 +279,8 @@ namespace asm_arm {
     void Function::print(std::ostream &os) const {
         nameOfVReg.clear();
         os << "\t.align 2" << std::endl;
+        os << "\t.pool" << std::endl;
+        os << "\t.align 2" << std::endl;
         os << "\t.global " << name << std::endl;
         os << "\t.arch armv8-a" << std::endl;
         os << "\t.arch_extension crc" << std::endl;
