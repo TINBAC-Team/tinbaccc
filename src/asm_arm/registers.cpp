@@ -106,7 +106,7 @@ bool asm_arm::RegisterAllocator::isOK(asm_arm::Operand *t, asm_arm::Operand *r) 
     auto iter = degree.find(t);
     if ((iter != degree.cend() ? iter->second : 0) <= K)
         return true;
-    if (preColored.find(t) != preColored.cend())
+    if (t->type == Operand::Type::Reg)
         return true;
     if (adjSet.find({t, r}) != adjSet.cend())
         return true;
@@ -136,7 +136,7 @@ void asm_arm::RegisterAllocator::coalesce() {
     auto * m = *worklistMoves.cbegin();
     auto x = getAlias(m->src);
     auto y = getAlias(m->dst);
-    if (preColored.find(x) != preColored.cend())
+    if (x->type == Operand::Type::Reg)
         std::swap(x, y);
     auto &u = x, &v = y;
 
@@ -144,15 +144,15 @@ void asm_arm::RegisterAllocator::coalesce() {
     if (u == v) {
         coalescedMoves.insert(m);
         addWorkList(x);
-    } else if (preColored.find(v) != preColored.cend() || adjSet.find({u, v}) != adjSet.cend()) {
+    } else if (v->type == Operand::Type::Reg || adjSet.find({u, v}) != adjSet.cend()) {
         constrainedMoves.insert(m);
         addWorkList(u);
         addWorkList(v);
-    } else if (preColored.find(u) != preColored.cend() && [this, u, v]() { // condition 1
+    } else if (u->type == Operand::Type::Reg && [this, u, v]() { // condition 1
         // u ∈ precolored ∧ (∀t ∈ Adjacent(v), isOK(t, u))
         auto adj = adjacent(v);
         return std::all_of(adj.cbegin(), adj.cend(), [this, u](Operand *t) { return isOK(t, u); });
-    }() || ( preColored.find(u) == preColored.cend() && [this, u, v]() { // condition 2
+    }() || ( u->type == Operand::Type::Reg && [this, u, v]() { // condition 2
         // u ∉ precolored ∧ isConservative(Adjacent(u) ∪ Adjacent(v)
         auto adjU = adjacent(u);
         auto adjV = adjacent(v);
@@ -170,7 +170,7 @@ void asm_arm::RegisterAllocator::coalesce() {
 
 void asm_arm::RegisterAllocator::addWorkList(asm_arm::Operand *u) {
     // u ∈ precolored ∧ not(MoveRelated(u)) ∧ degree[u] < K
-    if (preColored.find(u) == preColored.cend() && !isMoveRelated(u) && degree[u] < K) {
+    if (u->type != Operand::Type::Reg && !isMoveRelated(u) && degree[u] < K) {
         freezeWorklist.erase(u);
         simplifyWorklist.push_back(u);
     }
@@ -234,17 +234,14 @@ void asm_arm::RegisterAllocator::assignColors() {
         for(int i=0;i<K;i++) okColors.insert(i);
         for (const auto w : adjList[n]) {
             // tmp := coloredNodes ∪ precolored
-            OperandSet tmp;
-            std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
-                           preColored.cbegin(), preColored.cend(),
-                           std::inserter(tmp, tmp.cbegin()));
-            if (tmp.find(getAlias(w)) != tmp.cend())
+            auto tmp = getAlias(w);
+            if (coloredNodes.find(tmp) != coloredNodes.end() || tmp->type==Operand::Type::Reg)
                 okColors.erase(color[getAlias(w)]);
         }
         if (okColors.empty()) {
             spilledNodes.insert(n);
         } else {
-            coloredNodes.push_back(n);
+            coloredNodes.insert(n);
             color[n] = *okColors.cbegin();
         }
     }
@@ -256,7 +253,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
     // initial := coloredNodes ∪ coalescedNodes ∪ {vi}
     initial.clear();
     std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
-                   coloredNodes.cbegin(), coloredNodes.cend(),
+                   coalescedNodes.cbegin(), coalescedNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
     for (const auto & v : spilledNodes) {
         // allocate memory locations and generate load and store instruction for spilled node
@@ -354,11 +351,11 @@ void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *
     if (adjSet.find({u, v}) != adjSet.cend() && u != v) {
         adjSet.insert({u, v});
         adjSet.insert({v, u});
-        if (preColored.find(u) != preColored.cend()) {
+        if (u->type == Operand::Type::Reg) {
             adjList[u].push_back(v);
             degree[u] += 1;
         }
-        if (preColored.find(v) != preColored.cend()) {
+        if (v->type == Operand::Type::Reg) {
             adjList[v].push_back(u);
             degree[v] += 1;
         }
