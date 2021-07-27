@@ -68,7 +68,7 @@ namespace ir {
             lhs= builder.getOrCreateOperandOfValue(ValueL.value);
             rhs= builder.getOrCreateOperandOfValue(ValueR.value);
             asm_arm::Operand *divres = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
-            asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, lhs, divres, rhs)->dst;
+            asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, divres, rhs, lhs)->dst;
             builder.setOperandOfValue(this, res);
             return res;
         }
@@ -280,7 +280,7 @@ namespace ir {
         // TODO: offset...
         auto mul4 = builder.createLDR(4);
         auto ptr = AccessInst::genptr(builder, arr.value);
-        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, ptr, builder.getOrCreateOperandOfValue(offset.value), mul4->dst);
+        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, builder.getOrCreateOperandOfValue(offset.value), mul4->dst, ptr);
         builder.setOperandOfValue(this, res->dst);
         return res->dst;
     }
