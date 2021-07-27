@@ -352,7 +352,7 @@ namespace asm_arm {
         return ret;
     }
 
-    Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0) {
+    Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0), max_reg(0) {
         ret_block = new BasicBlock();
     }
 
