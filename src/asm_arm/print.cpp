@@ -290,7 +290,7 @@ namespace asm_arm {
         // TODO: optionally push lr
         os << "\tPUSH {";
         // preserve r4-r11
-        for (int i = 4; i < max_reg; i++) {
+        for (int i = 4; i <= max_reg; i++) {
             if (i == 12)
                 break;
             Reg reg = static_cast<Reg>(i);
@@ -310,7 +310,7 @@ namespace asm_arm {
         // TODO: optionally pop lr->pc
         // restore r4-r11
         os << "\tPOP {";
-        for (int i = 4; i < max_reg; i++) {
+        for (int i = 4; i <= max_reg; i++) {
             if (i == 12)
                 break;
             Reg reg = static_cast<Reg>(i);
