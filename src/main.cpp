@@ -66,7 +66,8 @@ int main(int argc, char *argv[]) {
         driver.print_ir(ir_path);
 
     driver.generate_asm();
-    driver.print_asm(asm_tmp_path);
+    if (asm_tmp_path)
+        driver.print_asm(asm_tmp_path);
     driver.process_asm();
     driver.print_asm(asm_path);
     return 0;
