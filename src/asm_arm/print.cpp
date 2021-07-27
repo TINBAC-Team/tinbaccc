@@ -223,6 +223,13 @@ namespace asm_arm {
         os << dst->getOperandName() << ", " << label;
     }
 
+    void MOVInst::print(std::ostream &os) {
+        if (dst->type == Operand::Type::Reg && src->type == Operand::Type::Reg && dst->reg == src->reg)
+            os << "\t@Coalesced MOV" << std::endl;
+        else
+            Inst::print(os);
+    }
+
     void MOVInst::print_body(std::ostream &os) const {
         os << dst->getOperandName() << ", " << src->getOperandName();
     }
