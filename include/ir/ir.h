@@ -389,7 +389,7 @@ namespace ir {
 
         asm_arm::Operand* genreg(asm_arm::Builder &builder);
 
-        asm_arm::Operand* codegen(asm_arm::Builder &builder);
+        asm_arm::Operand* codegen(asm_arm::Builder &builder) override;
 
         ~ConstValue() override;
 

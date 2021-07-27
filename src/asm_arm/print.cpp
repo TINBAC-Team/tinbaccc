@@ -61,6 +61,9 @@ namespace asm_arm {
             case Reg::pc:
                 ret = "pc";
                 break;
+            default:
+                ret = "??";
+                break;
         }
         return ret;
     }

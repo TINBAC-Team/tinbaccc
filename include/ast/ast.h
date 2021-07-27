@@ -54,11 +54,11 @@ namespace ast {
 
         void append_function(ast::Function *entry);
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class Exp;
@@ -81,7 +81,7 @@ namespace ast {
             vals.emplace_back(init);
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         /**
          * fill_array: 填充数组初始值
@@ -113,7 +113,7 @@ namespace ast {
 
         void add_dim(Exp *dim);
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
@@ -123,7 +123,7 @@ namespace ast {
 
         ir::Value *resolve_addr(ir::IRBuilder &builder);
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class FuncFParam;
@@ -168,7 +168,7 @@ namespace ast {
 
         void set_global() { is_global = true; }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         int get_value(int offset);
 
@@ -176,7 +176,7 @@ namespace ast {
 
         void expand_array();
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
 
         ir::Value *lookup_var_def(const ir::BasicBlock *b);
 
@@ -230,7 +230,7 @@ namespace ast {
 
         ~Exp();
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         int get_value();
 
@@ -242,7 +242,7 @@ namespace ast {
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
 
     private:
         ir::Value *codegen_and(ir::IRBuilder &builder);
@@ -262,11 +262,11 @@ namespace ast {
             delete exp;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class FuncCall : public Node {
@@ -285,11 +285,11 @@ namespace ast {
                 delete i;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
 
     private:
         void mangle_params();
@@ -312,7 +312,7 @@ namespace ast {
             delete signature;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
     };
 
     class Function : public Node {
@@ -338,11 +338,11 @@ namespace ast {
 
         static Function *create_extern(Type t, std::string n, std::vector<Decl *> p);
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class Stmt : public Node {
@@ -362,11 +362,11 @@ namespace ast {
 
         void append_nodes(std::vector<ast::Node *> entries);
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class AssignmentStmt : public Stmt {
@@ -381,11 +381,11 @@ namespace ast {
             delete exp;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class EvalStmt : public Stmt {
@@ -398,11 +398,11 @@ namespace ast {
             delete exp;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class IfStmt : public Stmt {
@@ -421,11 +421,11 @@ namespace ast {
                 delete false_block;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class WhileStmt : public Stmt {
@@ -441,25 +441,25 @@ namespace ast {
                 delete block;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class BreakStmt : public Stmt {
     public:
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class ContinueStmt : public Stmt {
     public:
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 
     class ReturnStmt : public Stmt {
@@ -469,15 +469,14 @@ namespace ast {
         ReturnStmt(Exp *e = nullptr) : ret(e) {}
 
         ~ReturnStmt() {
-            if (ret)
-                delete ret;
+            delete ret;
         }
 
-        void print(std::ofstream &ofd);
+        void print(std::ofstream &ofd) override;
 
         void validate(ValidationContext &ctx) override;
 
-        ir::Value *codegen(ir::IRBuilder &builder);
+        ir::Value *codegen(ir::IRBuilder &builder) override;
     };
 }
 #endif //TINBACCC_AST_H

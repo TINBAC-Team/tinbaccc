@@ -38,7 +38,7 @@ namespace ast {
         );
     }
 
-    CompUnit::~CompUnit() noexcept {
+    CompUnit::~CompUnit() {
         for (auto i:entries)
             delete i;
     }
@@ -51,14 +51,14 @@ namespace ast {
         this->entries.emplace_back(entry);
     }
 
-    InitVal::~InitVal() noexcept {
+    InitVal::~InitVal() {
         if (exp)
             delete exp;
         for (auto i:vals)
             delete i;
     }
 
-    LVal::~LVal() noexcept {
+    LVal::~LVal() {
         for (auto i:array_dims)
             delete i;
     }
@@ -77,7 +77,7 @@ namespace ast {
         delete param;
     }
 
-    Decl::~Decl() noexcept {
+    Decl::~Decl() {
         if (initval)
             delete initval;
         for (auto i:array_dims)
@@ -111,7 +111,7 @@ namespace ast {
         var_defs[b] = std::make_unique<ir::Use>(nullptr, v);
     }
 
-    Exp::~Exp() noexcept {
+    Exp::~Exp() {
         if (lval)
             delete lval;
         if (funccall)
@@ -128,7 +128,7 @@ namespace ast {
         return const_val;
     }
 
-    Function::~Function() noexcept {
+    Function::~Function() {
         for (auto i:params)
             delete i;
         delete block;
