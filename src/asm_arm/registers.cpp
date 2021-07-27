@@ -305,11 +305,11 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                     } else {
                         str_offs_op = Operand::newVReg();
                         auto ldrimm = new LDRInst(offs,new_op);
-                        bb->insts.insert(inst_it, ldrimm);
+                        bb->insts.insert(inst_next, ldrimm);
                     }
                     auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
                     strinst->comment << "for spilling";
-                    bb->insts.insert(inst_it, strinst);
+                    bb->insts.insert(inst_next, strinst);
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
                 }
