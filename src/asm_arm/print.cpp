@@ -363,6 +363,9 @@ namespace asm_arm {
         os << "\t.text" << std::endl;
         for (auto &x : functionList)
             x->print(os);
+        // sylib generates additional outputs and we have to link it.
+        // throw an arbitrary branch here. It should be unreachable.
+        os << "\tb getint" << std::endl;
     }
 
     void Builder::print(std::ostream &os) {
