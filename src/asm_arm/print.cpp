@@ -186,7 +186,7 @@ namespace asm_arm {
         os << "\t" << Op_to_string() << " ";
         print_body(os);
         if (!comment.str().empty())
-            os << "  @" << comment.str() << std::endl;
+            os << "  @" << comment.str();
         os << std::endl;
     }
 
