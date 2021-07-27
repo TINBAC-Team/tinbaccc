@@ -292,6 +292,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                         bb->insts.insert(inst_it, ldrimm);
                     }
                     auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
+                    ldrinst->comment << "for spilling";
                     bb->insts.insert(inst_it, ldrinst);
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
@@ -307,6 +308,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                         bb->insts.insert(inst_it, ldrimm);
                     }
                     auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
+                    strinst->comment << "for spilling";
                     bb->insts.insert(inst_it, strinst);
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
@@ -315,6 +317,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
         }
         delete new_op;
     }
+    spilledNodes.clear();
     coloredNodes.clear();
     coalescedNodes.clear();
 }
@@ -429,7 +432,7 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
         } while (!(simplifyWorklist.empty() && worklistMoves.empty() && freezeWorklist.empty() &&
                    spillWorklist.empty()));
         assignColors();
-        if (spillWorklist.empty()) break;
+        if (spilledNodes.empty()) break;
         rewriteProgram();
     }
     int x;
