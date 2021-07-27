@@ -287,8 +287,16 @@ namespace asm_arm {
         os << "\t.fpu vfp" << std::endl;
         os << "\t.type " << name << ", %function" << std::endl;
         os << name << ":\n";
-        // TODO: push backup registers
-        os << "\tPUSH {lr}" << std::endl;
+        // TODO: optionally push lr
+        os << "\tPUSH {";
+        // preserve r4-r11
+        for (int i = 4; i < max_reg; i++) {
+            if (i == 12)
+                break;
+            Reg reg = static_cast<Reg>(i);
+            os << getRegName(reg) << ",";
+        }
+        os << "lr}" << std::endl;
         if(stack_size)
             os << "\tSUB sp, sp, #" << stack_size << std::endl;
         if (bList.size() == 1)
@@ -299,8 +307,16 @@ namespace asm_arm {
         }
         if (stack_size)
             os << "\tADD sp, sp, #" << stack_size << std::endl;
-        // TODO: pop backup registers
-        os << "\tPOP {pc}" << std::endl;
+        // TODO: optionally pop lr->pc
+        // restore r4-r11
+        os << "\tPOP {";
+        for (int i = 4; i < max_reg; i++) {
+            if (i == 12)
+                break;
+            Reg reg = static_cast<Reg>(i);
+            os << getRegName(reg) << ",";
+        }
+        os << "pc}" << std::endl;
         os << "\t.size " << name << ", .-" << name << std::endl;
     }
 
