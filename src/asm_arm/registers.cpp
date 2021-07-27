@@ -438,7 +438,6 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
         node->assignReg(reg);
         if (reg > function->max_reg)
             function->max_reg = reg;
-        std::cout  << "!!!!!!!!!!!!!!" << color[node] << std::endl;
     }
 
 }
