@@ -288,6 +288,7 @@ namespace asm_arm {
         os << "\t.type " << name << ", %function" << std::endl;
         os << name << ":\n";
         // TODO: push backup registers
+        os << "\tPUSH {lr}" << std::endl;
         if(stack_size)
             os << "\tSUB sp, sp, #" << stack_size << std::endl;
         if (bList.size() == 1)
@@ -299,7 +300,7 @@ namespace asm_arm {
         if (stack_size)
             os << "\tADD sp, sp, #" << stack_size << std::endl;
         // TODO: pop backup registers
-        os << "\tBX lr" << std::endl;
+        os << "\tPOP {pc}" << std::endl;
         os << "\t.size " << name << ", .-" << name << std::endl;
     }
 
