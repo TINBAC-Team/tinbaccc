@@ -250,7 +250,10 @@ void asm_arm::RegisterAllocator::assignColors() {
         for (const auto w : adjList[n]) {
             // tmp := coloredNodes ∪ precolored
             auto tmp = getAlias(w);
-            if (coloredNodes.find(tmp) != coloredNodes.end() || tmp->type==Operand::Type::Reg)
+            // FIXME: lr can't be casted to int
+            if (tmp->type == Operand::Type::Reg)
+                okColors.erase(static_cast<int>(tmp->reg));
+            else if (coloredNodes.find(tmp) != coloredNodes.end())
                 okColors.erase(color[getAlias(w)]);
         }
         if (okColors.empty()) {
@@ -260,7 +263,7 @@ void asm_arm::RegisterAllocator::assignColors() {
             color[n] = *okColors.cbegin();
         }
     }
-    for (const auto & n : coloredNodes)
+    for (const auto & n : coalescedNodes)
         color[n] = color[getAlias(n)];
 }
 
@@ -363,14 +366,14 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
 }
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {
-    if (adjSet.find({u, v}) != adjSet.cend() && u != v) {
+    if (adjSet.find({u, v}) == adjSet.cend() && u != v) {
         adjSet.insert({u, v});
         adjSet.insert({v, u});
-        if (u->type == Operand::Type::Reg) {
+        if (u->type == Operand::Type::VReg) {
             adjList[u].push_back(v);
             degree[u] += 1;
         }
-        if (v->type == Operand::Type::Reg) {
+        if (v->type == Operand::Type::VReg) {
             adjList[v].push_back(u);
             degree[v] += 1;
         }
