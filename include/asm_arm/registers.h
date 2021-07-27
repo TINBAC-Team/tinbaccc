@@ -44,7 +44,7 @@ namespace asm_arm {
         OperandSet  spillWorklist;      // high-degree nodes.
         OperandSet  spilledNodes;       // nodes marked for spilling during this round; initially empty.
         OperandSet  coalescedNodes;     // registers that have been coalesced.
-        OperandList coloredNodes;       // nodes successfully colored.
+        OperandSet coloredNodes;       // nodes successfully colored.
         OperandList selectStack;        // stack containing temporaries removed from the graph.
 
         // Move Sets: for move instructions
