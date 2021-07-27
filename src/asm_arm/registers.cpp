@@ -1,6 +1,20 @@
 #include <asm_arm/registers.h>
 #include <stdexcept>
 #include <iostream>
+
+void asm_arm::RegisterAllocator::grabInitialVRegs() {
+    for (const auto &b : function->bList) {
+        for (const auto &i:b->insts) {
+            for (auto &op :i->def)
+                if (op->type == Operand::Type::VReg)
+                    initial.insert(op);
+            for (auto &op :i->use)
+                if (op->type == Operand::Type::VReg)
+                    initial.insert(op);
+        }
+    }
+}
+
 void asm_arm::RegisterAllocator::build() {
     for (const auto &b : function->bList) {
         auto &live = b->liveOut;
@@ -395,6 +409,7 @@ void asm_arm::RegisterAllocator::freeze() {
 #include <iostream>
 void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
     this->function = func;
+    grabInitialVRegs();
     while(true) {
         livenessAnalysis();
         build();
