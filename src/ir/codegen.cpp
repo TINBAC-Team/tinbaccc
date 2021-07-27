@@ -93,7 +93,7 @@ namespace ir {
                     if (asm_arm::Operand::op2Imm(l_const_val->value)) {
                         op = asm_arm::Inst::Op::RSB;
                         rhs = l_const_val->genimm(builder);
-                        lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+                        lhs = builder.getOrCreateOperandOfValue(ValueR.value);
                         break;
                     }
                 }
