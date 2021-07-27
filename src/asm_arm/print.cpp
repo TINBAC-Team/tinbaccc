@@ -287,12 +287,19 @@ namespace asm_arm {
         os << "\t.fpu vfp" << std::endl;
         os << "\t.type " << name << ", %function" << std::endl;
         os << name << ":\n";
+        // TODO: push backup registers
+        if(stack_size)
+            os << "\tSUB sp, sp, #" << stack_size << std::endl;
         if (bList.size() == 1)
             (*bList.begin())->print(os, true);
         else {
             for (auto &x : bList)
                 x->print(os, false);
         }
+        if (stack_size)
+            os << "\tADD sp, sp, #" << stack_size << std::endl;
+        // TODO: pop backup registers
+        os << "\tBX lr" << std::endl;
         os << "\t.size " << name << ", .-" << name << std::endl;
     }
 
