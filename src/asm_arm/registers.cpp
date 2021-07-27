@@ -219,11 +219,11 @@ void asm_arm::RegisterAllocator::combine(asm_arm::Operand *u, asm_arm::Operand *
 void asm_arm::RegisterAllocator::selectSpill() {
     // TODO Use more reasonable cost estimates to design heuristic algorithms.
     // Simply choose spilling node with maximum degree
-    Operand *m = *std::max_element(spilledNodes.cbegin(), spilledNodes.cend(),
+    Operand *m = *std::max_element(spillWorklist.cbegin(), spillWorklist.cend(),
                                   [this](Operand *a, Operand *b) { return degree[a] < degree[b]; });
-    spilledNodes.erase(m);
+    spillWorklist.erase(m);
     simplifyWorklist.push_back(m);
-    throw std::runtime_error("Not implemented yet!");
+    freezeMoves(m);
 }
 
 void asm_arm::RegisterAllocator::freezeMoves(asm_arm::Operand *u) {
