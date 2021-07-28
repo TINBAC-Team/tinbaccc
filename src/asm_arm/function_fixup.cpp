@@ -15,6 +15,31 @@ namespace asm_arm {
 
             for (auto &param:func->param_fixup_list)
                 param->val += stack_movement;
+
+            // fixup illegal ldr offset like this:
+            // LDR Rd, [Rs, offs] ->
+            // LDR Rd, =offs
+            // LDR Rd, [Rs, Rd]
+            // This should only be produced in param pointer for now, so just fix the first block.
+            for (auto it = func->bList.front()->insts.begin(); it != func->bList.front()->insts.end(); it++) {
+                auto ldr = dynamic_cast<LDRInst *>(*it);
+                // only look for LDR
+                if (!ldr)
+                    continue;
+                // skip LDR Rd,=const
+                if(ldr->type!=LDRInst::Type::REGOFFS)
+                    continue;
+                // skip legal imm12 and reg offset
+                if(ldr->offs->type!=Operand::Type::Imm || Operand::op2Imm(ldr->offs->val))
+                    continue;
+                if(ldr->dst->reg==ldr->src->reg)
+                    throw std::runtime_error("Illegal Imm offset can't be auto fixed.");
+                int offs = ldr->offs->val;
+                delete ldr->offs;
+                ldr->offs = ldr->dst;
+                auto inst = new LDRInst(offs, Operand::getReg(ldr->dst->reg));
+                func->bList.front()->insts.insert(it, inst);
+            }
         }
     }
 }
