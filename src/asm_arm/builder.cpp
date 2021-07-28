@@ -31,7 +31,6 @@ namespace asm_arm {
         if (val->optype != ir::OpType::CONST)
             throw std::runtime_error("Non-const value should have been created!");
         ret = val->codegen(*this);
-        setOperandOfValue(val, ret);
         return ret;
     }
 

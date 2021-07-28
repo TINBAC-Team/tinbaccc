@@ -47,7 +47,6 @@ namespace ir {
             return op;
         auto inst = builder.createLDR(value);
         op = inst->dst;
-        builder.setOperandOfValue(this, op);
         return op;
     }
 
