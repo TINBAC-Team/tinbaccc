@@ -184,11 +184,19 @@ namespace asm_arm {
     }
 
     BinaryInst *Builder::moveSP(bool is_sub, int len) {
+        Operand *offsOp;
+        if(Operand::op2Imm(len)) {
+            offsOp = Operand::newImm(len);
+        } else {
+            auto inst = createLDR(len);
+            offsOp = inst->dst;
+        }
+
         auto ret = new BinaryInst(
                 is_sub ? Inst::Op::SUB : Inst::Op::ADD,
                 Operand::getReg(Reg::sp),
                 Operand::getReg(Reg::sp),
-                Operand::newImm(len));
+                offsOp);
         curBlock->insertAtEnd(ret);
         ret->move_stack = is_sub ? -len : len;
         return ret;
