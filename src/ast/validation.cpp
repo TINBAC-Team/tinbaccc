@@ -115,6 +115,9 @@ namespace ast {
     }
 
     bool LVal::is_const() {
+        for (auto &i:array_dims)
+            if (i && !i->is_const())
+                return false;
         return decl->is_const;
     }
 
