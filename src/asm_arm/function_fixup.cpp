@@ -30,7 +30,7 @@ namespace asm_arm {
                 if(ldr->type!=LDRInst::Type::REGOFFS)
                     continue;
                 // skip legal imm12 and reg offset
-                if(ldr->offs->type!=Operand::Type::Imm || Operand::op2Imm(ldr->offs->val))
+                if(ldr->offs->type!=Operand::Type::Imm || ldr->offs->val < 4096)
                     continue;
                 if(ldr->dst->reg==ldr->src->reg)
                     throw std::runtime_error("Illegal Imm offset can't be auto fixed.");

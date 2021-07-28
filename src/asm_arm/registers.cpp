@@ -284,7 +284,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                     offs -= (*inst_it)->move_stack;
                 if((*inst_it)->replace_use(v, new_op)) {
                     Operand *ldr_offs_op;
-                    if(Operand::op2Imm(offs)) {
+                    if(offs < 4096) {
                     ldr_offs_op = Operand::newImm(offs);
                     } else {
                         ldr_offs_op = Operand::newVReg();
@@ -301,7 +301,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                 if((*inst_it)->replace_def(v, new_op)) {
                     auto inst_next=std::next(inst_it);
                     Operand *str_offs_op;
-                    if(Operand::op2Imm(offs)) {
+                    if(offs < 4096) {
                         str_offs_op = Operand::newImm(offs);
                     } else {
                         str_offs_op = Operand::newVReg();
