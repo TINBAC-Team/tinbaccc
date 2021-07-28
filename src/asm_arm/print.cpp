@@ -324,7 +324,7 @@ namespace asm_arm {
             } else {
                 os << "\tMOV r12, #" << (stack_size & 0xffff) << std::endl;
                 if (stack_size & 0xffff0000)
-                    os << "\tMOVT r12, #" << (stack_size >> 16) << std::endl;
+                    os << "\tMOVT r12, #" << ((unsigned int) stack_size >> 16) << std::endl;
                 os << "\tSUB sp, sp, r12" << std::endl;
             }
         }
