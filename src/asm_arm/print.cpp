@@ -302,16 +302,29 @@ namespace asm_arm {
             os << getRegName(reg) << ",";
         }
         os << "lr}" << std::endl;
-        if(stack_size)
-            os << "\tSUB sp, sp, #" << stack_size << std::endl;
+        if (stack_size) {
+            if (Operand::op2Imm(stack_size)) {
+                os << "\tSUB sp, sp, #" << stack_size << std::endl;
+            } else {
+                os << "\tLDR r12, =" << stack_size << std::endl;
+                os << "\tSUB sp, sp, r12" << std::endl;
+            }
+        }
+
         if (bList.size() == 1)
             (*bList.begin())->print(os, true);
         else {
             for (auto &x : bList)
                 x->print(os, false);
         }
-        if (stack_size)
-            os << "\tADD sp, sp, #" << stack_size << std::endl;
+        if (stack_size) {
+            if (Operand::op2Imm(stack_size)) {
+                os << "\tADD sp, sp, #" << stack_size << std::endl;
+            } else {
+                os << "\tLDR r12, =" << stack_size << std::endl;
+                os << "\tADD sp, sp, r12" << std::endl;
+            }
+        }
         // TODO: optionally pop lr->pc
         // restore r4-r11
         os << "\tPOP {";
