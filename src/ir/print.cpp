@@ -20,8 +20,7 @@ namespace ir {
 
     static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
         if (!val && define_name.empty()) {
-            //std::cerr<<"print_body ir: requesting name of nullptr"<<std::endl;
-            return "*nullptr*";
+            throw std::runtime_error("print_body ir: requesting name of nullptr");
         }
         if (auto const_val = dynamic_cast<ConstValue *>(val)) {
             return std::to_string(const_val->value);
@@ -129,7 +128,7 @@ namespace ir {
             os << "i32 ";
             if (p->decl->is_array()) {
                 os << "* ";
-                os << get_name_of_value(p->decl->addr, p->decl->name);
+                os << get_name_of_value(p, p->decl->name);
             } else os << get_name_of_value(p, p->decl->name);
 
         }
