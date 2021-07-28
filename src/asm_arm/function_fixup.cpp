@@ -3,6 +3,8 @@
 namespace asm_arm {
     void function_param_pointer_fixup(asm_arm::Module *module) {
         for (auto &func:module->functionList) {
+            if (func->stack_size & 7)
+                func->stack_size += 4;
             int stack_movement = func->stack_size;
             // lr
             stack_movement += 4;
