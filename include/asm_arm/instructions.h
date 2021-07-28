@@ -323,6 +323,8 @@ namespace asm_arm {
         PoolInst(int _number) : Inst(Op::POOL), number(_number) {};
 
         void print_body(std::ostream &os) const;
+
+        void print(std::ostream &os);
     };
 
     class BasicBlock {

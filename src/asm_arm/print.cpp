@@ -411,9 +411,11 @@ namespace asm_arm {
         module->print(os);
     }
 
-    void PoolInst::print_body(std::ostream &os) const {
+    void PoolInst::print(std::ostream &os) {
         os<<"B .L_AFTER_POOL"<<number<<std::endl;
         os<<"\t"<<".pool"<<std::endl;
-        os<<".L_AFTER_POOL:"<<number<<std::endl;
+        os<<".L_AFTER_POOL"<<number<<":"<<std::endl;
     }
+
+    void PoolInst::print_body(std::ostream &os) const {}
 }
