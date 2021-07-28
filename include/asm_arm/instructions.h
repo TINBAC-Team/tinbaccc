@@ -147,6 +147,8 @@ namespace asm_arm {
         virtual bool replace_def(Operand *orig, Operand *newop);
 
         virtual ~Inst() {};
+
+        const char * OpCond_to_string() const;
     };
 
     class LDRInst : public Inst {
@@ -172,6 +174,8 @@ namespace asm_arm {
         bool replace_def(Operand *orig, Operand *newop);
 
         bool replace_use(Operand *orig, Operand *newop);
+
+        void print(std::ostream &os);
     };
 
     /**

@@ -85,12 +85,13 @@ namespace asm_arm {
 
 
     LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {
+        need_pool = true;
         add_def(d);
     }
 
     LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {
         // If the value can't be encoded with MOV/MVN, a literal pool is required.
-        if(!Operand::op2Imm(v) && !Operand::op2Imm(-v))
+        if((v&0xffff0000) && ((~v)&0xffff0000))
             need_pool = true;
         add_def(d);
     }

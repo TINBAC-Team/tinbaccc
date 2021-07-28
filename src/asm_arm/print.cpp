@@ -157,32 +157,29 @@ namespace asm_arm {
                 ret_s = "???";
                 break;
         }
+        return ret_s + OpCond_to_string();
+    }
+
+    const char *Inst::OpCond_to_string() const {
         switch (cond) {
             case OpCond::NONE:
-                break;
+                return "";
             case OpCond::EQ:
-                ret_s += "EQ";
-                break;
+                return "EQ";
             case OpCond::NE:
-                ret_s += "NE";
-                break;
+                return "NE";
             case OpCond::GT:
-                ret_s += "GT";
-                break;
+                return "GT";
             case OpCond::GE:
-                ret_s += "GE";
-                break;
+                return "GE";
             case OpCond::LT:
-                ret_s += "LT";
-                break;
+                return "LT";
             case OpCond::LE:
-                ret_s += "LE";
-                break;
+                return "LE";
             default:
-                // TODO
                 break;
         }
-        return ret_s;
+        return "??";
     }
 
     void Inst::print(std::ostream &os) {
@@ -191,6 +188,27 @@ namespace asm_arm {
         if (!comment.str().empty())
             os << "  @" << comment.str();
         os << std::endl;
+    }
+
+    void LDRInst::print(std::ostream &os) {
+        if (type == Type::IMM) {
+            bool printed = false;
+            if (!(value & 0xffff0000)) {
+                os << "\tMOV" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << value;
+                printed = true;
+            }
+            if (!((~value) & 0xffff0000)) {
+                os << "\tMVN" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << (~value);
+                printed = true;
+            }
+            if (printed) {
+                if (!comment.str().empty())
+                    os << "  @" << comment.str();
+                os << std::endl;
+                return;
+            }
+        }
+        Inst::print(os);
     }
 
     void LDRInst::print_body(std::ostream &os) const {
