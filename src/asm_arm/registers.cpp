@@ -288,7 +288,8 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                     ldr_offs_op = Operand::newImm(offs);
                     } else {
                         ldr_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs,new_op);
+                        auto ldrimm = new LDRInst(offs,ldr_offs_op);
+                        initial.insert(ldr_offs_op);
                         bb->insts.insert(inst_it, ldrimm);
                     }
                     auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
@@ -304,7 +305,8 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                         str_offs_op = Operand::newImm(offs);
                     } else {
                         str_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs,new_op);
+                        auto ldrimm = new LDRInst(offs,str_offs_op);
+                        initial.insert(str_offs_op);
                         bb->insts.insert(inst_next, ldrimm);
                     }
                     auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
