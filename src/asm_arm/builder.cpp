@@ -1,8 +1,11 @@
 #include <asm_arm/builder.h>
 #include <ast/ast.h>
 #include <iostream>
+#include <queue>
+#include <map>
 
 namespace asm_arm {
+    const int MAX_POOL_COVERAGE = 900;
     Builder::Builder(Module *m) : module(m) {}
 
     Operand * Builder::getOperandOfValue(ir::Value *val) {
@@ -273,5 +276,60 @@ namespace asm_arm {
     bool Builder::is_OpCond(ir::OpType optype) {
         return optype == ir::OpType::EQ || optype == ir::OpType::NE || optype == ir::OpType::SLT ||
                optype == ir::OpType::SLE || optype == ir::OpType::SGT || optype == ir::OpType::SGE;
+    }
+
+    void Builder::generate_pool() {
+        for (auto &func:module->functionList) {
+            generate_pool(func);
+        }
+    }
+
+    void Builder::generate_pool(Function *func) {
+        static int pool_number = 0;
+        int pos = 0;
+        std::queue<int> pool_pos;
+        std::queue<std::pair<int,BInst*> > branch_pos;
+        pool_pos.push(0);
+        for(auto bb = func->bList.rbegin(); bb!=func->bList.rend(); bb++)
+        {
+            for(auto inst = (*bb)->insts.rbegin(); inst!=(*bb)->insts.rend(); inst++)
+            {
+                pos++;
+                auto branch_inst = dynamic_cast<BInst*>(*inst);
+                if(branch_inst && branch_inst->cond == asm_arm::Inst::OpCond::NONE)
+                {
+                    branch_pos.push(std::make_pair(pos,branch_inst));
+                }
+                if((*inst)->need_pool)
+                {
+                    //test if there is a pool available
+                    while(!pool_pos.empty() && pos - pool_pos.front() > MAX_POOL_COVERAGE)
+                    {
+                        pool_pos.pop();
+                    }
+                    if(pool_pos.empty())
+                    {
+                        //no pool available, create new.
+                        //try to find a branch instruction and append the pool after it.
+                        while(!branch_pos.empty() && pos - branch_pos.front().first > MAX_POOL_COVERAGE)
+                        {
+                            branch_pos.pop();
+                        }
+                        if(branch_pos.empty())
+                        {
+                            //could not find available branch instruction, just create a pool
+                            auto insert_pos = inst--;
+                            (*bb)->insts.insert(insert_pos.base(),(Inst*)new PoolInst(pool_number++));
+                            pool_pos.push(pos);
+                        } else
+                        {
+                            branch_pos.front().second->append_pool = true;
+                            pool_pos.push(branch_pos.front().first);
+                            branch_pos.pop();
+                        }
+                    }
+                }
+            }
+        }
     }
 }

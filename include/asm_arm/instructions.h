@@ -105,6 +105,7 @@ namespace asm_arm {
             MUL,
             SDIV,
             RETURN, // not an actual instruction
+            POOL, // not an actual instruction
         } op;
 
         enum class OpCond {
@@ -252,6 +253,7 @@ namespace asm_arm {
     class BInst : public Inst {
     public:
         BasicBlock *tgt;
+        bool append_pool; //append a literal pool after the instruction
 
         BInst(OpCond c = OpCond::NONE);
 
@@ -314,15 +316,24 @@ namespace asm_arm {
         bool replace_use(Operand *orig, Operand *newop);
     };
 
+    class PoolInst : public Inst {
+    public:
+        int number;
+
+        PoolInst(int _number) : Inst(Op::POOL), number(_number) {};
+
+        void print_body(std::ostream &os) const;
+    };
+
     class BasicBlock {
     public:
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
         std::list<Inst *>::const_iterator it_insert;
         // TODO OUT
-        std::set<Operand*> liveOut;
+        std::set<Operand *> liveOut;
         // TODO IN
-        std::set<Operand*> liveIn;
+        std::set<Operand *> liveIn;
         std::set<Operand*> use;
         std::set<Operand*> def;
         std::string bb_label;

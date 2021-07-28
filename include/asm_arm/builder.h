@@ -96,6 +96,10 @@ namespace asm_arm {
         static asm_arm::Inst::OpCond toOpCond(ir::OpType optype);
 
         static bool is_OpCond(ir::OpType optype);
+
+        void generate_pool();
+
+        void generate_pool(Function* func);
     };
 }
 #endif //TINBACCC_BUILDER_H

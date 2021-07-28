@@ -261,6 +261,10 @@ namespace asm_arm {
 
     void BInst::print_body(std::ostream &os) const {
         os << tgt->bb_label;
+        if(append_pool)
+        {
+            os<<std::endl<<'\t'<<".pool";
+        }
     }
 
     void CallInst::print_body(std::ostream &os) const {
@@ -405,5 +409,11 @@ namespace asm_arm {
 
     void Builder::print(std::ostream &os) {
         module->print(os);
+    }
+
+    void PoolInst::print_body(std::ostream &os) const {
+        os<<"B .L_AFTER_POOL"<<number<<std::endl;
+        os<<"\t"<<".pool"<<std::endl;
+        os<<".L_AFTER_POOL:"<<number<<std::endl;
     }
 }

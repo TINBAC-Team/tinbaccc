@@ -203,7 +203,7 @@ namespace asm_arm {
 
     TSTInst::TSTInst(Operand *d, Operand *s) : Inst2_1(Inst::Op::TST, d, s) {}
 
-    BInst::BInst(OpCond c) : Inst(Op::B, c) {}
+    BInst::BInst(OpCond c) : Inst(Op::B, c),append_pool(false) {}
 
     CallInst::CallInst(int np, std::string l, bool _is_void) :
             Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
@@ -370,4 +370,6 @@ namespace asm_arm {
         stack_size += ni32s * 4;
         return retoffs;
     }
+
+
 }
