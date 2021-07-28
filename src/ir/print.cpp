@@ -1,5 +1,6 @@
 #include <ast/ast.h>
 #include <ir/ir.h>
+#include <regex>
 
 using std::ostream;
 using std::endl;
@@ -18,6 +19,13 @@ namespace ir {
         return "__bb" + std::to_string(bb_seed++);
     };
 
+    static std::string get_valid_name(std::string str) {
+        if(std::regex_match(str,std::regex("^x[0-9]+")))
+        {
+            return "_"+str;
+        } else return str;
+    }
+
     static std::string get_name_of_value(Value *val, const std::string &define_name = "") {
         if (!val && define_name.empty()) {
             throw std::runtime_error("print_body ir: requesting name of nullptr");
@@ -30,7 +38,7 @@ namespace ir {
         }
         if (nameOfValue.find(val) == nameOfValue.end()) {
             if (define_name.empty()) nameOfValue[val] = generate_new_name();
-            else nameOfValue[val] = define_name;
+            else nameOfValue[val] = get_valid_name(define_name);
         }
 
         return "%" + nameOfValue[val];
