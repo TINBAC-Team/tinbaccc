@@ -282,8 +282,6 @@ namespace asm_arm {
     void Function::print(std::ostream &os) const {
         nameOfVReg.clear();
         os << "\t.align 2" << std::endl;
-        os << "\t.pool" << std::endl;
-        os << "\t.align 2" << std::endl;
         os << "\t.global " << name << std::endl;
         os << "\t.arch armv8-a" << std::endl;
         os << "\t.arch_extension crc" << std::endl;
@@ -306,7 +304,9 @@ namespace asm_arm {
             if (Operand::op2Imm(stack_size)) {
                 os << "\tSUB sp, sp, #" << stack_size << std::endl;
             } else {
-                os << "\tLDR r12, =" << stack_size << std::endl;
+                os << "\tMOV r12, #" << (stack_size & 0xffff) << std::endl;
+                if (stack_size & 0xffff0000)
+                    os << "\tMOVT r12, #" << (stack_size >> 16) << std::endl;
                 os << "\tSUB sp, sp, r12" << std::endl;
             }
         }
@@ -335,6 +335,7 @@ namespace asm_arm {
             os << getRegName(reg) << ",";
         }
         os << "pc}" << std::endl;
+        os << "\t.pool" << std::endl;
         os << "\t.size " << name << ", .-" << name << std::endl;
     }
 
