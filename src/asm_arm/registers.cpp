@@ -368,6 +368,9 @@ void asm_arm::RegisterAllocator::livenessAnalysis() {
             }
         }
     }
+    for (const auto &i:function->bList.front()->liveIn)
+        if (i->type == Operand::Type::VReg)
+            throw std::runtime_error("first block should not have any live VReg!");
 }
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {
