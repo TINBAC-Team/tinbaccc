@@ -79,18 +79,15 @@ namespace ir {
         switch (optype) {
             case OpType::ADD:
                 op = asm_arm::Inst::Op::ADD;
-                lhs = builder.getOrCreateOperandOfValue(ValueL.value);
-                if (rhs_const)
-                    rhs = dynamic_cast<ConstValue *>(ValueR.value)->genop2(builder);
-                else
-                    rhs = builder.getOrCreateOperandOfValue(ValueR.value);
-                break;
+                /* fall through */
             case OpType::SUB:
-                op = asm_arm::Inst::Op::SUB;
+                if (optype == OpType::SUB)
+                    op = asm_arm::Inst::Op::SUB;
                 if (lhs_const) {
                     auto l_const_val = dynamic_cast<ConstValue *>(ValueL.value);
                     if (asm_arm::Operand::op2Imm(l_const_val->value)) {
-                        op = asm_arm::Inst::Op::RSB;
+                        if (optype == OpType::SUB)
+                            op = asm_arm::Inst::Op::RSB;
                         rhs = l_const_val->genimm(builder);
                         lhs = builder.getOrCreateOperandOfValue(ValueR.value);
                         break;
