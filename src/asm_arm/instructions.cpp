@@ -311,7 +311,7 @@ namespace asm_arm {
     }
 
     static int bb_seed2 = 0;
-    BasicBlock::BasicBlock() {
+    BasicBlock::BasicBlock() : branch_marked(false) {
         bb_label = ".L";
         bb_label += std::to_string(bb_seed2++);
     }
@@ -322,10 +322,15 @@ namespace asm_arm {
     }
 
     void BasicBlock::markBranch() {
+        if (branch_marked)
+            throw std::runtime_error("branch marked twice!");
         it_branch = std::prev(insts.end());
+        branch_marked = true;
     }
 
     void BasicBlock::insertBeforeBranch(Inst *inst) {
+        if (!branch_marked)
+            throw std::runtime_error("branch not marked!");
         insts.insert(it_branch, inst);
         inst->bb = this;
     }
