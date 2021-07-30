@@ -279,9 +279,6 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
         Operand *new_op = Operand::newVReg();
         for (auto &bb:function->bList) {
             for(auto inst_it = bb->insts.begin();inst_it!=bb->insts.end();inst_it++) {
-                // in case we generated spill code between function call instructions.
-                if((*inst_it)->move_stack)
-                    offs -= (*inst_it)->move_stack;
                 if((*inst_it)->replace_use(v, new_op)) {
                     Operand *ldr_offs_op;
                     if(offs < 4096) {
@@ -298,6 +295,9 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
                 }
+                // in case we generated spill code between function call instructions.
+                if((*inst_it)->move_stack)
+                    offs -= (*inst_it)->move_stack;
                 if((*inst_it)->replace_def(v, new_op)) {
                     auto inst_next=std::next(inst_it);
                     Operand *str_offs_op;
