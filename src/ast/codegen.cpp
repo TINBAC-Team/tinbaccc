@@ -17,11 +17,15 @@ namespace ast {
 
     ir::Value *LVal::resolve_addr(ir::IRBuilder &builder) {
         ir::Value *offset_val = builder.getConstant(0);
+        size_t decl_array_dim_cnt = decl->array_dims.size();
         size_t array_dim_cnt = array_dims.size();
+        if (array_dim_cnt > decl_array_dim_cnt)
+            throw std::runtime_error("Referencing an array with incorrect dimension.");
         for (size_t i = 0; i < array_dim_cnt; i++) {
             dim_value.push_back(array_dims[i]->codegen(builder));
+
             ir::Value *cur_dim_multiplier = builder.getConstant(
-                    i == array_dim_cnt - 1 ? 1 : decl->array_multipliers[i + 1]);
+                    i == decl_array_dim_cnt - 1 ? 1 : decl->array_multipliers[i + 1]);
             ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
                                                                  ir::OpType::MUL);
             offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
