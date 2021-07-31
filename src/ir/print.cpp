@@ -253,6 +253,7 @@ namespace ir {
     {
         for(int i=l;i<=r;i++)
         {
+            if(i>=decl->initval_expanded.size()) break;
             if(decl->initval_expanded[i] && decl->initval_expanded[i]->get_value()!=0) return true;
         }
         return false;
@@ -273,7 +274,6 @@ namespace ir {
     }
     void print_llvm_arr_decl(std::ostream &os, ast::Decl *decl, std::vector<int> cur_index, int l, int r) {
 
-        std::cout<<l<<" "<<r<<std::endl;
         print_llvm_arr_inner_decl(os,decl->array_dims,cur_index.size());
         os<<" ";
         if(!has_llvm_arr_initval(decl,l,r))
