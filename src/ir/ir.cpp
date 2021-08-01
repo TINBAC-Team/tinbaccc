@@ -122,7 +122,7 @@ namespace ir {
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
             Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
-    BasicBlock::BasicBlock() : sealed(true) {
+    BasicBlock::BasicBlock() : sealed(true), idom(nullptr) {
 
     }
 

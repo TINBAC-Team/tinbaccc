@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
         driver.print_ast(ast_path);
 
     driver.generate_ir();
-
+    driver.process_ir();
     if(ir_path)
         driver.print_ir(ir_path);
 

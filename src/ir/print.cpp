@@ -233,6 +233,9 @@ namespace ir {
                 os << "%" << get_name_of_BB(i->bb);
             }
         }
+        if (idom)
+            os << "\t; idom = %" << get_name_of_BB(idom);
+
         os << std::endl;
         for (auto &inst:iList) {
             os << "\t";

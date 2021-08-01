@@ -2,6 +2,7 @@
 #include <ast/ast.h>
 #include <ast/validation.h>
 #include <ir/ir.h>
+#include <ir/passes.h>
 #include <asm_arm/builder.h>
 #include <asm_arm/asm_ops.h>
 #include <fstream>
@@ -61,6 +62,10 @@ void tcc_sy_driver::print_ir(const char *path) {
         ofs << *module;
         ofs.close();
     }
+}
+
+void tcc_sy_driver::process_ir() {
+    ir_passes::dom_compute(module);
 }
 
 void tcc_sy_driver::generate_asm() {

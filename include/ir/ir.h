@@ -206,6 +206,10 @@ namespace ir {
         // true when constructed. It should be manually unsealed for while entry.
         bool sealed;
         std::unordered_map<ast::Decl *, PhiInst *> incompletePhis;
+        // the index of this BB in function reverse-postorder traversal list. Used by dominator calculation.
+        int rpo_id;
+        // immediate dominator
+        BasicBlock *idom;
 
         int InsertAtEnd(Value *value);
 

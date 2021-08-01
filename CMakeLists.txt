@@ -30,7 +30,12 @@ set(SYMTAB_SOURCES
         src/ast/symtab.cpp)
 
 set(IR_SOURCES
-        src/ir/ir.cpp src/ir/print.cpp src/ir/codegen.cpp)
+        src/ir/ir.cpp
+        src/ir/print.cpp
+        src/ir/codegen.cpp)
+
+set(IR_PASSES_SOURCES
+        src/ir/passes/dominator.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp src/asm_arm/builder.cpp src/asm_arm/print.cpp src/asm_arm/registers.cpp src/asm_arm/function_fixup.cpp)
@@ -40,6 +45,7 @@ add_executable(tinbaccc src/main.cpp
         ${AST_SOURCES}
         ${SYMTAB_SOURCES}
         ${IR_SOURCES}
+        ${IR_PASSES_SOURCES}
         ${ASM_SOURCES})
 
 
