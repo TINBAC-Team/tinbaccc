@@ -25,7 +25,7 @@ namespace ast {
         for (auto &i:array_dims) {
             dim_value.emplace_back(i->codegen(builder));
         }
-        return builder.CreateGetElementPtrInst(decl->addr, dim_value);
+        return builder.CreateGetElementPtrInst(decl->addr, dim_value, decl->array_multipliers);
     }
 
     ir::Value *LVal::codegen(ir::IRBuilder &builder) {
@@ -50,7 +50,7 @@ namespace ast {
             if(decl->initval_expanded[offset])
             {
                 if(decl->initval_expanded[offset]->is_const() && decl->initval_expanded[offset]->get_value()==0) return;
-                auto filling_addr = builder.CreateGetElementPtrInst(decl->addr,dim );
+                auto filling_addr = builder.CreateGetElementPtrInst(decl->addr,dim, decl->array_multipliers);
                 builder.CreateStoreInst(filling_addr,decl->initval_expanded[offset]->codegen(builder));
             }
             return;

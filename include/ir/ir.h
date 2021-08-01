@@ -93,7 +93,7 @@ namespace ir {
 
         Value *CreateAllocaInst(ast::Decl* decl);
 
-        Value *CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims);
+        Value *CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims, std::vector<int> muls);
 
         Value *CreateLoadInst(Value *ptr);
 
@@ -370,8 +370,9 @@ namespace ir {
     public:
         Use arr;
         std::vector<Use> dims;
+        std::vector<int> multipliers;
 
-        GetElementPtrInst(Value *_arr, std::vector<Value*> _dims);
+        GetElementPtrInst(Value *_arr, const std::vector<Value*>& _dims, std::vector<int> muls);
 
         void print(std::ostream &os) const;
 

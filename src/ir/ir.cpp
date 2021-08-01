@@ -333,13 +333,15 @@ namespace ir {
         size = decl->array_multipliers[0];
     }
 
-    GetElementPtrInst::GetElementPtrInst(Value *_arr, std::vector<Value*> _dims) :
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls) :
             AccessInst(OpType::GETELEMPTR), arr(this, _arr){
         dims.reserve(_dims.size()+1);
-        for(auto &i:_dims)
-        {
+        for (auto &i:_dims) {
             dims.emplace_back(this, i);
         }
+        if (muls.size() > 1)
+            multipliers.insert(multipliers.end(), std::next(muls.begin()), muls.end());
+        multipliers.emplace_back(1);
     }
 
     AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
@@ -348,8 +350,8 @@ namespace ir {
 
 
 
-    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims) {
-        auto instp = new GetElementPtrInst(arr, dims);
+    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims, std::vector<int> muls) {
+        auto instp = new GetElementPtrInst(arr, dims, std::move(muls));
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
