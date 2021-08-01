@@ -274,16 +274,19 @@ namespace ir {
     }
 
     asm_arm::Operand * AllocaInst::codegen(asm_arm::Builder &builder) {
-        auto ret = builder.allocate_stack(size);
-        builder.setOperandOfValue(this, ret);
-        return ret;
+        //FIXME: IR alloca refactored. Commented for compiling
+        //auto ret = builder.allocate_stack(size);
+        //builder.setOperandOfValue(this, ret);
+        //return ret;
+        return nullptr;
     }
 
     asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
         // TODO: offset...
         auto mul4 = builder.createLDR(4);
         auto ptr = AccessInst::genptr(builder, arr.value);
-        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, builder.getOrCreateOperandOfValue(offset.value), mul4->dst, ptr);
+        //FIXME: GEP is refactored, to get the project compiled, MLA operand is set to nullptr
+        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, builder.getOrCreateOperandOfValue(nullptr), mul4->dst, ptr);
         builder.setOperandOfValue(this, res->dst);
         return res->dst;
     }

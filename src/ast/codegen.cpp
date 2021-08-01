@@ -21,16 +21,11 @@ namespace ast {
         size_t array_dim_cnt = array_dims.size();
         if (array_dim_cnt > decl_array_dim_cnt)
             throw std::runtime_error("Referencing an array with incorrect dimension.");
-        for (size_t i = 0; i < array_dim_cnt; i++) {
-            dim_value.push_back(array_dims[i]->codegen(builder));
-
-            ir::Value *cur_dim_multiplier = builder.getConstant(
-                    i == decl_array_dim_cnt - 1 ? 1 : decl->array_multipliers[i + 1]);
-            ir::Value *cur_dim_offset = builder.CreateBinaryInst(dim_value.back(), cur_dim_multiplier,
-                                                                 ir::OpType::MUL);
-            offset_val = builder.CreateBinaryInst(offset_val, cur_dim_offset, ir::OpType::ADD);
+        std::vector<ir::Value *> dim_value;
+        for (auto &i:array_dims) {
+            dim_value.emplace_back(i->codegen(builder));
         }
-        return builder.CreateGetElementPtrInst(decl->addr, offset_val);
+        return builder.CreateGetElementPtrInst(decl->addr, dim_value);
     }
 
     ir::Value *LVal::codegen(ir::IRBuilder &builder) {
@@ -49,22 +44,46 @@ namespace ast {
         return builder.GetCurBlock()->getVariable(decl, builder);
     }
 
+    void store_stack_array_initval(Decl *decl, ir::IRBuilder &builder, std::vector<ir::Value*> dim,int offset) {
+        if(dim.size() == decl->array_dims.size())
+        {
+            if(decl->initval_expanded[offset])
+            {
+                if(decl->initval_expanded[offset]->is_const() && decl->initval_expanded[offset]->get_value()==0) return;
+                auto filling_addr = builder.CreateGetElementPtrInst(decl->addr,dim );
+                builder.CreateStoreInst(filling_addr,decl->initval_expanded[offset]->codegen(builder));
+            }
+            return;
+        }
+        for (int i = 0; i < decl->array_dims[dim.size()]->get_value(); i++) {
+            std::vector<ir::Value*> new_dim(dim);
+            new_dim.emplace_back(builder.getConstant(i));
+            store_stack_array_initval(decl, builder, new_dim,offset);
+            if (dim.size() == decl->array_dims.size() - 1) {
+                offset += 1;
+            } else {
+                offset += decl->array_multipliers[dim.size() + 1];
+            }
+        }
+    }
+
     ir::Value *Decl::codegen(ir::IRBuilder &builder) {
         if (is_array()) {
-            addr = builder.CreateAllocaInst(array_multipliers[0]);
-            if (initval){
+            addr = builder.CreateAllocaInst(this);
+            if (initval) {
                 int index = -1;
-                std::vector<ast::Exp*> memset_params;
-                memset_params.emplace_back(new Exp(new LVal(this)));
-                memset_params.emplace_back(new Exp(0));
-                memset_params.emplace_back(new Exp(array_multipliers[0]*4));
-                builder.CreateFuncCall("memset",true,memset_params);
-                for(auto &i:initval_expanded){
-                    index++;
-                    if(i==nullptr) continue;
-                    auto filling_addr = builder.CreateGetElementPtrInst(addr,builder.getConstant(index));
-                    builder.CreateStoreInst(filling_addr,i->codegen(builder));
+                std::vector<ast::Exp *> memset_params;
+                auto memset_target = new Exp(new LVal(this));
+                for(size_t i=0;i<memset_target->lval->decl->array_dims.size()-1;i++)
+                {
+                    memset_target->lval->array_dims.emplace_back(new Exp(0));
                 }
+                memset_params.emplace_back(memset_target);
+                memset_params.emplace_back(new Exp(0));
+                memset_params.emplace_back(new Exp(array_multipliers[0] * 4));
+                builder.CreateFuncCall("memset", true, memset_params);
+                memset_target->lval->array_dims.clear();
+                store_stack_array_initval(this,builder,{},0);
             }
             return addr;
         } else if (initval) {

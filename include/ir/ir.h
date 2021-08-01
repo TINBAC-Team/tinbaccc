@@ -91,9 +91,9 @@ namespace ir {
 
         Value *CreateBinaryInst(Value *_ValueL, Value *_ValueR, OpType optype);
 
-        Value *CreateAllocaInst(int _size);
+        Value *CreateAllocaInst(ast::Decl* decl);
 
-        Value *CreateGetElementPtrInst(Value *arr, Value *offset);
+        Value *CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims);
 
         Value *CreateLoadInst(Value *ptr);
 
@@ -355,9 +355,9 @@ namespace ir {
 
     class AllocaInst : public Inst {
     public:
-        int size;
+        ast::Decl* decl;
 
-        AllocaInst(int _size);
+        AllocaInst(ast::Decl* _decl);
 
         void print(std::ostream &os) const;
 
@@ -367,11 +367,13 @@ namespace ir {
     class GetElementPtrInst : public AccessInst {
     public:
         Use arr;
-        Use offset;
+        std::vector<Use> dims;
 
-        GetElementPtrInst(Value *_arr, Value *_offset);
+        GetElementPtrInst(Value *_arr, std::vector<Value*> _dims);
 
         void print(std::ostream &os) const;
+
+        void print_llvm_type(std::ostream &os, int start_dim) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
     };

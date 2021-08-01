@@ -101,7 +101,6 @@ namespace ast {
         Decl *decl;
         std::string name;
         std::vector<Exp *> array_dims;
-        std::vector<ir::Value *> dim_value;
 
         LVal(const std::string n = "") : name(n) {}
 

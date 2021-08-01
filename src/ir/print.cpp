@@ -49,6 +49,73 @@ namespace ir {
             nameOfBB[bb] = generate_new_bb_name();
         return nameOfBB[bb];
     }
+    bool has_llvm_arr_initval(ast::Decl* decl,int l,int r)
+    {
+        for(int i=l;i<=r;i++)
+        {
+            if(i>=decl->initval_expanded.size()) break;
+            if(decl->initval_expanded[i] && decl->initval_expanded[i]->get_value()!=0) return true;
+        }
+        return false;
+    }
+    void print_llvm_arr_inner_decl(std::ostream &os, std::vector<ast::Exp *> &array_dims, int dim) {
+        if (dim >= array_dims.size()) {
+            os << "i32";
+            return;
+        }
+        os << "[" << array_dims[dim]->get_value() << " x ";
+        print_llvm_arr_inner_decl(os, array_dims, dim + 1);
+        os << "]";
+    }
+    int get_initval_from_offset(ast::Decl *decl, int offset)
+    {
+        if(offset>=decl->initval_expanded.size()) return 0;
+        else return decl->initval_expanded[offset]==nullptr ? 0 : decl->initval_expanded[offset]->get_value();
+    }
+    void print_llvm_arr_decl(std::ostream &os, ast::Decl *decl, std::vector<int> cur_index, int l, int r) {
+
+        print_llvm_arr_inner_decl(os,decl->array_dims,cur_index.size());
+        os<<" ";
+        if(!has_llvm_arr_initval(decl,l,r))
+        {
+            os<<"zeroinitializer";
+            return;
+        }
+        if(cur_index.size()!=decl->array_dims.size()-1)
+        {
+            os<<"[";
+            int next_dim_size = decl->array_dims[cur_index.size()]->get_value();
+            bool is_first = true;
+            for(int i=0;i<next_dim_size;i++)
+            {
+                if(!is_first) os<<", ";
+                is_first = false;
+                std::vector<int> new_index(cur_index);
+                new_index.push_back(i);
+                print_llvm_arr_decl(os,decl,new_index,l+((r-l+1)/next_dim_size)*i,l+((r-l+1)/next_dim_size)*(i+1)-1);
+            }
+
+            os<<"]";
+        } else
+        {
+            bool is_first = true;
+            os<<"[";
+            int offset = 0;
+            for(int i=0;i<cur_index.size();i++)
+            {
+                offset+=decl->array_multipliers[i+1]*cur_index[i];
+            }
+            for(int i=0;i<decl->array_dims.back()->get_value();i++)
+            {
+                if(!is_first) os<<", ";
+                is_first = false;
+                os<<"i32 "<<get_initval_from_offset(decl,offset);
+                offset++;
+            }
+            os<<"]";
+        }
+    }
+
 
     ostream &operator<<(ostream &os, const Module &m) {
         for (auto i:m.globalVarList) {
@@ -133,11 +200,11 @@ namespace ir {
             if (!is_first)
                 os << ", ";
             is_first = false;
-            os << "i32 ";
             if (p->decl->is_array()) {
+                print_llvm_arr_inner_decl(os,p->decl->array_dims,1);
                 os << "* ";
                 os << get_name_of_value(p, p->decl->name);
-            } else os << get_name_of_value(p, p->decl->name);
+            } else os <<"i32 "<< get_name_of_value(p, p->decl->name);
 
         }
         os << ")";
@@ -188,8 +255,10 @@ namespace ir {
                 os << ", ";
             is_first = false;
             auto par = dynamic_cast<ir::GetElementPtrInst *>(p.value);
-            if (par)
-                os << "i32* ";
+            if (par){
+                par->print_llvm_type(os,par->dims.size());
+                os<<"* ";
+            }
             else os << "i32 ";
             os << get_name_of_value(p.value);
         }
@@ -249,72 +318,6 @@ namespace ir {
         Value::print(os);
         os << "i32, i32* " << get_name_of_value(ptr.value);
     }
-    bool has_llvm_arr_initval(ast::Decl* decl,int l,int r)
-    {
-        for(int i=l;i<=r;i++)
-        {
-            if(i>=decl->initval_expanded.size()) break;
-            if(decl->initval_expanded[i] && decl->initval_expanded[i]->get_value()!=0) return true;
-        }
-        return false;
-    }
-    void print_llvm_arr_inner_decl(std::ostream &os, std::vector<ast::Exp *> &array_dims, int dim) {
-        if (dim >= array_dims.size()) {
-            os << "i32";
-            return;
-        }
-        os << "[" << array_dims[dim]->get_value() << " x ";
-        print_llvm_arr_inner_decl(os, array_dims, dim + 1);
-        os << "]";
-    }
-    int get_initval_from_offset(ast::Decl *decl, int offset)
-    {
-        if(offset>=decl->initval_expanded.size()) return 0;
-        else return decl->initval_expanded[offset]==nullptr ? 0 : decl->initval_expanded[offset]->get_value();
-    }
-    void print_llvm_arr_decl(std::ostream &os, ast::Decl *decl, std::vector<int> cur_index, int l, int r) {
-
-        print_llvm_arr_inner_decl(os,decl->array_dims,cur_index.size());
-        os<<" ";
-        if(!has_llvm_arr_initval(decl,l,r))
-        {
-            os<<"zeroinitializer ";
-            return;
-        }
-        if(cur_index.size()!=decl->array_dims.size()-1)
-        {
-            os<<"[";
-            int next_dim_size = decl->array_dims[cur_index.size()]->get_value();
-            bool is_first = true;
-            for(int i=0;i<next_dim_size;i++)
-            {
-                if(!is_first) os<<", ";
-                is_first = false;
-                std::vector<int> new_index(cur_index);
-                new_index.push_back(i);
-                print_llvm_arr_decl(os,decl,new_index,l+((r-l+1)/next_dim_size)*i,l+((r-l+1)/next_dim_size)*(i+1)-1);
-            }
-
-            os<<"] ";
-        } else
-        {
-            bool is_first = true;
-            os<<"[";
-            int offset = 0;
-            for(int i=0;i<cur_index.size();i++)
-            {
-                offset+=decl->array_multipliers[i+1]*cur_index[i];
-            }
-            for(int i=0;i<decl->array_dims.back()->get_value();i++)
-            {
-                if(!is_first) os<<", ";
-                is_first = false;
-                os<<"i32 "<<get_initval_from_offset(decl,offset);
-                offset++;
-            }
-            os<<"]";
-        }
-    }
 
     void GlobalVar::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
@@ -332,28 +335,58 @@ namespace ir {
     void AllocaInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        os << "i32, i32 " << size;
-        //TODO: initialize
+        print_llvm_arr_inner_decl(os,decl->array_dims,0);
+        //TODO: initialize imcomplete
     }
+    void GetElementPtrInst::print_llvm_type(std::ostream &os, int start_dim) const {
+        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
+            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
 
+        } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
+            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
+
+        } else if(auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
+            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
+        }
+    }
     void GetElementPtrInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        int size = 0;
-        bool from_alloca = 0;
         if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
-            size = arr_val->size;
-            from_alloca = 1;
+            print_llvm_type(os,0);
+            os<<", ";
+            print_llvm_type(os,0);
+            os<<"* ";
+            os<<get_name_of_value((Value*)arr_val)<<", ";
+            os<<"i32 0";
+            for(auto &i:dims){
+                os<<", ";
+                os<<"i32 "<<get_name_of_value(i.value);
+            }
         } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
-            size = arr_val->decl->array_multipliers[0];
-        }
-        if (size > 0 && !from_alloca) {
-            os << "[" << size << " x i32], " << "[" << size << " x i32]* " << get_name_of_value(arr.value)
-               << ", i32 0, i32 "
-               << get_name_of_value(offset.value);
-        } else {
-            os << "i32, i32* " << get_name_of_value(arr.value)
-               << ", i32 " << get_name_of_value(offset.value);
+            print_llvm_type(os,0);
+            os<<", ";
+            print_llvm_type(os,0);
+            os<<"* ";
+            os<<get_name_of_value((Value*)arr_val)<<", ";
+            os<<"i32 0";
+            for(auto &i:dims){
+                os<<", ";
+                os<<"i32 "<<get_name_of_value(i.value);
+            }
+        } else if(auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
+            print_llvm_type(os,1);
+            os<<", ";
+            print_llvm_type(os,1);
+            os<<"* ";
+            os<<get_name_of_value((Value*)arr_val)<<", ";
+            bool is_first = true;
+            for(auto &i:dims){
+                if(!is_first)
+                    os<<", ";
+                is_first = false;
+                os<<"i32 "<<get_name_of_value(i.value);
+            }
         }
 
     }

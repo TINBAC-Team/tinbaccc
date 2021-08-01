@@ -296,8 +296,8 @@ namespace ir {
         }
     }
 
-    Value *IRBuilder::CreateAllocaInst(int _size) {
-        auto *instp = new AllocaInst(_size);
+    Value *IRBuilder::CreateAllocaInst(ast::Decl *decl) {
+        auto *instp = new AllocaInst(decl);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -326,19 +326,26 @@ namespace ir {
 
     CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
 
-    AllocaInst::AllocaInst(int _size) : Inst(OpType::ALLOCA) {
-        size = _size;
+    AllocaInst::AllocaInst(ast::Decl *_decl) : Inst(OpType::ALLOCA) {
+        decl = _decl;
     }
 
-    GetElementPtrInst::GetElementPtrInst(Value *_arr, Value *_offset) :
-            AccessInst(OpType::GETELEMPTR), arr(this, _arr), offset(this, _offset) {}
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, std::vector<Value*> _dims) :
+            AccessInst(OpType::GETELEMPTR), arr(this, _arr){
+        for(auto &i:_dims)
+        {
+            dims.emplace_back(this, i);
+        }
+    }
 
     AccessInst::AccessInst(OpType _optype) : Inst(_optype) {
 
     }
 
-    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, Value *offset) {
-        auto instp = new GetElementPtrInst(arr, offset);
+
+
+    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims) {
+        auto instp = new GetElementPtrInst(arr, dims);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
         return instp;
@@ -362,7 +369,17 @@ namespace ir {
         // XXX: should we convert it to unique_ptr instead?
         instp->params.reserve(params.size());
         for (auto &i:params)
-            instp->params.emplace_back(instp, i->codegen(*this));
+        {
+            auto par = i->codegen(*this);
+            instp->params.emplace_back(instp, par);
+            //for pointer, llvm ir requires a "i32 0" in the back of the GEP
+            auto gep = dynamic_cast<GetElementPtrInst*>(par);
+            if(gep)
+            {
+                gep->dims.emplace_back(gep,getConstant(0));
+            }
+        }
+
         curblock->InsertAtEnd(instp);
         return instp;
     }
