@@ -328,6 +328,9 @@ namespace ir {
 
     AllocaInst::AllocaInst(ast::Decl *_decl) : Inst(OpType::ALLOCA) {
         decl = _decl;
+        if (!decl->is_array())
+            throw std::runtime_error("We don't alloca for variables!");
+        size = decl->array_multipliers[0];
     }
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, std::vector<Value*> _dims) :

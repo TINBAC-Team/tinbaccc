@@ -355,6 +355,8 @@ namespace ir {
 
     class AllocaInst : public Inst {
     public:
+        // number of i32s in this allocation
+        int size;
         ast::Decl* decl;
 
         AllocaInst(ast::Decl* _decl);
