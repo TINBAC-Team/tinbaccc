@@ -79,6 +79,8 @@ namespace ir {
         asm_arm::Operand *lhs, *rhs;
         if(optype == OpType::SREM)
             return codegen_mod(builder);
+        if(optype == OpType::MUL)
+            return codegen_mul(builder);
 
         asm_arm::Inst::Op op;
         bool lhs_const = ValueL.value->optype==OpType::CONST;
@@ -106,11 +108,6 @@ namespace ir {
                     rhs = dynamic_cast<ConstValue *>(ValueR.value)->genop2(builder);
                 else
                     rhs = builder.getOrCreateOperandOfValue(ValueR.value);
-                break;
-            case OpType::MUL:
-                op=asm_arm::Inst::Op::MUL;
-                lhs= builder.getOrCreateOperandOfValue(ValueL.value);
-                rhs= builder.getOrCreateOperandOfValue(ValueR.value);
                 break;
             case OpType::SDIV:
                 op=asm_arm::Inst::Op::SDIV;
@@ -175,6 +172,21 @@ namespace ir {
         rhs = builder.getOrCreateOperandOfValue(ValueR.value);
         asm_arm::Operand *divres = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
         asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, divres, rhs, lhs)->dst;
+        builder.setOperandOfValue(this, res);
+        return res;
+    }
+
+    asm_arm::Operand *BinaryInst::codegen_mul(asm_arm::Builder &builder) {
+        asm_arm::Operand *lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+        asm_arm::Operand *res;
+        int pow2 = isValPow2(ValueR.value);
+        if (pow2 >= 0) {
+            res = builder.createLSL(lhs, pow2)->dst;
+        } else {
+            asm_arm::Inst::Op op = asm_arm::Inst::Op::MUL;
+            asm_arm::Operand *rhs = builder.getOrCreateOperandOfValue(ValueR.value);
+            res = builder.createBinaryInst(op, lhs, rhs)->dst;
+        }
         builder.setOperandOfValue(this, res);
         return res;
     }

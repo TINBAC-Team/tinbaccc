@@ -146,6 +146,29 @@ namespace asm_arm {
         return true;
     }
 
+    LSLInst::LSLInst(Operand *d, Operand *s, int _shift) : Inst(Inst::Op::LSL), dst(d), src(s), shift(_shift) {
+        add_use(s);
+        add_def(d);
+    }
+
+    bool LSLInst::replace_def(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        def.erase(orig);
+        add_def(newop);
+        return true;
+    }
+
+    bool LSLInst::replace_use(Operand *orig, Operand *newop) {
+        if (src != orig)
+            return false;
+        src = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
     ADRInst::ADRInst(Operand *d, std::string lb) : Inst(Inst::Op::ADR), dst(d), label(lb) {}
 
     Inst2_1::Inst2_1(Op o, Operand *d, int s_imm) : Inst(o), dst(d), type_operand2(Type::Imm) {

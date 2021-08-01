@@ -100,6 +100,7 @@ namespace asm_arm {
             ADD,
             SUB,
             RSB,
+            LSL,
             MLA,
             MLS,
             MUL,
@@ -248,6 +249,21 @@ namespace asm_arm {
         TSTInst(Operand *d, int s_imm);
 
         TSTInst(Operand *d, Operand *s);
+    };
+
+    class LSLInst : public Inst {
+    public:
+        Operand *dst;
+        Operand *src;
+        int shift;
+
+        LSLInst(Operand *d, Operand *s, int _shift);
+
+        void print_body(std::ostream &os) const;
+
+        bool replace_def(Operand *orig, Operand *newop);
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class BInst : public Inst {

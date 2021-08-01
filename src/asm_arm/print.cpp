@@ -126,6 +126,9 @@ namespace asm_arm {
             case Op::RSB:
                 ret_s = "RSB";
                 break;
+            case Op::LSL:
+                ret_s = "LSL";
+                break;
             case Op::AND:
                 ret_s = "AND";
                 break;
@@ -230,6 +233,10 @@ namespace asm_arm {
                 std::cerr << "Error in LDR print_body!\n";
                 break;
         }
+    }
+
+    void LSLInst::print_body(std::ostream &os) const {
+        os << dst->getOperandName() << ", " << src->getOperandName() << ", #" << shift;
     }
 
     void STRInst::print_body(std::ostream &os) const {

@@ -148,6 +148,12 @@ namespace asm_arm {
         return ret;
     }
 
+    LSLInst *Builder::createLSL(Operand *s, int shift) {
+        auto ret = new LSLInst(Operand::newVReg(), s, shift);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
     STRInst * Builder::createSTR(Operand *v, Operand *a, Operand *o)  {
         STRInst * ret = new STRInst(v, a, o);
         curBlock->insertAtEnd(ret);

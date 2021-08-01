@@ -250,6 +250,8 @@ namespace ir {
 
     private:
         asm_arm::Operand* codegen_mod(asm_arm::Builder &builder);
+
+        asm_arm::Operand* codegen_mul(asm_arm::Builder &builder);
     };
 
     class PhiInst : public Inst {
