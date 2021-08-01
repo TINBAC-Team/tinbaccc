@@ -281,15 +281,22 @@ namespace ir {
 
     asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
         // TODO: offset...
-        auto mul4 = builder.createLDR(4);
-        auto ptr = AccessInst::genptr(builder, arr.value);
-        //FIXME: GEP is refactored, to get the project compiled, MLA operand is set to nullptr
-        auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, builder.getOrCreateOperandOfValue(nullptr), mul4->dst, ptr);
-        builder.setOperandOfValue(this, res->dst);
-        return res->dst;
+        auto base = AccessInst::genptr(builder, arr.value);
+        // FIXME: This "offset" is currently calculating absolute address instead!
+        auto offset = base;
+        //auto offset = builder.createLDR(0)->dst;
+        for(int i=0;i<dims.size();i++) {
+            // skip zero offset
+            auto val_const = dynamic_cast<ConstValue*>(dims[i].value);
+            if(val_const && !val_const->value)
+                continue;
+            // TODO: this *4 can be done with LSL 2 in LDR/STR
+            auto dim_mul = builder.createLDR(multipliers[i]*4)->dst;
+            auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
+            auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, dim_mul, dim_val, offset);
+            offset = res->dst;
+        }
+        builder.setOperandOfValue(this, offset);
+        return offset;
     }
-
-
-
-
 }
