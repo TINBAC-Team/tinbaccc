@@ -332,6 +332,7 @@ namespace ir {
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, std::vector<Value*> _dims) :
             AccessInst(OpType::GETELEMPTR), arr(this, _arr){
+        dims.reserve(_dims.size()+1);
         for(auto &i:_dims)
         {
             dims.emplace_back(this, i);
