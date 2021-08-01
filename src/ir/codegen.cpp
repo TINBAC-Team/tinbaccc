@@ -60,17 +60,25 @@ namespace ir {
         return genreg(builder);
     }
 
+    /**
+     * check if a Value is a constant of pow(2,n)
+     * @param val pointer to Value*
+     * @return -1 if it isn't. otherwise return n
+     */
+    static int isValPow2(Value *val) {
+        auto constVal = dynamic_cast<ConstValue *>(val);
+        if (!constVal)
+            return -1;
+        if (constVal->value <= 0)
+            return -1;
+        int pow = __builtin_ffs(constVal->value) - 1;
+        return (1 << pow == constVal->value) ? pow : -1;
+    }
+
     asm_arm::Operand* BinaryInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Operand *lhs, *rhs;
-        if(optype == OpType::SREM) {
-            // a % b = a-(a/b)*b
-            lhs= builder.getOrCreateOperandOfValue(ValueL.value);
-            rhs= builder.getOrCreateOperandOfValue(ValueR.value);
-            asm_arm::Operand *divres = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
-            asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, divres, rhs, lhs)->dst;
-            builder.setOperandOfValue(this, res);
-            return res;
-        }
+        if(optype == OpType::SREM)
+            return codegen_mod(builder);
 
         asm_arm::Inst::Op op;
         bool lhs_const = ValueL.value->optype==OpType::CONST;
@@ -146,6 +154,29 @@ namespace ir {
         meet_cond->cond = asmcond;
         return ret->dst;
 
+    }
+
+    asm_arm::Operand *BinaryInst::codegen_mod(asm_arm::Builder &builder) {
+        asm_arm::Operand *lhs, *rhs;
+        // a % b = a-(a/b)*b
+        lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+        // a % 2^n can be converted to a & ((1<<n)-1)
+        int pow2 = isValPow2(ValueR.value);
+        if (pow2 >= 0) {
+            int and_val = ((1 << pow2) - 1);
+            if (asm_arm::Operand::op2Imm(and_val))
+                rhs = asm_arm::Operand::newImm(and_val);
+            else
+                rhs = builder.createLDR(and_val)->dst;
+            asm_arm::Operand *res = builder.createBinaryInst(asm_arm::Inst::Op::AND, lhs, rhs)->dst;
+            builder.setOperandOfValue(this, res);
+            return res;
+        }
+        rhs = builder.getOrCreateOperandOfValue(ValueR.value);
+        asm_arm::Operand *divres = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
+        asm_arm::Operand *res = builder.createTernaryInst(asm_arm::Inst::Op::MLS, divres, rhs, lhs)->dst;
+        builder.setOperandOfValue(this, res);
+        return res;
     }
 
     asm_arm::Operand * PhiInst::codegen(asm_arm::Builder &builder) {

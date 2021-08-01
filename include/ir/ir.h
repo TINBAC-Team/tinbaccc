@@ -247,6 +247,9 @@ namespace ir {
         asm_arm::Operand* codegen(asm_arm::Builder &builder);
 
         asm_arm::Operand* codegen_value(asm_arm::Builder &builder);
+
+    private:
+        asm_arm::Operand* codegen_mod(asm_arm::Builder &builder);
     };
 
     class PhiInst : public Inst {
