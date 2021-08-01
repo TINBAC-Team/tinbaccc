@@ -274,11 +274,9 @@ namespace ir {
     }
 
     asm_arm::Operand * AllocaInst::codegen(asm_arm::Builder &builder) {
-        //FIXME: IR alloca refactored. Commented for compiling
-        //auto ret = builder.allocate_stack(size);
-        //builder.setOperandOfValue(this, ret);
-        //return ret;
-        return nullptr;
+        auto ret = builder.allocate_stack(size);
+        builder.setOperandOfValue(this, ret);
+        return ret;
     }
 
     asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
