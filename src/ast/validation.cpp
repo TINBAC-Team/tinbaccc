@@ -225,12 +225,12 @@ namespace ast {
         Function *func = ctx.symbol_table.GetFunc(name);
         if (!func)
             throw std::runtime_error("Unresolved function: " + name);
-        if (func->params.size() != func->params.size())
+        if (func->params.size() != params.size())
             throw std::runtime_error("Incorrect number of parameters, expect "
                                      + std::to_string(func->params.size()) + ", but get: " +
-                                     std::to_string(this->params.size()));
+                                     std::to_string(params.size()));
         is_void = func->type == ast::Function::Type::VOID;
-        for (const auto &node : this->params)
+        for (const auto &node : params)
             node->validate(ctx);
     }
 

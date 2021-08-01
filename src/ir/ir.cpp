@@ -370,6 +370,7 @@ namespace ir {
     }
 
     Value *IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
+
         auto instp = new ir::CallInst(name, is_void);
         auto *curblock = GetCurBlock();
         // XXX: should we convert it to unique_ptr instead?
