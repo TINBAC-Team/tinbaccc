@@ -177,6 +177,7 @@ namespace ir {
             // The result of the previous AND can't be negative so flag N can only be set by CMP.
             auto subInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::SUB, res, res, asm_arm::Operand::newImm((1 << pow2)));
             subInst->cond=asm_arm::Inst::OpCond::MI;
+            builder.curBlock->insertAtEnd(subInst);
             builder.setOperandOfValue(this, res);
             return res;
         }
