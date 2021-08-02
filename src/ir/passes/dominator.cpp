@@ -58,6 +58,14 @@ namespace ir_passes {
                     }
                 }
             }
+            // save dominator tree depth
+            func->rpoBList.front()->dom_tree_depth = 0;
+            auto it = std::next(func->rpoBList.begin());
+            for (; it != func->rpoBList.end(); it++) {
+                auto &bb = *it;
+                if (bb->idom && bb->idom->dom_tree_depth != -1)
+                    bb->dom_tree_depth = bb->idom->dom_tree_depth + 1;
+            }
         }
     };
 

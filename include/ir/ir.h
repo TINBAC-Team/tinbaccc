@@ -209,6 +209,8 @@ namespace ir {
         std::unordered_map<ast::Decl *, PhiInst *> incompletePhis;
         // the index of this BB in function reverse-postorder traversal list. Used by dominator calculation.
         int rpo_id;
+        // The depth in dominator tree of current node.
+        int dom_tree_depth;
         // immediate dominator
         BasicBlock *idom;
 
