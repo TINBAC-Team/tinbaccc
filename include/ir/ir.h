@@ -72,6 +72,9 @@ namespace ir {
     public:
         IRBuilder(Module *m);
 
+        // Current loop deep
+        int loop_deep = 0;
+
         Module *module;
         Function *curFunction;
         BasicBlock *CurBlock;
@@ -183,7 +186,7 @@ namespace ir {
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
          */
-        BasicBlock *CreateBlock();
+        BasicBlock *CreateBlock(int deep);
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
@@ -200,7 +203,9 @@ namespace ir {
 
     class BasicBlock {
     public:
-        BasicBlock();
+        BasicBlock(int deep);
+
+        int loop_deep;
 
         instList iList;
         instList parentInsts;
