@@ -237,11 +237,11 @@ namespace asm_arm {
 
         MOVInst(Operand *d, Operand *s);
 
-        void print_body(std::ostream &os) const;
+        void print_body(std::ostream &os) const override;
 
-        bool replace_def(Operand *orig, Operand *newop);
+        bool replace_def(Operand *orig, Operand *newop) override;
 
-        bool replace_use(Operand *orig, Operand *newop);
+        bool replace_use(Operand *orig, Operand *newop) override;
 
     protected:
         bool is_nop() const override;
