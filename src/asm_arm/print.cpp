@@ -200,11 +200,11 @@ namespace asm_arm {
     void LDRInst::print(std::ostream &os) {
         if (type == Type::IMM) {
             bool printed = false;
-            if (!(value & 0xffff0000)) {
+            if (Operand::op2Imm(value) || !(value & 0xffff0000)) {
                 os << "\tMOV" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << value;
                 printed = true;
             }
-            if (!((~value) & 0xffff0000)) {
+            if (Operand::op2Imm(~value)) {
                 os << "\tMVN" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << (~value);
                 printed = true;
             }
