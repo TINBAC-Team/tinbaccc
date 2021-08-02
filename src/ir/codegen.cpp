@@ -165,7 +165,19 @@ namespace ir {
                 rhs = asm_arm::Operand::newImm(and_val);
             else
                 rhs = builder.createLDR(and_val)->dst;
-            asm_arm::Operand *res = builder.createBinaryInst(asm_arm::Inst::Op::AND, lhs, rhs)->dst;
+            // To deal with negative numbers, if a is negative, we need res = res - 2^n if res > 0
+            auto andInst = builder.createBinaryInst(asm_arm::Inst::Op::AND, lhs, rhs);
+            asm_arm::Operand *res = andInst->dst;
+            // set flags to test for res==0
+            andInst->set_flags = true;
+            // Only execute if the AND result is positive.
+            asm_arm::Inst *negInst =builder.createCMPInst(lhs, asm_arm::Operand::newImm(0));
+            // For flag Z == 0. It has nothing to do with a "not equal" test.
+            negInst->cond=asm_arm::Inst::OpCond::NE;
+            // The result of the previous AND can't be negative so flag N can only be set by CMP.
+            auto subInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::SUB, res, res, asm_arm::Operand::newImm((1 << pow2)));
+            subInst->cond=asm_arm::Inst::OpCond::MI;
+            builder.curBlock->insertAtEnd(subInst);
             builder.setOperandOfValue(this, res);
             return res;
         }

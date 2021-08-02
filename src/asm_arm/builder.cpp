@@ -325,7 +325,7 @@ namespace asm_arm {
                         {
                             //could not find available branch instruction, just create a pool
                             auto insert_pos = inst--;
-                            (*bb)->insts.insert(insert_pos.base(),(Inst*)new PoolInst(pool_number++));
+                            (*bb)->insert(insert_pos.base(),(Inst*)new PoolInst(pool_number++));
                             pool_pos.push(pos);
                         } else
                         {

@@ -91,7 +91,7 @@ namespace asm_arm {
 
     LDRInst::LDRInst(int v, Operand *d) : Inst(Inst::Op::LDR), type(Type::IMM), value(v), dst(d) {
         // If the value can't be encoded with MOV/MVN, a literal pool is required.
-        if((v&0xffff0000) && ((~v)&0xffff0000))
+        if (!Operand::op2Imm(v) && !Operand::op2Imm(~v) && (v & 0xffff0000))
             need_pool = true;
         add_def(d);
     }
@@ -205,6 +205,10 @@ namespace asm_arm {
         return true;
     }
 
+    bool MOVInst::is_nop() const {
+        return (dst->type == Operand::Type::Reg && src->type == Operand::Type::Reg && dst->reg == src->reg);
+    }
+
     CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {
         add_use(l);
         add_use(r);
@@ -227,6 +231,61 @@ namespace asm_arm {
     TSTInst::TSTInst(Operand *d, Operand *s) : Inst2_1(Inst::Op::TST, d, s) {}
 
     BInst::BInst(OpCond c) : Inst(Op::B, c),append_pool(false) {}
+
+    bool BInst::isCondJP() {
+        return cond != Inst::OpCond::NONE;
+    }
+
+    void BInst::reverseCond() {
+        if (!isCondJP())
+            return;
+        switch (cond) {
+            case OpCond::EQ:
+                cond = OpCond::NE;
+                break;
+            case OpCond::NE:
+                cond = OpCond::EQ;
+                break;
+            case OpCond::GT:
+                cond = OpCond::LE;
+                break;
+            case OpCond::GE:
+                cond = OpCond::LT;
+                break;
+            case OpCond::LT:
+                cond = OpCond::GE;
+                break;
+            case OpCond::LE:
+                cond = OpCond::GT;
+                break;
+            case OpCond::CS:
+                cond = OpCond::CC;
+                break;
+            case OpCond::CC:
+                cond = OpCond::CS;
+                break;
+            case OpCond::MI:
+                cond = OpCond::PL;
+                break;
+            case OpCond::PL:
+                cond = OpCond::MI;
+                break;
+            case OpCond::VS:
+                cond = OpCond::VC;
+                break;
+            case OpCond::VC:
+                cond = OpCond::VS;
+                break;
+            case OpCond::HI:
+                cond = OpCond::LS;
+                break;
+            case OpCond::LS:
+                cond = OpCond::HI;
+                break;
+            default:
+                break;
+        }
+    }
 
     CallInst::CallInst(int np, std::string l, bool _is_void) :
             Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
@@ -365,6 +424,12 @@ namespace asm_arm {
                 throw std::runtime_error("instruction not found");
         }
         insts.insert(it_insert, inst);
+        inst->bb = this;
+    }
+
+    void BasicBlock::insert(std::list<Inst *>::iterator pos, Inst *inst) {
+        insts.insert(pos, inst);
+        inst->bb = this;
     }
 
     std::vector<BasicBlock *> BasicBlock::succ() const {

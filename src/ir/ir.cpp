@@ -122,7 +122,7 @@ namespace ir {
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
             Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
-    BasicBlock::BasicBlock(int deep) : sealed(true), idom(nullptr), loop_deep(deep) {
+    BasicBlock::BasicBlock(int deep) : sealed(true), idom(nullptr), loop_deep(deep), dom_tree_depth(-1) {
 
     }
 
@@ -223,6 +223,16 @@ namespace ir {
 
     void BasicBlock::eraseInst(Inst *inst) {
         iList.remove(inst);
+    }
+
+    std::vector<BasicBlock *> BasicBlock::succ() {
+        if (iList.empty())
+            return {};
+        if (auto branch = dynamic_cast<BranchInst *>(iList.back()))
+            return {branch->true_block, branch->false_block};
+        else if (auto jump = dynamic_cast<JumpInst *>(iList.back()))
+            return {jump->to};
+        return {};
     }
 
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {

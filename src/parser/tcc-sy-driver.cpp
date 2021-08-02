@@ -65,6 +65,7 @@ void tcc_sy_driver::print_ir(const char *path) {
 }
 
 void tcc_sy_driver::process_ir() {
+    ir_passes::rpo_compute(module);
     ir_passes::dom_compute(module);
 }
 
@@ -89,8 +90,10 @@ void tcc_sy_driver::print_asm(const char *path) {
 void tcc_sy_driver::process_asm() {
     asm_arm::Builder builder(asm_module);
 
+    asm_arm::switch_branch_target(asm_module);
     asm_arm::allocate_register(asm_module);
     asm_arm::function_param_pointer_fixup(asm_module);
 
     builder.generate_pool();
+    asm_arm::remove_nop_branch(asm_module);
 }

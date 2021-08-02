@@ -1,6 +1,7 @@
 #include <ast/ast.h>
 #include <ir/ir.h>
 #include <regex>
+#include <sstream>
 
 using std::ostream;
 using std::endl;
@@ -222,19 +223,23 @@ namespace ir {
     }
 
     void BasicBlock::print(std::ostream &os) const {
-
+        std::ostringstream comment;
         os << get_name_of_BB(this) << ":";
         if (!parentInsts.empty()) {
-            os << "\t; preds = ";
+            comment << " preds = ";
             bool is_first = true;
             for (auto &i:parentInsts) {
-                if (!is_first) os << ", ";
+                if (!is_first) comment << ", ";
                 is_first = false;
-                os << "%" << get_name_of_BB(i->bb);
+                comment << "%" << get_name_of_BB(i->bb);
             }
         }
         if (idom)
-            os << "\t; idom = %" << get_name_of_BB(idom);
+            comment << " idom = %" << get_name_of_BB(idom);
+        if (dom_tree_depth >= 0)
+            comment << " dom_tree_depth = " << dom_tree_depth;
+        if (!comment.str().empty())
+            os << "\t;" << comment.str();
 
         os << "\t; loop_deep = " << loop_deep;
 

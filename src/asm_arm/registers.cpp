@@ -287,11 +287,11 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                         ldr_offs_op = Operand::newVReg();
                         auto ldrimm = new LDRInst(offs,ldr_offs_op);
                         initial.insert(ldr_offs_op);
-                        bb->insts.insert(inst_it, ldrimm);
+                        bb->insert(inst_it, ldrimm);
                     }
                     auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
                     ldrinst->comment << "for spilling";
-                    bb->insts.insert(inst_it, ldrinst);
+                    bb->insert(inst_it, ldrinst);
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
                 }
@@ -307,11 +307,11 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                         str_offs_op = Operand::newVReg();
                         auto ldrimm = new LDRInst(offs,str_offs_op);
                         initial.insert(str_offs_op);
-                        bb->insts.insert(inst_next, ldrimm);
+                        bb->insert(inst_next, ldrimm);
                     }
                     auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
                     strinst->comment << "for spilling";
-                    bb->insts.insert(inst_next, strinst);
+                    bb->insert(inst_next, strinst);
                     initial.insert(new_op);
                     new_op = Operand::newVReg();
                 }
