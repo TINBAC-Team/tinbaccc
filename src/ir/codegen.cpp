@@ -1,6 +1,5 @@
 #include <ir/ir.h>
 #include <asm_arm/builder.h>
-#include <asm_arm/instructions.h>
 #include <iostream>
 
 namespace ir {
@@ -27,7 +26,7 @@ namespace ir {
     }
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {
-        auto asmbb = builder.createBlock();
+        auto asmbb = builder.createBlock(this->loop_deep);
         builder.setASMBBtoIRBB(this, asmbb);
         for (auto &i:iList)
             i->codegen(builder);

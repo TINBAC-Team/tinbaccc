@@ -44,7 +44,7 @@ namespace asm_arm {
         OperandSet  spillWorklist;      // high-degree nodes.
         OperandSet  spilledNodes;       // nodes marked for spilling during this round; initially empty.
         OperandSet  coalescedNodes;     // registers that have been coalesced.
-        OperandSet coloredNodes;       // nodes successfully colored.
+        OperandSet coloredNodes;        // nodes successfully colored.
         OperandList selectStack;        // stack containing temporaries removed from the graph.
 
         // Move Sets: for move instructions
@@ -59,9 +59,11 @@ namespace asm_arm {
         EdgeSet             adjSet;     // the symmetrical set of interference edges (u, v) in the graph.
         Operand2OperandList adjList;    // We represent adjSet as a hash table of integer pairs.
         Operand2Int         degree;     // an array containing the current degree of each node.
-        Operand2MOVInstSet     moveList;   // a mapping from node to the list of moves it is associated with.
+        Operand2MOVInstSet  moveList;   // a mapping from node to the list of moves it is associated with.
         Operand2Operand     alias;      // (u, v) has been coalesced, and v put in coalescedNodes, then alias(v) = u.
         Operand2Int         color;      // the color chosen by the algorithm for a node.
+
+        Operand2Int         loop_deep;
 
 
         asm_arm::Function *function = nullptr;
@@ -111,6 +113,8 @@ namespace asm_arm {
         void freezeMoves(Operand *u);
 
         void rewriteProgram();
+
+        void updateLoopDeep(BasicBlock *bb, Operand *node);
 
     public:
 

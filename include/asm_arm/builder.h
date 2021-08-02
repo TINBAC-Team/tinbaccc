@@ -48,7 +48,7 @@ namespace asm_arm {
 
         void prepareFunctionParams();
 
-        BasicBlock *createBlock();
+        BasicBlock *createBlock(int deep);
 
         LDRInst *createLDR(std::string s);
 

@@ -393,7 +393,7 @@ namespace asm_arm {
     }
 
     static int bb_seed2 = 0;
-    BasicBlock::BasicBlock() : branch_marked(false) {
+    BasicBlock::BasicBlock(int deep) : branch_marked(false), loop_deep(deep) {
         bb_label = ".L";
         bb_label += std::to_string(bb_seed2++);
     }
@@ -447,7 +447,7 @@ namespace asm_arm {
     }
 
     Function::Function(ir::Function *f) : func(f), name(f->name), stack_size(0), max_reg(0) {
-        ret_block = new BasicBlock();
+        ret_block = new BasicBlock(0);
     }
 
     void Function::appendBlock(BasicBlock *block) {
