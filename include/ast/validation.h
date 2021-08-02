@@ -7,6 +7,7 @@ namespace ast {
     class ValidationContext {
     public:
         symtab symbol_table;
+        int loop_deep = 0;
     };
 }
 #endif //TINBACCC_VALIDATION_H

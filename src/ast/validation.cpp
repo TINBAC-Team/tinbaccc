@@ -260,13 +260,19 @@ namespace ast {
         ctx.symbol_table.ExitScope();
     }
 
+    void Stmt::validate(ValidationContext &ctx) {
+        this->loop_deep = ctx.loop_deep;
+    }
+
     void AssignmentStmt::validate(ValidationContext &ctx) {
+        Stmt::validate(ctx);
         this->exp->validate(ctx);
         this->lval->validate(ctx);
 //        ctx.symbol_table.InsertVar(this->lval->name, );
     }
 
     void IfStmt::validate(ValidationContext &ctx) {
+        Stmt::validate(ctx);
         this->cond->validate(ctx);
         if (this->true_block)
             this->true_block->validate(ctx);
@@ -276,17 +282,22 @@ namespace ast {
     }
 
     void WhileStmt::validate(ValidationContext &ctx) {
+        Stmt::validate(ctx);
+        ctx.loop_deep++;
         cond->validate(ctx);
         if (block)
             block->validate(ctx);
+        ctx.loop_deep--;
     }
 
     void ReturnStmt::validate(ValidationContext &ctx) {
+        Stmt::validate(ctx);
         if (this->ret)
             this->ret->validate(ctx);
     }
 
     void EvalStmt::validate(ValidationContext &ctx) {
+        Stmt::validate(ctx);
         this->exp->validate(ctx);
     }
 }

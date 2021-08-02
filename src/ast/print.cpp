@@ -240,7 +240,7 @@ namespace ast {
 
     void AssignmentStmt::print(std::ofstream &ofd) {
         int count_asgn = count;
-        ofd << "\tnode" << count_asgn << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count_asgn << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"LVal\"];\n";
         ofd << "\tnode" << count_asgn << "->node" << count << ";\n";
         lval->print(ofd);
@@ -253,7 +253,7 @@ namespace ast {
 
     void EvalStmt::print(std::ofstream &ofd) {
         if (exp) {
-            ofd << "\tnode" << ++count << "[label=\"Stmt\"];\n";
+            ofd << "\tnode" << ++count << "[label=\"Stmt " << loop_deep << "\"];\n";
             ofd << "\tnode" << ++count << "[label=\"Exp\"];\n";
             ofd << "\tnode" << count - 1 << "->node" << count << ";\n";
             exp->print(ofd);
@@ -262,7 +262,7 @@ namespace ast {
 
     void IfStmt::print(std::ofstream &ofd) {
         int count_if = count;
-        ofd << "\tnode" << count_if << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count_if << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"if\"];\n";
         ofd << "\tnode" << count_if << "->node" << count << ";\n";
         ofd << "\tnode" << ++count << "[label=\"Cond\"];\n";
@@ -282,7 +282,7 @@ namespace ast {
 
     void WhileStmt::print(std::ofstream &ofd) {
         int count_while = count;
-        ofd << "\tnode" << count_while << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count_while << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"while\"];\n";
         ofd << "\tnode" << count_while << "->node" << count << ";\n";
         ofd << "\tnode" << ++count << "[label=\"Cond\"];\n";
@@ -294,19 +294,19 @@ namespace ast {
     }
 
     void BreakStmt::print(std::ofstream &ofd) {
-        ofd << "\tnode" << count << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"break\"];\n";
         ofd << "\tnode" << count - 1 << "->node" << count << ";\n";
     }
 
     void ContinueStmt::print(std::ofstream &ofd) {
-        ofd << "\tnode" << count << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"continue\"];\n";
         ofd << "\tnode" << count - 1 << "->node" << count << ";\n";
     }
 
     void ReturnStmt::print(std::ofstream &ofd) {
-        ofd << "\tnode" << count << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << count << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << ++count << "[label=\"return\"];\n";
         ofd << "\tnode" << count - 1 << "->node" << count << ";\n";
         if (ret) {
