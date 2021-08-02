@@ -114,8 +114,8 @@ namespace asm_arm {
         }
     }
 
-    BasicBlock *Builder::createBlock() {
-        auto *bb = new BasicBlock();
+    BasicBlock *Builder::createBlock(int deep) {
+        auto *bb = new BasicBlock(deep);
         curFunction->appendBlock(bb);
         curBlock = bb;
         if (!params_prepared)

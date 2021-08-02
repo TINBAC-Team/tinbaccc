@@ -1,6 +1,7 @@
 #include <asm_arm/registers.h>
 #include <stdexcept>
 #include <iostream>
+#include <cmath>
 
 void asm_arm::RegisterAllocator::grabInitialVRegs() {
     for (const auto &b : function->bList) {
@@ -27,11 +28,15 @@ void asm_arm::RegisterAllocator::build() {
                     if (x->type != Operand::Type::Imm)
                         live.erase(x);
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ def(I)
-                for (const auto &n : movInst->def)
+                for (const auto &n : movInst->def) {
                     moveList[n].insert(movInst);
+                    updateLoopDeep(movInst->bb, n);
+                }
                 // moveList[n] := moveList[n] ∪ {I}, n ∈ use(I)
-                for (const auto &n : movInst->use)
+                for (const auto &n : movInst->use) {
                     moveList[n].insert(movInst);
+                    updateLoopDeep(movInst->bb, n);
+                }
                 // worklistMoves := worklistMoves ∪ {I}
                 worklistMoves.insert(movInst);
             }
@@ -40,8 +45,11 @@ void asm_arm::RegisterAllocator::build() {
 
             // AddEdge
             for (const auto &d : inst->def)
-                for (const auto &l : live)
+                for (const auto &l : live) {
                     addEdge(l, d);
+                    updateLoopDeep(inst->bb, l);
+                    updateLoopDeep(inst->bb, d);
+                }
 
             // live := use(I) ∪ (live\def(I))
             for (auto & d : inst->def) live.erase(d);
@@ -219,8 +227,13 @@ void asm_arm::RegisterAllocator::combine(asm_arm::Operand *u, asm_arm::Operand *
 void asm_arm::RegisterAllocator::selectSpill() {
     // TODO Use more reasonable cost estimates to design heuristic algorithms.
     // Simply choose spilling node with maximum degree
-    Operand *m = *std::max_element(spillWorklist.cbegin(), spillWorklist.cend(),
-                                  [this](Operand *a, Operand *b) { return degree[a] < degree[b]; });
+    Operand *m = *std::max_element(
+            spillWorklist.cbegin(), spillWorklist.cend(),
+            [this](Operand *a, Operand *b) {
+                if (loop_deep.find(a) == loop_deep.cend() || loop_deep.find(b) == loop_deep.cend())
+                    throw std::runtime_error("Cannot find loop_deep!");
+                return degree[a] / pow(2, loop_deep[a]) < degree[b] / pow(2, loop_deep[b]);
+            });
     spillWorklist.erase(m);
     simplifyWorklist.push_back(m);
     freezeMoves(m);
@@ -273,46 +286,50 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
     std::set_union(coloredNodes.cbegin(), coloredNodes.cend(),
                    coalescedNodes.cbegin(), coalescedNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
-    for (const auto & v : spilledNodes) {
+    for (const auto &v : spilledNodes) {
         // allocate memory locations and generate load and store instruction for spilled node
         int offs = function->allocate_stack(1);
         Operand *new_op = Operand::newVReg();
         for (auto &bb:function->bList) {
-            for(auto inst_it = bb->insts.begin();inst_it!=bb->insts.end();inst_it++) {
-                if((*inst_it)->replace_use(v, new_op)) {
+            for (auto inst_it = bb->insts.begin(); inst_it != bb->insts.end(); inst_it++) {
+                if ((*inst_it)->replace_use(v, new_op)) {
                     Operand *ldr_offs_op;
-                    if(offs < 4096) {
-                    ldr_offs_op = Operand::newImm(offs);
+                    if (offs < 4096) {
+                        ldr_offs_op = Operand::newImm(offs);
                     } else {
                         ldr_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs,ldr_offs_op);
+                        auto ldrimm = new LDRInst(offs, ldr_offs_op);
                         initial.insert(ldr_offs_op);
-                        bb->insert(inst_it, ldrimm);
+                        updateLoopDeep(bb, ldr_offs_op);
+                        bb->insts.insert(inst_it, ldrimm);
                     }
                     auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
                     ldrinst->comment << "for spilling";
-                    bb->insert(inst_it, ldrinst);
+                    bb->insts.insert(inst_it, ldrinst);
                     initial.insert(new_op);
+                    updateLoopDeep(bb, new_op);
                     new_op = Operand::newVReg();
                 }
                 // in case we generated spill code between function call instructions.
-                if((*inst_it)->move_stack)
+                if ((*inst_it)->move_stack)
                     offs -= (*inst_it)->move_stack;
-                if((*inst_it)->replace_def(v, new_op)) {
-                    auto inst_next=std::next(inst_it);
+                if ((*inst_it)->replace_def(v, new_op)) {
+                    auto inst_next = std::next(inst_it);
                     Operand *str_offs_op;
-                    if(offs < 4096) {
+                    if (offs < 4096) {
                         str_offs_op = Operand::newImm(offs);
                     } else {
                         str_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs,str_offs_op);
+                        auto ldrimm = new LDRInst(offs, str_offs_op);
                         initial.insert(str_offs_op);
-                        bb->insert(inst_next, ldrimm);
+                        updateLoopDeep(bb, str_offs_op);
+                        bb->insts.insert(inst_next, ldrimm);
                     }
                     auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
                     strinst->comment << "for spilling";
-                    bb->insert(inst_next, strinst);
+                    bb->insts.insert(inst_next, strinst);
                     initial.insert(new_op);
+                    updateLoopDeep(bb, new_op);
                     new_op = Operand::newVReg();
                 }
             }
@@ -448,6 +465,11 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
             function->max_reg = reg;
     }
 
+}
+
+void asm_arm::RegisterAllocator::updateLoopDeep(BasicBlock *bb, Operand *node) {
+    if (loop_deep[node] < bb->loop_deep)
+        loop_deep[node] = bb->loop_deep;
 }
 
 namespace asm_arm {

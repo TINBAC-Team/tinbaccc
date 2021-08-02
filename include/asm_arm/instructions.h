@@ -362,6 +362,7 @@ namespace asm_arm {
 
     class BasicBlock {
     public:
+        int loop_deep;
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
         std::list<Inst *>::const_iterator it_insert;
@@ -374,7 +375,7 @@ namespace asm_arm {
         std::string bb_label;
         bool branch_marked;
 
-        BasicBlock();
+        BasicBlock(int deep);
 
         void insertAtEnd(Inst *inst);
 
