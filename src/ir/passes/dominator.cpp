@@ -24,23 +24,20 @@ namespace ir_passes {
 
     public:
         DomComputer(ir::Function *f) : func(f) {
-            int rpo_index = 0;
             // doms[b] ← Undefined
-            for (const auto &bb:f->bList) {
+            for (const auto &bb:f->bList)
                 bb->idom = nullptr;
-                bb->rpo_id = rpo_index++;
-            }
         }
 
         void compute() {
             // doms[start node] ← start node
-            func->bList.front()->idom = func->bList.front();
+            func->rpoBList.front()->idom = func->rpoBList.front();
             bool changed = true;
             while (changed) {
                 changed = false;
                 // for all nodes, b, in reverse postorder (except start node)
-                auto it = std::next(func->bList.begin());
-                for (; it != func->bList.end(); it++) {
+                auto it = std::next(func->rpoBList.begin());
+                for (; it != func->rpoBList.end(); it++) {
                     auto &bb = *it;
                     ir::BasicBlock *new_idom = nullptr;
                     for (auto &predinst:bb->parentInsts) {

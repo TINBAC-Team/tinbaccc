@@ -35,7 +35,8 @@ set(IR_SOURCES
         src/ir/codegen.cpp)
 
 set(IR_PASSES_SOURCES
-        src/ir/passes/dominator.cpp)
+        src/ir/passes/dominator.cpp
+        src/ir/passes/rpo.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp src/asm_arm/builder.cpp src/asm_arm/print.cpp src/asm_arm/registers.cpp src/asm_arm/function_fixup.cpp)

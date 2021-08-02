@@ -174,6 +174,7 @@ namespace ir {
         std::string name;
         bool return_int;
         BlockList bList;
+        BlockList rpoBList;
         std::vector<FuncParam *> params;
 
         explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
@@ -226,6 +227,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         void codegen(asm_arm::Builder &builder);
+
+        std::vector<BasicBlock *> succ();
 
     private:
         Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);

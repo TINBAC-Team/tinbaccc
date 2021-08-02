@@ -225,6 +225,16 @@ namespace ir {
         iList.remove(inst);
     }
 
+    std::vector<BasicBlock *> BasicBlock::succ() {
+        if (iList.empty())
+            return {};
+        if (auto branch = dynamic_cast<BranchInst *>(iList.back()))
+            return {branch->true_block, branch->false_block};
+        else if (auto jump = dynamic_cast<JumpInst *>(iList.back()))
+            return {jump->to};
+        return {};
+    }
+
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
