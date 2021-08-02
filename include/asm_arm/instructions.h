@@ -286,6 +286,10 @@ namespace asm_arm {
 
         BInst(OpCond c = OpCond::NONE);
 
+        bool isCondJP();
+
+        void reverseCond();
+
         void print_body(std::ostream &os) const;
     };
 

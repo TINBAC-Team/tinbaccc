@@ -89,6 +89,7 @@ void tcc_sy_driver::print_asm(const char *path) {
 void tcc_sy_driver::process_asm() {
     asm_arm::Builder builder(asm_module);
 
+    asm_arm::switch_branch_target(asm_module);
     asm_arm::allocate_register(asm_module);
     asm_arm::function_param_pointer_fixup(asm_module);
 

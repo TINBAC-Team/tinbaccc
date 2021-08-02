@@ -42,4 +42,31 @@ namespace asm_arm {
             }
         }
     }
+
+    /**
+     * convert B<cond> L1; B L2; L1: toB<inv_cond> L2; B L1; L1:
+     * @param module
+     */
+    void switch_branch_target(asm_arm::Module *module) {
+        for (auto &f : module->functionList) {
+            if (f->bList.size() < 2)
+                continue;
+            for (auto iter = f->bList.begin(); std::next(iter) != f->bList.end(); iter++) {
+                const auto &curbb = *iter;
+                if (curbb->insts.size() < 2)
+                    continue;
+                const auto &nextbb = *std::next(iter);
+                auto nocond_branch = dynamic_cast<BInst *>(curbb->insts.back());
+                auto cond_branch = dynamic_cast<BInst *>(*std::next(curbb->insts.rbegin()));
+                if (!nocond_branch || !cond_branch)
+                    continue;
+                if (nocond_branch->isCondJP() || nocond_branch->tgt == nextbb || !cond_branch->isCondJP())
+                    continue;
+                if (cond_branch->tgt == nextbb) {
+                    cond_branch->reverseCond();
+                    std::swap(nocond_branch->tgt, cond_branch->tgt);
+                }
+            }
+        }
+    }
 }

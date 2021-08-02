@@ -232,6 +232,61 @@ namespace asm_arm {
 
     BInst::BInst(OpCond c) : Inst(Op::B, c),append_pool(false) {}
 
+    bool BInst::isCondJP() {
+        return cond != Inst::OpCond::NONE;
+    }
+
+    void BInst::reverseCond() {
+        if (!isCondJP())
+            return;
+        switch (cond) {
+            case OpCond::EQ:
+                cond = OpCond::NE;
+                break;
+            case OpCond::NE:
+                cond = OpCond::EQ;
+                break;
+            case OpCond::GT:
+                cond = OpCond::LE;
+                break;
+            case OpCond::GE:
+                cond = OpCond::LT;
+                break;
+            case OpCond::LT:
+                cond = OpCond::GE;
+                break;
+            case OpCond::LE:
+                cond = OpCond::GT;
+                break;
+            case OpCond::CS:
+                cond = OpCond::CC;
+                break;
+            case OpCond::CC:
+                cond = OpCond::CS;
+                break;
+            case OpCond::MI:
+                cond = OpCond::PL;
+                break;
+            case OpCond::PL:
+                cond = OpCond::MI;
+                break;
+            case OpCond::VS:
+                cond = OpCond::VC;
+                break;
+            case OpCond::VC:
+                cond = OpCond::VS;
+                break;
+            case OpCond::HI:
+                cond = OpCond::LS;
+                break;
+            case OpCond::LS:
+                cond = OpCond::HI;
+                break;
+            default:
+                break;
+        }
+    }
+
     CallInst::CallInst(int np, std::string l, bool _is_void) :
             Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
 
