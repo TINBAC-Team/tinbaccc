@@ -69,4 +69,23 @@ namespace asm_arm {
             }
         }
     }
+
+    /**
+     * remove B .L; .L:
+     * @param module
+     */
+    void remove_nop_branch(asm_arm::Module *module) {
+        for (auto &f : module->functionList) {
+            if (f->bList.size() < 2)
+                continue;
+            for (auto iter = f->bList.begin(); std::next(iter) != f->bList.end(); iter++) {
+                const auto &curbb = *iter;
+                const auto &nextbb = *std::next(iter);
+                auto branch = dynamic_cast<BInst *>(curbb->insts.back());
+                if (!branch || branch->isCondJP() || branch->append_pool || branch->tgt != nextbb)
+                    continue;
+                branch->mark_nop();
+            }
+        }
+    }
 }

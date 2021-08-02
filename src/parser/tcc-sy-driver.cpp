@@ -94,4 +94,5 @@ void tcc_sy_driver::process_asm() {
     asm_arm::function_param_pointer_fixup(asm_module);
 
     builder.generate_pool();
+    asm_arm::remove_nop_branch(asm_module);
 }
