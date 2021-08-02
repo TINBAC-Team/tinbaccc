@@ -38,7 +38,7 @@ namespace asm_arm {
                 delete ldr->offs;
                 ldr->offs = ldr->dst;
                 auto inst = new LDRInst(offs, Operand::getReg(ldr->dst->reg));
-                func->bList.front()->insts.insert(it, inst);
+                func->bList.front()->insert(it, inst);
             }
         }
     }

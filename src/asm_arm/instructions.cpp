@@ -424,6 +424,12 @@ namespace asm_arm {
                 throw std::runtime_error("instruction not found");
         }
         insts.insert(it_insert, inst);
+        inst->bb = this;
+    }
+
+    void BasicBlock::insert(std::list<Inst *>::iterator pos, Inst *inst) {
+        insts.insert(pos, inst);
+        inst->bb = this;
     }
 
     std::vector<BasicBlock *> BasicBlock::succ() const {

@@ -384,6 +384,8 @@ namespace asm_arm {
 
         void insertBefore(Inst *inst, Inst *before);
 
+        void insert(std::list<Inst *>::iterator pos, Inst *inst);
+
         std::vector<BasicBlock *> succ() const;
 
         void print(std::ostream &os, bool single) const;
