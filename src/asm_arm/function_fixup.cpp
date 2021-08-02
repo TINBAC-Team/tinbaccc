@@ -42,4 +42,33 @@ namespace asm_arm {
             }
         }
     }
+
+    void branchinst_fixup(asm_arm::Module *module) {
+        for (auto &f : module->functionList) {
+            for (auto &b : f->bList) {
+                auto inst0 = b->insts.end();
+                if (b->insts.size() >= 2) {
+                    inst0--; // last inst
+                    if (auto _binst_last1 = dynamic_cast<BInst *>(*inst0)) {
+                        if (b != *(f->bList.end()) && _binst_last1->cond == Inst::OpCond::NONE) {
+                            if (_binst_last1->tgt == std::next(b)) { // last inst is unconditional jump and tgt is the next bb
+                                // b->pass(inst0); // erase last inst
+                            }
+                            else {
+                                inst0--;
+                                if (auto _binst_last2 = dynamic_cast<BInst *>(*inst0)) {
+                                    if (_binst_last2->isCondJP() && _binst_last2->tgt == std::next(b)) { // second to last inst is conditional jump and tgt is the next bb
+                                        _binst_last2->reverseCond(); // change condition
+                                        std::swap(_binst_last1->tgt, _binst_last2->tgt); // swap the tgt
+                                        inst0++;
+                                        // b->pass(inst0); // erase the last inst
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

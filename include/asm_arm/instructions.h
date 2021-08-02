@@ -273,6 +273,10 @@ namespace asm_arm {
 
         BInst(OpCond c = OpCond::NONE);
 
+        bool isCondJP();
+
+        void reverseCond();
+
         void print_body(std::ostream &os) const;
     };
 
@@ -366,6 +370,8 @@ namespace asm_arm {
         void insertBeforeBranch(Inst *inst);
 
         void insertBefore(Inst *inst, Inst *before);
+
+        void pass(std::list<Inst *>::iterator it);
 
         std::vector<BasicBlock *> succ() const;
 

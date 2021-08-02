@@ -263,6 +263,7 @@ namespace ir {
             else
                 rhs = builder.getOrCreateOperandOfValue(binop->ValueR.value);
         }
+        // Modified by ywh
         builder.createCMPInst(lhs, rhs);
         builder.curBlock->markBranch();
         builder.createBInst(true_block, asmcond);

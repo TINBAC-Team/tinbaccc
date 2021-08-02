@@ -228,6 +228,36 @@ namespace asm_arm {
 
     BInst::BInst(OpCond c) : Inst(Op::B, c),append_pool(false) {}
 
+    bool BInst::isCondJP() {
+        return (cond == Inst::OpCond::EQ || cond == Inst::OpCond::NE || cond == Inst::OpCond::GT ||
+                cond == Inst::OpCond::GE || cond == Inst::OpCond::LT || cond == Inst::OpCond::LE);
+    }
+
+    void BInst::reverseCond() {
+        if (!isCondJP())
+            return;
+        switch (cond) {
+            case OpCond::EQ:
+                cond = OpCond::NE;
+                break;
+            case OpCond::NE:
+                cond = OpCond::EQ;
+                break;
+            case OpCond::GT:
+                cond = OpCond::LE;
+                break;
+            case OpCond::GE:
+                cond = OpCond::LT;
+                break;
+            case OpCond::LT:
+                cond = OpCond::GE;
+                break;
+            case OpCond::LE:
+                cond = OpCond::GT;
+                break;
+        }
+    }
+
     CallInst::CallInst(int np, std::string l, bool _is_void) :
             Inst(Inst::Op::BL), nparams(np), label(std::move(l)), is_void(_is_void) {
 
@@ -365,6 +395,10 @@ namespace asm_arm {
                 throw std::runtime_error("instruction not found");
         }
         insts.insert(it_insert, inst);
+    }
+
+    void BasicBlock::pass(std::list<Inst *>::iterator it) {
+        insts.erase(it);
     }
 
     std::vector<BasicBlock *> BasicBlock::succ() const {

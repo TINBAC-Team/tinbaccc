@@ -102,6 +102,7 @@ namespace asm_arm {
         void generate_pool();
 
         void generate_pool(Function* func);
+
     };
 }
 #endif //TINBACCC_BUILDER_H
