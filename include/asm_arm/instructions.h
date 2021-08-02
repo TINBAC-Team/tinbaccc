@@ -81,6 +81,11 @@ namespace asm_arm {
     };
 
     class Inst {
+    protected:
+        virtual bool is_nop() const { return false; }
+
+        bool _nop;
+
     public:
         BasicBlock *bb;
         std::set<Operand*> use;
@@ -131,8 +136,11 @@ namespace asm_arm {
         std::ostringstream comment;
         int move_stack;
         bool need_pool;
+        bool set_flags;
 
-        Inst(Op o, OpCond c = OpCond::NONE) : op(o), cond(c), need_pool(false), move_stack(0) {}
+        Inst(Op o, OpCond c = OpCond::NONE) :
+                op(o), cond(c), need_pool(false), move_stack(0),
+                _nop(false), set_flags(false) {}
 
         virtual void print(std::ostream &os);
 
@@ -147,6 +155,10 @@ namespace asm_arm {
         virtual bool replace_use(Operand *orig, Operand *newop);
 
         virtual bool replace_def(Operand *orig, Operand *newop);
+
+        bool nop() const { return _nop || is_nop(); }
+
+        void mark_nop(bool nop = true) { _nop = nop; }
 
         virtual ~Inst() {};
 
@@ -231,7 +243,8 @@ namespace asm_arm {
 
         bool replace_use(Operand *orig, Operand *newop);
 
-        void print(std::ostream &os);
+    protected:
+        bool is_nop() const override;
     };
 
     class CMPInst : public Inst {

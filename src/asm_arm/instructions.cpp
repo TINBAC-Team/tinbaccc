@@ -205,6 +205,10 @@ namespace asm_arm {
         return true;
     }
 
+    bool MOVInst::is_nop() const {
+        return (dst->type == Operand::Type::Reg && src->type == Operand::Type::Reg && dst->reg == src->reg);
+    }
+
     CMPInst::CMPInst(Operand *l, Operand *r) : Inst(Inst::Op::CMP), lhs(l), rhs(r) {
         add_use(l);
         add_use(r);
