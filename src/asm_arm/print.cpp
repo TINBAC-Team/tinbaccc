@@ -183,6 +183,22 @@ namespace asm_arm {
                 return "LT";
             case OpCond::LE:
                 return "LE";
+            case OpCond::CS:
+                return "CS";
+            case OpCond::CC:
+                return "CC";
+            case OpCond::MI:
+                return "MI";
+            case OpCond::PL:
+                return "PL";
+            case OpCond::VS:
+                return "VS";
+            case OpCond::VC:
+                return "VC";
+            case OpCond::HI:
+                return "HI";
+            case OpCond::LS:
+                return "LS";
             default:
                 break;
         }
