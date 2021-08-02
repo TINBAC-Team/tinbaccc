@@ -236,6 +236,8 @@ namespace ir {
         if (idom)
             os << "\t; idom = %" << get_name_of_BB(idom);
 
+        os << "\t; loop_deep = " << loop_deep;
+
         os << std::endl;
         for (auto &inst:iList) {
             os << "\t";
