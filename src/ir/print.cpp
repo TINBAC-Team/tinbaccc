@@ -301,8 +301,11 @@ namespace ir {
 
         }
         Value::print(os);
-        os << "i1 " << "%s" << s_cnt++ << ", label %" << get_name_of_BB(true_block) << ", label %"
-           << get_name_of_BB(false_block);
+        os << "i1 ";
+        if(need_i1_convert)
+            os<<"%s" << s_cnt++ ;
+        else os<<get_name_of_value(cond.value);
+        os<<", label %" << get_name_of_BB(true_block) << ", label %"<< get_name_of_BB(false_block);
     }
 
     void JumpInst::print(std::ostream &os) const {
