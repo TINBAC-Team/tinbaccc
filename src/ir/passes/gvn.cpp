@@ -109,6 +109,7 @@ namespace ir_passes {
                         for (auto &i:inst->uList) {
                             i->use(inst_v);
                         }
+                        bb->eraseInst((ir::Inst*) inst);
                     }
                 }
             }
