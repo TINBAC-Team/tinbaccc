@@ -60,7 +60,7 @@ namespace ir {
 
     class Module {
     public:
-        FunctionList functionList;
+        FunctionList functionList, unusedFunctionList;
         GlobalVarList globalVarList;
 
         void codegen(asm_arm::Builder &builder);
