@@ -206,11 +206,7 @@ namespace ir_passes {
                 for (auto &i:ret_list)
                     phi->InsertElem(i.second, i.first);
                 // and replace call uses
-                for (auto cur_use:call_tgt.call->uList) {
-                    if (cur_use->value != call_tgt.call)
-                        continue;
-                    cur_use->use(phi);
-                }
+                call_tgt.call->replaceWith(phi);
             } else {
                 if (!call_tgt.call->uList.empty())
                     throw std::runtime_error("void function can't be used!");
@@ -224,7 +220,7 @@ namespace ir_passes {
                     x->replaceBB(call_bb, ret_bb);
                 }
             }
-
+            // FIXME: memory leak of current call instruction
             return;
         }
     }

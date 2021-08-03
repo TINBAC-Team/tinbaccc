@@ -130,6 +130,8 @@ namespace ir {
 
         int addUse(Use *use);
 
+        void replaceWith(Value *val, bool clear_ulist = true);
+
         virtual void print(std::ostream &os) const;
 
         /**

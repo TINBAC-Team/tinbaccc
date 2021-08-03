@@ -97,6 +97,16 @@ namespace ir {
         return 0;
     }
 
+    void Value::replaceWith(Value *val, bool clear_ulist) {
+        for (auto cur_use:uList) {
+            if (cur_use->user == this || cur_use->value != this)
+                continue;
+            cur_use->use(val);
+        }
+        if(clear_ulist)
+            uList.clear();
+    }
+
     Value::~Value() {
 
     }
@@ -199,11 +209,7 @@ namespace ir {
             same = builder.getConstant(0); // FIXME: Do we have an Undef?
 
         // Replace all users of this Phi with same
-        for (auto cur_use:phi->uList) {
-            if (cur_use->user == phi || cur_use->value != phi)
-                continue;
-            cur_use->use(same);
-        }
+        phi->replaceWith(same, false);
 
         // Try to recursively remove all phi users, which might have become trivial
         for (auto cur_use:phi->uList) {
@@ -213,6 +219,8 @@ namespace ir {
             if (curphi)
                 curphi->bb->tryRemoveTrivialPhi(curphi, builder);
         }
+
+        phi->uList.clear();
 
         // remove use
         for (auto &op_it:phi->phicont)
