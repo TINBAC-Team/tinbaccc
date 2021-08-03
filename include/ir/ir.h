@@ -149,7 +149,11 @@ namespace ir {
 
         Use(Value *_user, Value *_value = nullptr);
 
+        ~Use() { removeFromUList(); }
+
         void use(Value *v);
+
+        void removeFromUList();
     };
 
     class GlobalVar : public Value {
@@ -279,6 +283,8 @@ namespace ir {
 
         int InsertElem(BasicBlock *basicblock, Value *value);
 
+        void replaceBB(BasicBlock *oldbb, BasicBlock *newbb);
+
         void print(std::ostream &os) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
@@ -389,6 +395,7 @@ namespace ir {
     class GetElementPtrInst : public AccessInst {
     public:
         Use arr;
+        ast::Decl *decl;
         std::vector<Use> dims;
         std::vector<int> multipliers;
 

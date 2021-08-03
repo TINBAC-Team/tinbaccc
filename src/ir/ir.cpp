@@ -112,6 +112,11 @@ namespace ir {
         v->addUse(this);
     }
 
+    void Use::removeFromUList() {
+        if (value)
+            value->uList.erase(this);
+    }
+
     Inst::Inst(OpType _optype) : Value(_optype) {
     }
 
@@ -208,6 +213,10 @@ namespace ir {
             if (curphi)
                 curphi->bb->tryRemoveTrivialPhi(curphi, builder);
         }
+
+        // remove use
+        for (auto &op_it:phi->phicont)
+            op_it.second->removeFromUList();
 
         // delete phi; //We can't do this yet...
         // eraseInst should consume this PHI
@@ -335,6 +344,14 @@ namespace ir {
         return instp;
     }
 
+    void PhiInst::replaceBB(BasicBlock *oldbb, BasicBlock *newbb) {
+        if (phicont.find(oldbb) != phicont.end()) {
+            phicont[oldbb]->removeFromUList();
+            InsertElem(newbb, phicont[oldbb]->value);
+            phicont.erase(oldbb);
+        }
+    }
+
     CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
 
     AllocaInst::AllocaInst(ast::Decl *_decl) : Inst(OpType::ALLOCA) {
@@ -346,6 +363,15 @@ namespace ir {
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls) :
             AccessInst(OpType::GETELEMPTR), arr(this, _arr){
+        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value))
+            decl = arr_val->decl;
+        else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value))
+            decl = arr_val->decl;
+        else if (auto arr_val = dynamic_cast<FuncParam *>(arr.value))
+            decl = arr_val->decl;
+        else
+            decl = nullptr;
+
         dims.reserve(_dims.size()+1);
         for (auto &i:_dims) {
             dims.emplace_back(this, i);

@@ -351,15 +351,10 @@ namespace ir {
         //TODO: initialize imcomplete
     }
     void GetElementPtrInst::print_llvm_type(std::ostream &os, int start_dim) const {
-        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
-            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
-
-        } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
-            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
-
-        } else if(auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
-            print_llvm_arr_inner_decl(os,arr_val->decl->array_dims,start_dim);
-        }
+        if (decl)
+            print_llvm_arr_inner_decl(os,decl->array_dims,start_dim);
+        else
+            throw std::runtime_error("no decl for GEP.");
     }
     void GetElementPtrInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
@@ -398,6 +393,21 @@ namespace ir {
                     os<<", ";
                 is_first = false;
                 os<<"i32 "<<get_name_of_value(i.value);
+            }
+        } else if (decl && !decl->array_dims.empty()) {
+            // the first multiplier is always 0 for function params.
+            int start_dim = decl->array_multipliers[0] ? 0 : 1;
+            print_llvm_type(os, start_dim);
+            os << ", ";
+            print_llvm_type(os, start_dim);
+            os << "* ";
+            os << get_name_of_value(arr.value) << ", ";
+            bool is_first = true;
+            for (auto &i:dims) {
+                if (!is_first)
+                    os << ", ";
+                is_first = false;
+                os << "i32 " << get_name_of_value(i.value);
             }
         }
 
