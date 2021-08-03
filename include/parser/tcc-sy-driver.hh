@@ -3,6 +3,7 @@
 # include <string>
 # include <map>
 #include <memory>
+#include <ir/passes.h>
 # include "tcc-sy-parser.hh"
 
 namespace ast {

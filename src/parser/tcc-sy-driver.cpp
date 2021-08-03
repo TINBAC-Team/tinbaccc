@@ -7,6 +7,8 @@
 #include <asm_arm/asm_ops.h>
 #include <fstream>
 
+
+
 tcc_sy_driver::tcc_sy_driver()
         : trace_scanning(false), trace_parsing(false) {
     comp_unit = std::make_unique<ast::CompUnit>();
@@ -49,6 +51,7 @@ void tcc_sy_driver::validate_ast() {
 
 void tcc_sy_driver::generate_ir() {
     module = new ir::Module;
+
     ir::IRBuilder builder(module);
     comp_unit->codegen(builder);
 }
@@ -69,6 +72,7 @@ void tcc_sy_driver::process_ir() {
     ir_passes::function_process(module);
     ir_passes::rpo_compute(module);
     ir_passes::dom_compute(module);
+    ir_passes::gvn(module);
 }
 
 void tcc_sy_driver::generate_asm() {

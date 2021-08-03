@@ -286,6 +286,7 @@ namespace ir {
     }
 
     void BranchInst::print(std::ostream &os) const {
+        static int s_cnt = 0;
         bool need_i1_convert = true;
         auto cond_val = dynamic_cast<BinaryInst *>(cond.value);
         Value *i1_val = cond.value;
@@ -296,12 +297,11 @@ namespace ir {
                 need_i1_convert = false;
         }
         if (need_i1_convert) {
-            i1_val = new BinaryInst(OpType::NE, cond.value, IRBuilder::getConstant(0));
-            i1_val->print(os);
-            os << std::endl << "\t";
+            os << "%s" << s_cnt << " = icmp ne i32 " << get_name_of_value(cond.value) << ", 0" << std::endl << "\t";
+
         }
         Value::print(os);
-        os << "i1 " << get_name_of_value(i1_val) << ", label %" << get_name_of_BB(true_block) << ", label %"
+        os << "i1 " << "%s" << s_cnt++ << ", label %" << get_name_of_BB(true_block) << ", label %"
            << get_name_of_BB(false_block);
     }
 
