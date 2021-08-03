@@ -3,7 +3,7 @@
 #include <utility>
 
 namespace ir {
-    ConstPool ConstValue::const_pool;
+
 
     GlobalVar::GlobalVar(ast::Decl *d) :
             Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
@@ -244,8 +244,9 @@ namespace ir {
     }
 
     Value *IRBuilder::getConstant(int _value) {
-        if (ConstValue::const_pool.find(_value) != ConstValue::const_pool.end()) return ConstValue::const_pool[_value];
+        if (const_pool.find(_value) != const_pool.end()) return const_pool[_value];
         auto constp = new ConstValue(_value);
+        const_pool[_value] = constp;
         return constp;
     }
 

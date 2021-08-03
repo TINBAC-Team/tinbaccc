@@ -1,5 +1,6 @@
 #include <iostream>
 #include <getopt.h>
+
 #include <parser/tcc-sy-driver.hh>
 
 static const struct option long_options[] = {
@@ -64,12 +65,11 @@ int main(int argc, char *argv[]) {
     driver.process_ir();
     if(ir_path)
         driver.print_ir(ir_path);
-
-    driver.generate_asm();
-    if (asm_tmp_path)
-        driver.print_asm(asm_tmp_path);
-    driver.process_asm();
-    driver.print_asm(asm_path);
+//    driver.generate_asm();
+//    if (asm_tmp_path)
+//        driver.print_asm(asm_tmp_path);
+//    driver.process_asm();
+//    driver.print_asm(asm_path);
     return 0;
 }
 

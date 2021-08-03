@@ -296,9 +296,10 @@ namespace ir {
                 need_i1_convert = false;
         }
         if (need_i1_convert) {
-            i1_val = new BinaryInst(OpType::NE, cond.value, IRBuilder::getConstant(0));
-            i1_val->print(os);
-            os << std::endl << "\t";
+            os<<"icmp ne i32 ";
+            cond.value->print(os);
+            os<<", 0"<< std::endl << "\t";
+
         }
         Value::print(os);
         os << "i1 " << get_name_of_value(i1_val) << ", label %" << get_name_of_BB(true_block) << ", label %"

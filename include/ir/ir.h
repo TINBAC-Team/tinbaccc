@@ -70,6 +70,7 @@ namespace ir {
 
     class IRBuilder {
     public:
+        ConstPool const_pool;
         IRBuilder(Module *m);
 
         // Current loop deep
@@ -114,7 +115,7 @@ namespace ir {
 
         Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params);
 
-        static Value *getConstant(int _value);
+        Value *getConstant(int _value);
 
         Value *getConstant(int valueL, int valueR, OpType optype);
     };
@@ -403,7 +404,6 @@ namespace ir {
     class ConstValue : public Value {
     public:
         int value;
-        static ConstPool const_pool;
 
         explicit ConstValue(int _value);
 
