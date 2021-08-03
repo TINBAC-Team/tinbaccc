@@ -143,7 +143,7 @@ asm_arm::Operand *asm_arm::RegisterAllocator::getAlias(asm_arm::Operand *n) {
         return n;
 }
 
-bool asm_arm::RegisterAllocator::isConservative(asm_arm::OperandList &nodes) const {
+bool asm_arm::RegisterAllocator::isConservative(asm_arm::OperandArrayList &nodes) const {
     int k = 0;
     for (const auto &n : nodes) {
         auto iter = degree.find(n);
@@ -179,7 +179,7 @@ void asm_arm::RegisterAllocator::coalesce() {
         // u ∉ precolored ∧ isConservative(Adjacent(u) ∪ Adjacent(v)
         auto adjU = adjacent(u);
         auto adjV = adjacent(v);
-        OperandList adjUnion;
+        OperandArrayList adjUnion;
         std::set_union(adjU.cbegin(), adjU.cend(), adjV.cbegin(), adjV.cend(), std::back_inserter(adjUnion));
         return isConservative(adjUnion);
     }())) {
@@ -341,54 +341,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
     coalescedNodes.clear();
 }
 
-void asm_arm::RegisterAllocator::livenessAnalysis() {
-    // calculate use and def
-    for (auto &b : function->bList) {
-        b->use.clear();
-        b->def.clear();
-        for (const auto &i:b->insts) {
-            for (auto &u : i->use)
-                if (u->type != Operand::Type::Imm && b->def.find(u) == b->def.end())
-                    b->use.insert(u);
 
-            for (auto &d : i->def)
-                if (d->type != Operand::Type::Imm && b->use.find(d) == b->use.end())
-                    b->def.insert(d);
-        }
-        b->liveIn = b->use;
-        b->liveOut.clear();
-    }
-
-
-    // calculate liveOut and liveIn
-    bool flag = true; // change flag
-    while (flag) {
-        flag = false;
-        // in reverse topological order
-        for (auto iter = function->bList.rbegin(); iter != function->bList.rend(); iter++) {
-            auto *block = *iter;
-            //  newOut := ∪ liveIn(s), s ∈ succ(n)
-            OperandSet newOut;
-            for (auto &s : block->succ())
-                for (auto &i : s->liveIn)
-                    newOut.insert(i);
-            // liveOut changed <=> liveIn changed
-            if (newOut != block->liveOut) {
-                flag = true;
-                block->liveOut = std::move(newOut);
-                // use(n) ∪ (liveOut(n) − def (n))
-                block->liveIn = block->use;
-                for (const auto &i:block->liveOut) {
-                    if (block->def.find(i) == block->def.end())
-                        block->liveIn.insert(i);
-                }
-            }
-        }
-    }
-    for (const auto &i:function->bList.front()->liveIn)
-        if (i->type == Operand::Type::VReg)
-            throw std::runtime_error("first block should not have any live VReg!");
-}
 
 void asm_arm::RegisterAllocator::addEdge(asm_arm::Operand *u, asm_arm::Operand *v) {
     if (adjSet.find({u, v}) == adjSet.cend() && u != v) {
@@ -434,12 +387,14 @@ void asm_arm::RegisterAllocator::freeze() {
     simplifyWorklist.push_back(u);
     freezeMoves(u);
 }
-#include <iostream>
+
+#include <asm_arm/optimization.h>
+
 void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
     this->function = func;
     grabInitialVRegs();
     while(true) {
-        livenessAnalysis();
+        livenessAnalysis(func);
         build();
         mkWorklist();
         do {

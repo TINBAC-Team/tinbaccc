@@ -5,6 +5,7 @@
 #include <ir/passes.h>
 #include <asm_arm/builder.h>
 #include <asm_arm/asm_ops.h>
+#include <asm_arm/optimization.h>
 #include <fstream>
 
 
@@ -98,6 +99,7 @@ void tcc_sy_driver::process_asm() {
     asm_arm::Builder builder(asm_module);
 
     asm_arm::switch_branch_target(asm_module);
+    asm_arm::architecture_optimize(asm_module);
     asm_arm::allocate_register(asm_module);
     asm_arm::function_param_pointer_fixup(asm_module);
 

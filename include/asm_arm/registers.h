@@ -13,21 +13,21 @@
 namespace asm_arm {
     const int K = 12;
     typedef std::pair<Operand *, Operand *> Edge;
-    typedef std::vector<Operand *> OperandList;
+    typedef std::vector<Operand *> OperandArrayList;
     typedef std::set<Operand *> OperandSet;
     typedef std::set<Edge> EdgeSet;
     typedef std::stack<Operand *> OperandStack;
     typedef std::set<int> ColorSet;
 
     typedef std::set<Inst *> InstSet;
-    typedef std::vector<Inst *> InstList;
+    typedef std::vector<Inst *> InstArrayList;
     typedef std::set<MOVInst *> MOVInstSet;
-    typedef std::vector<MOVInst *> MOVInstList;
+    typedef std::vector<MOVInst *> MOVInstArrayList;
 
     typedef std::unordered_map<Operand *, OperandSet> Operand2OperandSet;
-    typedef std::unordered_map<Operand *, OperandList> Operand2OperandList;
+    typedef std::unordered_map<Operand *, OperandArrayList> Operand2OperandList;
     typedef std::unordered_map<Operand *, InstSet> Operand2InstSet;
-    typedef std::unordered_map<Operand *, InstList> Operand2InstList;
+    typedef std::unordered_map<Operand *, InstArrayList> Operand2InstList;
     typedef std::unordered_map<Operand *, MOVInstSet> Operand2MOVInstSet;
     typedef std::unordered_map<Operand *, Operand *> Operand2Operand;
 
@@ -39,13 +39,13 @@ namespace asm_arm {
         // Node
         OperandSet  preColored;         // machine registers, preassigned a color.
         OperandSet  initial;            // machine registers, preassigned a color.
-        OperandList simplifyWorklist;   // list of low-degree non-move-related nodes.
+        OperandArrayList simplifyWorklist;   // list of low-degree non-move-related nodes.
         OperandSet  freezeWorklist;     // low-degree move-related nodes.
         OperandSet  spillWorklist;      // high-degree nodes.
         OperandSet  spilledNodes;       // nodes marked for spilling during this round; initially empty.
         OperandSet  coalescedNodes;     // registers that have been coalesced.
         OperandSet coloredNodes;        // nodes successfully colored.
-        OperandList selectStack;        // stack containing temporaries removed from the graph.
+        OperandArrayList selectStack;        // stack containing temporaries removed from the graph.
 
         // Move Sets: for move instructions
         MOVInstSet coalescedMoves;      // moves that have been coalesced.
@@ -68,8 +68,6 @@ namespace asm_arm {
 
         asm_arm::Function *function = nullptr;
 
-
-        void livenessAnalysis();
 
         void grabInitialVRegs();
 
@@ -100,7 +98,7 @@ namespace asm_arm {
 
         void decrementDegree(Operand *m);
 
-        bool isConservative(OperandList &nodes) const;
+        bool isConservative(OperandArrayList &nodes) const;
 
         Operand *getAlias(Operand *n);
 
