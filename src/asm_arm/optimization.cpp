@@ -44,7 +44,20 @@ void asm_arm::ArchitectureOptimizer::process() {
 
 void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iterator &iter) {
     auto &inst = *iter;
-    if (inst->op != Inst::Op::ADD || inst->nop()) return;
+    Inst::Op opType;
+    switch (inst->op) {
+        case Inst::Op::ADD:
+            opType = Inst::Op::MLA;
+            break;
+        case Inst::Op::SUB:
+        case Inst::Op::RSB:
+            opType = Inst::Op::MLS;
+            break;
+        default:
+            return;
+    }
+    if (inst->nop()) return;
+
     auto validMUL = [this](Operand* node) -> BinaryInst* {
         auto maybeMULIter = getDef(node);
         // check if the operand is generated from a InstMUL
@@ -57,7 +70,8 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
         return instMUL;
     };
     auto *instADD = dynamic_cast<BinaryInst*>(inst);
-    if (auto instMUL = validMUL(instADD->lhs)) {
+    BinaryInst *instMUL, *instMUL2;
+    if ((instMUL = validMUL(instADD->lhs)) && (inst->op == Inst::Op::ADD || inst->op == Inst::Op::RSB)) {
         Operand* Rn;
         if (instADD->rhs->type == Operand::Type::Imm) {
             Rn = Operand::newVReg();
@@ -68,12 +82,12 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
         } else Rn = instADD->rhs;
         instMUL->mark_nop();
         // replace
-        *iter = new TernaryInst(Inst::Op::MLA, instADD->dst, instMUL->lhs, instMUL->rhs, Rn);
+        *iter = new TernaryInst(opType, instADD->dst, instMUL->lhs, instMUL->rhs, Rn);
         iter.operator*()->bb = this-> bb;
-    } else if (auto instMUL2 = validMUL(instADD->rhs)) {
+    } else if ((instMUL2 = validMUL(instADD->rhs)) && (inst->op == Inst::Op::ADD || inst->op == Inst::Op::SUB)) {
         instMUL2->mark_nop();
         // replace
-        *iter = new TernaryInst(Inst::Op::MLA, instADD->dst, instMUL2->lhs, instMUL2->rhs, instADD->lhs);
+        *iter = new TernaryInst(opType, instADD->dst, instMUL2->lhs, instMUL2->rhs, instADD->lhs);
         iter.operator*()->bb = this-> bb;
     }
 }
