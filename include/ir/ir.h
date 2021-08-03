@@ -184,6 +184,7 @@ namespace ir {
         std::string name;
         bool return_int;
         BlockList bList;
+        BlockList unreachableBList;
         BlockList rpoBList;
         std::vector<FuncParam *> params;
 
@@ -244,6 +245,8 @@ namespace ir {
 
         std::vector<BasicBlock *> succ();
 
+        void removeParent(BasicBlock *bb);
+
     private:
         Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 
@@ -286,6 +289,8 @@ namespace ir {
         int InsertElem(BasicBlock *basicblock, Value *value);
 
         void replaceBB(BasicBlock *oldbb, BasicBlock *newbb);
+
+        void removeBB(BasicBlock *bb);
 
         void print(std::ostream &os) const;
 

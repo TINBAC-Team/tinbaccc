@@ -252,6 +252,16 @@ namespace ir {
         return {};
     }
 
+    void BasicBlock::removeParent(BasicBlock *bb) {
+        for (auto &inst:iList) {
+            auto x = dynamic_cast<ir::PhiInst *>(inst);
+            if (!x)
+                break;
+            x->removeBB(bb);
+        }
+        parentInsts.remove_if(([&](Value *inst) { return inst->bb == bb; }));
+    }
+
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
@@ -358,6 +368,10 @@ namespace ir {
             InsertElem(newbb, phicont[oldbb]->value);
             phicont.erase(oldbb);
         }
+    }
+
+    void PhiInst::removeBB(BasicBlock *bb) {
+        phicont.erase(bb);
     }
 
     CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
