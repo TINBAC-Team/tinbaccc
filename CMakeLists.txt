@@ -39,7 +39,12 @@ set(IR_PASSES_SOURCES
         src/ir/passes/rpo.cpp)
 
 set(ASM_SOURCES
-        src/asm_arm/instructions.cpp src/asm_arm/builder.cpp src/asm_arm/print.cpp src/asm_arm/registers.cpp src/asm_arm/function_fixup.cpp)
+        src/asm_arm/instructions.cpp
+        src/asm_arm/builder.cpp
+        src/asm_arm/print.cpp
+        src/asm_arm/registers.cpp
+        src/asm_arm/function_fixup.cpp
+        src/asm_arm/optimization.cpp)
 
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}

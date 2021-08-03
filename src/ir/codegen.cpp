@@ -196,7 +196,10 @@ namespace ir {
         } else {
             asm_arm::Inst::Op op = asm_arm::Inst::Op::MUL;
             asm_arm::Operand *rhs = builder.getOrCreateOperandOfValue(ValueR.value);
-            res = builder.createBinaryInst(op, lhs, rhs)->dst;
+            auto mulInst = builder.createBinaryInst(op, lhs, rhs);
+            mulInst->dst->inst = mulInst;
+            res = mulInst->dst;
+
         }
         builder.setOperandOfValue(this, res);
         return res;

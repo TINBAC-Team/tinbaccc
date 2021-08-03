@@ -19,6 +19,8 @@ namespace ir {
 namespace asm_arm {
     class BasicBlock;
 
+    class Inst;
+
     enum class Reg {
         r0 = 0,
         r1,
@@ -50,6 +52,8 @@ namespace asm_arm {
         } type;
         Reg reg;
         int val;
+        Inst* inst = nullptr;
+
         static Operand *precolored_reg_map[static_cast<int>(Reg::MAX)];
 
         Operand(Type t) : type(t) {};
