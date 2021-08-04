@@ -39,7 +39,7 @@ set(IR_PASSES_SOURCES
         src/ir/passes/function_ops.cpp
         src/ir/passes/fixups.cpp
         src/ir/passes/rpo.cpp
-        src/ir/passes/gvn.cpp
+        src/ir/passes/gvn_gcm.cpp
         src/ir/passes/basicblock_ops.cpp)
 
 set(ASM_SOURCES

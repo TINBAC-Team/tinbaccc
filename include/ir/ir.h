@@ -247,6 +247,8 @@ namespace ir {
 
         void removeParent(BasicBlock *bb);
 
+        bool operator < (const BasicBlock &x) const;
+
     private:
         Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
 

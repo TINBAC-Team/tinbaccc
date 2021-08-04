@@ -1,10 +1,7 @@
-//
-// Created by GnSight on 2021/08/02.
-//
-
-#include "ir/passes/gvn.h"
+#include "ir/passes/gvn_gcm.h"
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <algorithm>
 
@@ -15,7 +12,7 @@ namespace ir_passes {
         std::vector<std::pair<ir::Value *, ir::Value *> > vn;
         ir::Function *func;
 
-        GVNPass(ir::Function *f) : func(f) {}
+        explicit GVNPass(ir::Function *f) : func(f) {}
 
         std::map<std::vector<std::pair<ir::OpType, std::vector<ir::Value *> > >, int> inst_input;
 
@@ -106,10 +103,8 @@ namespace ir_passes {
                 for (auto &inst:bb->iList) {
                     auto inst_v = get_vn(inst);
                     if (inst_v != inst) {
-                        for (auto &i:inst->uList) {
-                            i->use(inst_v);
-                        }
-                        bb->eraseInst((ir::Inst*) inst);
+                        inst->replaceWith(inst_v);
+                        bb->eraseInst((ir::Inst *) inst);
                     }
                 }
             }
@@ -118,9 +113,81 @@ namespace ir_passes {
 
     };
 
+    class GCMPass {
+    public:
+        std::unordered_set<ir::Value *> vis;
+        ir::Function *func;
+
+        explicit GCMPass(ir::Function *f) : func(f) {}
+
+        ir::BasicBlock* depth_max(ir::BasicBlock* a,ir::BasicBlock *b){
+            return (*a)<(*b) ? b : a;
+        }
+        void run_pass() {
+
+        }
+
+        ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
+            if (a == nullptr) return b;
+            while (a->dom_tree_depth < b->dom_tree_depth) {
+                a = a->idom;
+            }
+            while (b->dom_tree_depth < a->dom_tree_depth) {
+                b = b->idom;
+            }
+            while (a != b) {
+                a = a->idom;
+                b = b->idom;
+            }
+            return a;
+        }
+
+        void move_inst(ir::Value* _inst, ir::BasicBlock* block){
+            if(auto inst = dynamic_cast<ir::Inst*>(_inst)){
+                inst->bb->eraseInst(inst);
+                inst->bb = block;
+                block->InsertAtEnd(inst);
+            }
+        }
+
+        void schedule_early(ir::Value *inst) {
+            if (vis.find(inst) != vis.end()) return;
+            vis.insert(inst);
+           ir::BasicBlock *block = func->bList.front();
+            block = schedule_early_for_all_inputs(inst);
+            move_inst(inst,block);
+        }
+
+        //returns the deepest input's bb
+        ir::BasicBlock *schedule_early_for_all_inputs(ir::Value *_inst) {
+            ir::BasicBlock *ret = func->bList.front();
+            if (auto inst = dynamic_cast<ir::GetElementPtrInst *>(_inst)) {
+                schedule_early(inst->arr.value);
+                ret = depth_max(ret, inst->arr.value->bb);
+                for (auto &i:inst->dims) {
+                    schedule_early(i.value);
+                    ret = depth_max(ret, i.value->bb);
+                }
+            }
+            if (auto inst = dynamic_cast<ir::BinaryInst *>(_inst)) {
+                schedule_early(inst->ValueL.value);
+                ret = depth_max(ret, inst->ValueL.value->bb);
+                schedule_early(inst->ValueR.value);
+                ret = depth_max(ret, inst->ValueR.value->bb);
+            }
+            return ret;
+        }
+    };
+
     void gvn(ir::Module *module) {
         for (auto &i:module->functionList)
             if (!i->bList.empty())
                 GVNPass(i).run_pass();
+    }
+
+    void gcm(ir::Module *module) {
+        for (auto &i:module->functionList)
+            if (!i->bList.empty())
+                GCMPass(i).run_pass();
     }
 }

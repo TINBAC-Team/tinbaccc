@@ -262,6 +262,10 @@ namespace ir {
         parentInsts.remove_if(([&](Value *inst) { return inst->bb == bb; }));
     }
 
+    bool BasicBlock::operator<(const BasicBlock &x) const {
+        return dom_tree_depth < x.dom_tree_depth;
+    }
+
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
