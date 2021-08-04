@@ -6,6 +6,8 @@
 void asm_arm::RegisterAllocator::grabInitialVRegs() {
     for (const auto &b : function->bList) {
         for (const auto &i:b->insts) {
+            if (i->nop())
+                continue;
             for (auto &op :i->def)
                 if (op->type == Operand::Type::VReg)
                     initial.insert(op);
@@ -21,6 +23,8 @@ void asm_arm::RegisterAllocator::build() {
         auto &live = b->liveOut;
         for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
             auto *inst = *iter;
+            if (inst->nop())
+                continue;
             if (auto *movInst = dynamic_cast<MOVInst *>(inst)) {
                 // live := live\use(I)
                 for (const auto &x : movInst->use)
@@ -292,6 +296,8 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
         Operand *new_op = Operand::newVReg();
         for (auto &bb:function->bList) {
             for (auto inst_it = bb->insts.begin(); inst_it != bb->insts.end(); inst_it++) {
+                if ((*inst_it)->nop())
+                    continue;
                 if ((*inst_it)->replace_use(v, new_op)) {
                     Operand *ldr_offs_op;
                     if (offs < 4096) {

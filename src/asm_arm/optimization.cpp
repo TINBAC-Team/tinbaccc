@@ -38,6 +38,8 @@ void asm_arm::ArchitectureOptimizer::build() {
 void asm_arm::ArchitectureOptimizer::process() {
     build();
     for(auto iter = bb->insts.begin();iter != bb->insts.cend();iter++) {
+        if ((*iter)->nop())
+            continue;
         tryCombineMLA(iter);
     }
 }
