@@ -92,19 +92,15 @@ namespace ir_passes {
 
         //it is O(n^2)
         void run_pass() {
-            int inst_count = 100; // number of instructions
-            for (auto &bb:func->bList) {
-                inst_count += bb->iList.size();
-            }
-
+            int inst_count = func->getInstCount() + 100; // number of instructions
             vn.reserve(inst_count);
 
             for (auto &bb:func->bList) {
-                for (auto &inst:bb->iList) {
-                    auto inst_v = get_vn(inst);
-                    if (inst_v != inst) {
-                        inst->replaceWith(inst_v);
-                        bb->eraseInst((ir::Inst *) inst);
+                for (auto inst = bb->iList.begin(); inst != bb->iList.end(); inst++) {
+                    auto inst_v = get_vn(*inst);
+                    if (inst_v != *inst) {
+                        (*inst)->replaceWith(inst_v);
+                        inst = bb->iList.erase(inst);
                     }
                 }
             }
@@ -115,16 +111,46 @@ namespace ir_passes {
 
     class GCMPass {
     public:
-        std::unordered_set<ir::Value *> vis;
+        std::unordered_set<ir::Value *> vis_early;
+        std::unordered_set<ir::Value *> vis_late;
         ir::Function *func;
 
         explicit GCMPass(ir::Function *f) : func(f) {}
 
-        ir::BasicBlock* depth_max(ir::BasicBlock* a,ir::BasicBlock *b){
-            return (*a)<(*b) ? b : a;
+        ir::BasicBlock *depth_max(ir::BasicBlock *a, ir::BasicBlock *b) {
+            if (a == nullptr && b == nullptr) throw std::runtime_error("Requesting max depth of two null BB");
+            if (a == nullptr) return b;
+            if (b == nullptr) return a;
+            return (*a) < (*b) ? b : a;
         }
-        void run_pass() {
 
+        void run_pass() {
+            //saving all instruction's ptr, or the move would cause problem
+            std::vector<ir::Value *> insts;
+            int inst_count = func->getInstCount() + 100; // number of instructions
+            insts.reserve(inst_count);
+            vis_early.reserve(inst_count);
+            vis_late.reserve(inst_count);
+            for (auto &bb:func->bList) {
+                for (auto &inst:bb->iList) {
+                    insts.emplace_back(inst);
+                }
+            }
+            for (auto &inst:insts) {
+                if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
+                    vis_early.emplace(inst);
+                    schedule_early_for_all_inputs(inst);
+                }
+            }
+
+            for (auto &inst:insts) {
+                if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
+                    vis_late.emplace(inst);
+                    for(auto &use:inst->uList){
+                        schedule_late(inst);
+                    }
+                }
+            }
         }
 
         ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
@@ -151,11 +177,11 @@ namespace ir_passes {
         }
 
         void schedule_early(ir::Value *inst) {
-            if (vis.find(inst) != vis.end()) return;
-            vis.insert(inst);
-           ir::BasicBlock *block = func->bList.front();
+            if (vis_early.find(inst) != vis_early.end()) return;
+            vis_early.insert(inst);
+            ir::BasicBlock *block;
             block = schedule_early_for_all_inputs(inst);
-            move_inst(inst,block);
+            move_inst(inst, block);
         }
 
         //returns the deepest input's bb
@@ -175,7 +201,43 @@ namespace ir_passes {
                 schedule_early(inst->ValueR.value);
                 ret = depth_max(ret, inst->ValueR.value->bb);
             }
+
+            if (auto inst = dynamic_cast<ir::ReturnInst *>(_inst)) {
+                schedule_early(inst->val.value);
+                ret = depth_max(ret, inst->val.value->bb);
+            }
+
+            if (auto inst = dynamic_cast<ir::LoadInst *>(_inst)) {
+                schedule_early(inst->ptr.value);
+                ret = depth_max(ret, inst->ptr.value->bb);
+            }
             return ret;
+        }
+
+        void schedule_late(ir::Value *inst) {
+            if (vis_late.find(inst) != vis_late.end()) return;
+            vis_late.insert(inst);
+            ir::BasicBlock *lca = nullptr;
+            for (auto &y:inst->uList) {
+                schedule_late(y->value);
+                ir::BasicBlock *use = y->value->bb;
+                if (auto phiinst = dynamic_cast<ir::PhiInst *>(inst)) {
+                    auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(), [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
+                        return pair.second.get() == y;
+                    });
+                    use = it->first;
+                }
+                lca = find_lca(lca, use);
+            }
+            ir::BasicBlock *best = lca;
+            while (lca != inst->bb) {
+                if (lca->loop_deep < best->loop_deep) {
+                    best = lca;
+                }
+                lca = lca->idom;
+            }
+            move_inst(inst, best);
+
         }
     };
 

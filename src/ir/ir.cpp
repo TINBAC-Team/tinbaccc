@@ -266,6 +266,8 @@ namespace ir {
         return dom_tree_depth < x.dom_tree_depth;
     }
 
+
+
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
@@ -443,14 +445,21 @@ namespace ir {
             auto par = i->codegen(*this);
             instp->params.emplace_back(instp, par);
             //for pointer, llvm ir requires a "i32 0" in the back of the GEP
-            auto gep = dynamic_cast<GetElementPtrInst*>(par);
-            if(gep)
-            {
-                gep->dims.emplace_back(gep,getConstant(0));
+            auto gep = dynamic_cast<GetElementPtrInst *>(par);
+            if (gep) {
+                gep->dims.emplace_back(gep, getConstant(0));
             }
         }
 
         curblock->InsertAtEnd(instp);
         return instp;
+    }
+
+    int Function::getInstCount() {
+        int ret = 0;
+        for (auto &bb:bList) {
+            ret += (int) bb->iList.size();
+        }
+        return ret;
     }
 }

@@ -5,7 +5,7 @@
 #include <map>
 
 namespace asm_arm {
-    const int MAX_POOL_COVERAGE = 900;
+    const int MAX_POOL_COVERAGE = 950;
     Builder::Builder(Module *m) : module(m) {}
 
     Operand * Builder::getOperandOfValue(ir::Value *val) {

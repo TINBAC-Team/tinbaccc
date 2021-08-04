@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <map>
 #include <memory>
 #include <string>
 #include <iostream>
@@ -45,7 +46,7 @@ namespace ir {
     class PhiInst;
 
     typedef std::unordered_map<int, ConstValue *> ConstPool;
-    typedef std::unordered_map<BasicBlock *, std::unique_ptr<Use>> PhiContent;
+    typedef std::map<BasicBlock *, std::unique_ptr<Use>> PhiContent;
 
     typedef std::list<Value *> instList;
     typedef std::set<Use *> UseList;
@@ -207,6 +208,8 @@ namespace ir {
         void codegen(asm_arm::Builder &builder);
 
         bool is_extern() const { return bList.empty(); }
+
+        int getInstCount();
     };
 
     class BasicBlock {
@@ -227,6 +230,7 @@ namespace ir {
         // immediate dominator
         BasicBlock *idom;
 
+
         int InsertAtEnd(Value *value);
 
         int InsertAtFront(Value *value);
@@ -238,6 +242,7 @@ namespace ir {
         void sealBlock(IRBuilder &builder);
 
         void eraseInst(Inst *inst);
+
 
         void print(std::ostream &os) const;
 
