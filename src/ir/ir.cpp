@@ -101,14 +101,16 @@ namespace ir {
         for (auto cur_use:uList) {
             if (cur_use->user == this || cur_use->value != this)
                 continue;
-            cur_use->use(val);
+            cur_use->use(val, false);
         }
         if(clear_ulist)
             uList.clear();
     }
 
     Value::~Value() {
-
+        for (auto &u:uList)
+            if (u->value == this)
+                u->value = nullptr;
     }
 
     Use::Use(Value *_user, Value *_value) : value(nullptr) {
@@ -117,7 +119,9 @@ namespace ir {
             use(_value);
     }
 
-    void Use::use(Value *v) {
+    void Use::use(Value *v, bool remove_from_user) {
+        if(remove_from_user)
+            removeFromUList();
         value = v;
         v->addUse(this);
     }
@@ -358,7 +362,6 @@ namespace ir {
 
     int PhiInst::InsertElem(BasicBlock *basicblock, Value *value) {
         phicont[basicblock] = std::make_unique<Use>(this, value);
-        new Use(this, value);
         return 0;
     }
 
@@ -390,7 +393,7 @@ namespace ir {
     }
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls) :
-            AccessInst(OpType::GETELEMPTR), arr(this, _arr){
+            AccessInst(OpType::GETELEMPTR), arr(this, _arr) {
         if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value))
             decl = arr_val->decl;
         else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value))
@@ -400,7 +403,7 @@ namespace ir {
         else
             decl = nullptr;
 
-        dims.reserve(_dims.size()+1);
+        dims.reserve(_dims.size() + 1);
         for (auto &i:_dims) {
             dims.emplace_back(this, i);
         }
@@ -414,8 +417,7 @@ namespace ir {
     }
 
 
-
-    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, std::vector<Value*> dims, std::vector<int> muls) {
+    Value *IRBuilder::CreateGetElementPtrInst(Value *arr, std::vector<Value *> dims, std::vector<int> muls) {
         auto instp = new GetElementPtrInst(arr, dims, std::move(muls));
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
@@ -440,8 +442,7 @@ namespace ir {
         auto *curblock = GetCurBlock();
         // XXX: should we convert it to unique_ptr instead?
         instp->params.reserve(params.size());
-        for (auto &i:params)
-        {
+        for (auto &i:params) {
             auto par = i->codegen(*this);
             instp->params.emplace_back(instp, par);
             //for pointer, llvm ir requires a "i32 0" in the back of the GEP

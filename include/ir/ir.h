@@ -154,7 +154,7 @@ namespace ir {
 
         ~Use() { removeFromUList(); }
 
-        void use(Value *v);
+        void use(Value *v, bool remove_from_user = true);
 
         void removeFromUList();
     };
