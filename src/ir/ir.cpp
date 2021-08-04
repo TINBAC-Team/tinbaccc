@@ -151,6 +151,17 @@ namespace ir {
         return 0;
     }
 
+    int BasicBlock::InsertBeforeLast(Value *value){
+        if(iList.empty())
+        {
+            return InsertAtEnd(value);
+        }
+        auto it = iList.rbegin();
+        it++;
+        iList.insert(it.base(),value);
+        return 0;
+    }
+
     int BasicBlock::InsertAtFront(Value *value) {
         iList.push_front(value);
         value->bb = this;

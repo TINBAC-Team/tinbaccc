@@ -233,6 +233,8 @@ namespace ir {
 
         int InsertAtEnd(Value *value);
 
+        int InsertBeforeLast(Value *value);
+
         int InsertAtFront(Value *value);
 
         void addParentInst(Inst *inst);

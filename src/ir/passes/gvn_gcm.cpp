@@ -137,17 +137,14 @@ namespace ir_passes {
                 }
             }
             for (auto &inst:insts) {
-                if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
-                    vis_early.emplace(inst);
-                    schedule_early_for_all_inputs(inst);
-                }
+                schedule_early(inst);
             }
 
             for (auto &inst:insts) {
                 if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
                     vis_late.emplace(inst);
                     for(auto &use:inst->uList){
-                        schedule_late(inst);
+                        //schedule_late(inst);
                     }
                 }
             }
@@ -169,49 +166,60 @@ namespace ir_passes {
         }
 
         void move_inst(ir::Value* _inst, ir::BasicBlock* block){
+
             if(auto inst = dynamic_cast<ir::Inst*>(_inst)){
+                if(inst->bb == block) return;
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
-                block->InsertAtEnd(inst);
+                block->InsertAtFront(inst);
+            }
+        }
+        bool is_pinned(ir::Value* inst){
+            return !(dynamic_cast<ir::GetElementPtrInst*>(inst) || dynamic_cast<ir::BinaryInst*>(inst));
+        }
+        void schedule_deeper(ir::Value* i, ir::Value* x){
+            if(is_pinned(i)) return;
+            if(!x || !x->bb) return;
+            if(i->bb->dom_tree_depth < x->bb->dom_tree_depth){
+                move_inst(i,x->bb);
             }
         }
 
-        void schedule_early(ir::Value *inst) {
-            if (vis_early.find(inst) != vis_early.end()) return;
-            vis_early.insert(inst);
-            ir::BasicBlock *block;
-            block = schedule_early_for_all_inputs(inst);
-            move_inst(inst, block);
-        }
-
-        //returns the deepest input's bb
-        ir::BasicBlock *schedule_early_for_all_inputs(ir::Value *_inst) {
-            ir::BasicBlock *ret = func->bList.front();
+        void schedule_early(ir::Value *_inst) {
+            if (vis_early.find(_inst) != vis_early.end()) return;
+            vis_early.insert(_inst);
+            ir::BasicBlock *block = func->bList.front();
+            if(!is_pinned(_inst)) move_inst(_inst,block);
             if (auto inst = dynamic_cast<ir::GetElementPtrInst *>(_inst)) {
                 schedule_early(inst->arr.value);
-                ret = depth_max(ret, inst->arr.value->bb);
+                schedule_deeper(inst,inst->arr.value);
                 for (auto &i:inst->dims) {
                     schedule_early(i.value);
-                    ret = depth_max(ret, i.value->bb);
+                    schedule_deeper(inst,i.value);
                 }
             }
             if (auto inst = dynamic_cast<ir::BinaryInst *>(_inst)) {
                 schedule_early(inst->ValueL.value);
-                ret = depth_max(ret, inst->ValueL.value->bb);
+                schedule_deeper(inst,inst->ValueL.value);
                 schedule_early(inst->ValueR.value);
-                ret = depth_max(ret, inst->ValueR.value->bb);
+                schedule_deeper(inst,inst->ValueR.value);
             }
 
             if (auto inst = dynamic_cast<ir::ReturnInst *>(_inst)) {
                 schedule_early(inst->val.value);
-                ret = depth_max(ret, inst->val.value->bb);
+                schedule_deeper(inst,inst->val.value);
             }
 
             if (auto inst = dynamic_cast<ir::LoadInst *>(_inst)) {
                 schedule_early(inst->ptr.value);
-                ret = depth_max(ret, inst->ptr.value->bb);
+                schedule_deeper(inst,inst->ptr.value);
             }
-            return ret;
+            if (auto inst = dynamic_cast<ir::StoreInst *>(_inst)) {
+                schedule_early(inst->ptr.value);
+                schedule_deeper(inst,inst->ptr.value);
+                schedule_early(inst->val.value);
+                schedule_deeper(inst,inst->val.value);
+            }
         }
 
         void schedule_late(ir::Value *inst) {
