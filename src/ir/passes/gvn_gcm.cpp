@@ -124,6 +124,30 @@ namespace ir_passes {
             return (*a) < (*b) ? b : a;
         }
 
+        /*void LCM_schedule(std::unordered_set<ir::Value *> &vis,ir::BasicBlock *bb, ir::Value *inst) {
+            if (vis.find(inst) != vis.end()) return;
+            vis.insert(inst);
+            bb->eraseInst((ir::Inst *) inst);
+            bb->InsertAtEnd(inst);
+            for (auto &use:inst->uList) {
+                if (use->user->bb == bb) {
+                    LCM_schedule(vis,bb,use->user);
+                }
+            }
+        }*/
+
+        /*void LCM(ir::BasicBlock *bb) {
+            std::vector<ir::Value *> insts;
+            std::unordered_set<ir::Value *> vis;
+            insts.reserve(bb->iList.size() + 10);
+            for (auto &inst:bb->iList) {
+                insts.emplace_back(inst);
+            }
+            for (auto &i:insts) {
+                //LCM_schedule(vis,bb, i);
+            }
+        }*/
+
         void run_pass() {
             //saving all instruction's ptr, or the move would cause problem
             std::vector<ir::Value *> insts;
@@ -143,11 +167,14 @@ namespace ir_passes {
             for (auto &inst:insts) {
                 if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
                     vis_late.emplace(inst);
-                    for(auto &use:inst->uList){
-                        //schedule_late(inst);
+                    for (auto &use:inst->uList) {
+                        schedule_late(inst);
                     }
                 }
             }
+            /*for (auto &bb:func->bList) {
+                LCM(bb);
+            }*/
         }
 
         ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
@@ -165,20 +192,21 @@ namespace ir_passes {
             return a;
         }
 
-        void move_inst(ir::Value* _inst, ir::BasicBlock* block){
+        bool is_pinned(ir::Value *inst) {
+            return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
+        }
 
-            if(auto inst = dynamic_cast<ir::Inst*>(_inst)){
-                if(inst->bb == block) return;
+        void move_inst(ir::Value *_inst, ir::BasicBlock *block) {
+            if (auto inst = dynamic_cast<ir::Inst *>(_inst)) {
+                if (inst->bb == block) return;
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
-                block->InsertAtFront(inst);
+                block->InsertBeforeLast(inst);
             }
         }
-        bool is_pinned(ir::Value* inst){
-            return !(dynamic_cast<ir::GetElementPtrInst*>(inst) || dynamic_cast<ir::BinaryInst*>(inst));
-        }
+
+
         void schedule_deeper(ir::Value* i, ir::Value* x){
-            if(is_pinned(i)) return;
             if(!x || !x->bb) return;
             if(i->bb->dom_tree_depth < x->bb->dom_tree_depth){
                 move_inst(i,x->bb);
@@ -189,8 +217,8 @@ namespace ir_passes {
             if (vis_early.find(_inst) != vis_early.end()) return;
             vis_early.insert(_inst);
             ir::BasicBlock *block = func->bList.front();
-            if(!is_pinned(_inst)) move_inst(_inst,block);
             if (auto inst = dynamic_cast<ir::GetElementPtrInst *>(_inst)) {
+                move_inst(_inst, block);
                 schedule_early(inst->arr.value);
                 schedule_deeper(inst,inst->arr.value);
                 for (auto &i:inst->dims) {
@@ -199,26 +227,38 @@ namespace ir_passes {
                 }
             }
             if (auto inst = dynamic_cast<ir::BinaryInst *>(_inst)) {
+                move_inst(_inst, block);
                 schedule_early(inst->ValueL.value);
                 schedule_deeper(inst,inst->ValueL.value);
                 schedule_early(inst->ValueR.value);
                 schedule_deeper(inst,inst->ValueR.value);
             }
 
-            if (auto inst = dynamic_cast<ir::ReturnInst *>(_inst)) {
-                schedule_early(inst->val.value);
-                schedule_deeper(inst,inst->val.value);
-            }
-
             if (auto inst = dynamic_cast<ir::LoadInst *>(_inst)) {
+                ir::BasicBlock* old_bb = _inst->bb;
                 schedule_early(inst->ptr.value);
-                schedule_deeper(inst,inst->ptr.value);
+                //schedule_deeper(inst,inst->ptr.value);
+                move_inst(_inst, block);
+                move_inst(_inst, old_bb);
             }
             if (auto inst = dynamic_cast<ir::StoreInst *>(_inst)) {
+                ir::BasicBlock* old_bb = _inst->bb;
+
                 schedule_early(inst->ptr.value);
-                schedule_deeper(inst,inst->ptr.value);
+                //schedule_deeper(inst,inst->ptr.value);
                 schedule_early(inst->val.value);
-                schedule_deeper(inst,inst->val.value);
+                //schedule_deeper(inst,inst->val.value);
+                move_inst(_inst, block);
+                move_inst(_inst, old_bb);
+            }
+            if (auto inst = dynamic_cast<ir::CallInst *>(_inst)) {
+                ir::BasicBlock* old_bb = _inst->bb;
+                for(auto &i:inst->params){
+                    schedule_early(i.value);
+                }
+
+                move_inst(_inst, block);
+                move_inst(_inst, old_bb);
             }
         }
 
@@ -257,7 +297,9 @@ namespace ir_passes {
 
     void gcm(ir::Module *module) {
         for (auto &i:module->functionList)
-            if (!i->bList.empty())
+            if (!i->bList.empty()) {
                 GCMPass(i).run_pass();
+            }
+
     }
 }
