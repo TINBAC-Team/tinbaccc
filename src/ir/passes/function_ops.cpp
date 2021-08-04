@@ -220,7 +220,8 @@ namespace ir_passes {
                     x->replaceBB(call_bb, ret_bb);
                 }
             }
-            // FIXME: memory leak of current call instruction
+            // 9. destruct unreachable call instruction
+            delete call_tgt.call;
             return;
         }
     }

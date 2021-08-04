@@ -9,8 +9,10 @@ namespace ir_passes {
                     for (auto u:inst->uList)
                         if (!u->user)
                             rm_uses.push_back(u);
-                    for (auto rmu:rm_uses)
+                    for (auto rmu:rm_uses) {
                         inst->uList.erase(rmu);
+                        rmu->value = nullptr;
+                    }
                 }
             }
         }
