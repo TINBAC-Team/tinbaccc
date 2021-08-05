@@ -19,6 +19,8 @@ namespace ast {
         ir::Value *offset_val = builder.getConstant(0);
         size_t decl_array_dim_cnt = decl->array_dims.size();
         size_t array_dim_cnt = array_dims.size();
+        if (array_dims.empty() && decl->is_fparam)
+            return decl->addr;
         if (array_dim_cnt > decl_array_dim_cnt)
             throw std::runtime_error("Referencing an array with incorrect dimension.");
         std::vector<ir::Value *> dim_value;
