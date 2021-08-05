@@ -303,7 +303,7 @@ namespace ir_passes {
         }
 
         void schedule_late(ir::Value *inst) {
-
+            if(!inst) return; //FIXME: Why here would be a nullptr?
             if (vis_late.find(inst) != vis_late.end())
                 return;
             vis_late.insert(inst);

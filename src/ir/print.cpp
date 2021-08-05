@@ -266,9 +266,10 @@ namespace ir {
             if (auto pGEP = dynamic_cast<ir::GetElementPtrInst *>(p.value)) {
                 pGEP->print_llvm_type(os, pGEP->dims.size());
                 os << "* ";
-            } else if (auto pFP = dynamic_cast<ir::FuncParam *>(p.value)) {
+            } else if (auto pFP = dynamic_cast<ir::FuncParam *>(p.value) ) {
                 pFP->print_llvm_type(os);
-                os << "* ";
+                if(pFP->decl->is_array())
+                    os << "* ";
             } else os << "i32 ";
             os << get_name_of_value(p.value);
         }
@@ -360,7 +361,7 @@ namespace ir {
 
     void FuncParam::print_llvm_type(std::ostream &os) const {
         if (decl)
-            print_llvm_arr_inner_decl(os,decl->array_dims,0);
+            print_llvm_arr_inner_decl(os,decl->array_dims,1);
         else
             throw std::runtime_error("no decl for FuncParam.");
     }
