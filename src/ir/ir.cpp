@@ -146,6 +146,28 @@ namespace ir {
 
     }
 
+    BranchInst::~BranchInst() {
+        if (true_block)
+            true_block->removeParent(this->bb);
+        if (false_block)
+            false_block->removeParent(this->bb);
+    }
+
+    JumpInst::~JumpInst() {
+        if (to)
+            to->removeParent(this->bb);
+    }
+
+    BasicBlock::~BasicBlock() {
+        if (!parentInsts.empty())
+            std::cerr << "ir: WARN! BasicBlock with predecessors destructed!" << std::endl;
+        for (auto &suc:succ())
+            suc->removeParent(this);
+        for (auto &inst:iList)
+            if (inst->bb == this)
+                delete inst;
+    }
+
     int BasicBlock::InsertAtEnd(Value *value) {
         iList.push_back(value);
         value->bb = this;

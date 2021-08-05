@@ -216,6 +216,8 @@ namespace ir {
     public:
         BasicBlock(int deep);
 
+        ~BasicBlock();
+
         int loop_deep;
 
         instList iList;
@@ -340,6 +342,8 @@ namespace ir {
                 false_block->addParentInst(this);
         }
 
+        ~BranchInst();
+
         void print(std::ostream &os) const;
 
         /**
@@ -357,6 +361,8 @@ namespace ir {
         JumpInst(BasicBlock *_to) : Inst(OpType::JUMP), to(_to) {
             to->addParentInst(this);
         };
+
+        ~JumpInst();
 
         void print(std::ostream &os) const;
 

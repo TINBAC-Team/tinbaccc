@@ -104,6 +104,25 @@ namespace ir_passes {
                         continue;
                     }
 
+                    // 4. merge BB into its predecessor
+                    // BB predecessor is determined by parentInsts and successor is determined with BB's
+                    // ending branch. To merge BBs, we erase the last jump in predecessor and add all
+                    // instructions into its predecessor including the branch in current BB.
+                    if (bb->parentInsts.size() == 1 && bb->parentInsts.front()->optype == ir::OpType::JUMP) {
+                        done = false;
+                        auto pred = bb->parentInsts.front()->bb;
+                        delete pred->iList.back();
+                        pred->iList.pop_back();
+                        auto insts = std::move(bb->iList);
+                        for (auto &i:insts)
+                            pred->InsertAtEnd(i);
+                        for (auto succ:pred->succ())
+                            succ->replacePred(bb, pred);
+                        delete bb;
+                        func->bList.erase(bb_it++);
+                        continue;
+                    }
+
                     bb_it++;
                 }
             }
