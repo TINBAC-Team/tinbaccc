@@ -103,7 +103,13 @@ namespace ir_passes {
                     if (inst_v != *inst) {
                         erase_count++;
                         (*inst)->replaceWith(inst_v);
+                        delete *inst;
+                        vn.erase(std::find_if(vn.begin(), vn.end(),
+                                              [inst](std::vector<std::pair<ir::Value *, ir::Value *> >::value_type &pair) {
+                                                  return pair.first == *inst;
+                                              }));
                         inst = bb->iList.erase(inst);
+
                     }
                 }
             }
@@ -216,11 +222,10 @@ namespace ir_passes {
         }
 
         bool is_pinned(ir::Value *inst) {
-            return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(inst)) {
                 return bininst->is_icmp();
             }
-
+            return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
 
         void move_inst(ir::Value *_inst, ir::BasicBlock *block , bool move_to_front = false) {
@@ -298,6 +303,7 @@ namespace ir_passes {
         }
 
         void schedule_late(ir::Value *inst) {
+
             if (vis_late.find(inst) != vis_late.end())
                 return;
             vis_late.insert(inst);
@@ -319,7 +325,7 @@ namespace ir_passes {
                 return;
             }
             if(inst->uList.empty()){
-                inst->bb = func->bList.back();
+                //throw std::runtime_error("GCM should not be dealing with an empty uList.");
                 return;
             }
             ir::BasicBlock *best = lca;
