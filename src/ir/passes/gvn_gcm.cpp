@@ -85,7 +85,8 @@ namespace ir_passes {
                 vn[cur].second = find_eq(gepinst);
             }
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(vn[cur].first)) {
-                vn[cur].second = find_eq(bininst);
+                if(!bininst->is_icmp())
+                    vn[cur].second = find_eq(bininst);
             }
             return vn[cur].second;
         }
@@ -216,6 +217,10 @@ namespace ir_passes {
 
         bool is_pinned(ir::Value *inst) {
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
+            if (auto bininst = dynamic_cast<ir::BinaryInst *>(inst)) {
+                return bininst->is_icmp();
+            }
+
         }
 
         void move_inst(ir::Value *_inst, ir::BasicBlock *block , bool move_to_front = false) {
@@ -249,11 +254,19 @@ namespace ir_passes {
                 }
             }
             if (auto inst = dynamic_cast<ir::BinaryInst *>(_inst)) {
-                move_inst(_inst, block);
+                ir::BasicBlock *old_bb = _inst->bb;
+                if (!inst->is_icmp())
+                    move_inst(_inst, block);
                 schedule_early(inst->ValueL.value);
-                schedule_deeper(inst,inst->ValueL.value);
+                if (!inst->is_icmp())
+                    schedule_deeper(inst, inst->ValueL.value);
                 schedule_early(inst->ValueR.value);
-                schedule_deeper(inst,inst->ValueR.value);
+                if (!inst->is_icmp())
+                    schedule_deeper(inst, inst->ValueR.value);
+                if (inst->is_icmp()) {
+                    move_inst(_inst, block);
+                    move_inst(_inst, old_bb);
+                }
             }
 
             if (auto inst = dynamic_cast<ir::LoadInst *>(_inst)) {
@@ -326,7 +339,8 @@ namespace ir_passes {
         for (auto &i:module->functionList)
             if (!i->bList.empty())
                 erase_count += GVNPass(i).run_pass();
-        std::cerr<<"GVN: Eliminated "<<erase_count<<" instructions."<<std::endl;
+        if (erase_count > 0)
+            std::cerr << "GVN: Eliminated " << erase_count << " instructions." << std::endl;
     }
 
     void gcm(ir::Module *module) {
