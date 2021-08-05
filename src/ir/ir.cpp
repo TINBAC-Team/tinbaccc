@@ -241,9 +241,8 @@ namespace ir {
         for (auto &op_it:phi->phicont)
             op_it.second->removeFromUList();
 
-        // delete phi; //We can't do this yet...
-        // eraseInst should consume this PHI
         phi->bb->eraseInst(phi);
+        delete phi;
         return same;
     }
 

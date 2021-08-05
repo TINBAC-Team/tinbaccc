@@ -5,7 +5,7 @@
 
 namespace ir_passes {
     void remove_decl_uses(ir::Module *module);
-    void remove_unreachable_bbs(ir::Module *module);
+    void simplify_cfg(ir::Module *module);
     void function_process(ir::Module *module);
     void rpo_compute(ir::Module *module);
     void dom_compute(ir::Module *module);
