@@ -195,7 +195,7 @@ namespace ast {
         builder.EntryBlock = new ir::BasicBlock(builder.loop_deep);
         builder.CreateJumpInst(builder.EntryBlock);
         builder.appendBlock(builder.EntryBlock);
-        builder.WhileContBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.WhileContBlock = new ir::BasicBlock(builder.loop_deep - 1);
         builder.TrueBlock = new ir::BasicBlock(builder.loop_deep);
         builder.FalseBlock = builder.WhileContBlock;
 
