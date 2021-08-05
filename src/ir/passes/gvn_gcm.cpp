@@ -91,7 +91,8 @@ namespace ir_passes {
         }
 
         //it is O(n^2)
-        void run_pass() {
+        int run_pass() {
+            int erase_count = 0;
             int inst_count = func->getInstCount() + 100; // number of instructions
             vn.reserve(inst_count);
 
@@ -99,11 +100,13 @@ namespace ir_passes {
                 for (auto inst = bb->iList.begin(); inst != bb->iList.end(); inst++) {
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
+                        erase_count++;
                         (*inst)->replaceWith(inst_v);
                         inst = bb->iList.erase(inst);
                     }
                 }
             }
+            return erase_count;
         }
 
 
@@ -319,9 +322,11 @@ namespace ir_passes {
     };
 
     void gvn(ir::Module *module) {
+        int erase_count = 0;
         for (auto &i:module->functionList)
             if (!i->bList.empty())
-                GVNPass(i).run_pass();
+                erase_count += GVNPass(i).run_pass();
+        std::cerr<<"GVN: Eliminated "<<erase_count<<" instructions."<<std::endl;
     }
 
     void gcm(ir::Module *module) {
