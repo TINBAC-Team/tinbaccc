@@ -306,7 +306,7 @@ namespace ir_passes {
             for (auto &y:inst->uList) {
                 schedule_late(y->user);
                 if(is_pinned(inst)) continue;
-                ir::BasicBlock *use = y->value->bb;
+                ir::BasicBlock *use = y->user->bb;
                 if (auto phiinst = dynamic_cast<ir::PhiInst *>(y->user)) {
                     auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(), [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
                         return pair.second.get() == y;
@@ -330,7 +330,7 @@ namespace ir_passes {
                 lca = lca->idom;
             }
             if(inst->bb!=best)
-                move_inst(inst, best);
+                move_inst(inst, best,true);
         }
     };
 
