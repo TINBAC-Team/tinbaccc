@@ -287,6 +287,8 @@ namespace ir {
 
         asm_arm::Operand* codegen_value(asm_arm::Builder &builder);
 
+        bool is_icmp() const;
+
     private:
         asm_arm::Operand* codegen_mod(asm_arm::Builder &builder);
 

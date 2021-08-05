@@ -157,11 +157,12 @@ namespace ir {
         {
             return InsertAtEnd(value);
         }
-        auto it = iList.rbegin();
-        it++;
-        iList.insert(it.base(),value);
+        auto it = iList.end();
+        it--;
+        iList.insert(it,value);
         return 0;
     }
+
 
     int BasicBlock::InsertAtFront(Value *value) {
         iList.push_front(value);
@@ -511,5 +512,10 @@ namespace ir {
             ret += (int) bb->iList.size();
         }
         return ret;
+    }
+
+    bool BinaryInst::is_icmp() const {
+        return optype == OpType::EQ || optype == OpType::NE || optype == OpType::SGE || optype == OpType::SGT ||
+               optype == OpType::SLE || optype == OpType::SLT;
     }
 }

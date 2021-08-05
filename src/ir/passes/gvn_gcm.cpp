@@ -124,29 +124,51 @@ namespace ir_passes {
             return (*a) < (*b) ? b : a;
         }
 
-        /*void LCM_schedule(std::unordered_set<ir::Value *> &vis,ir::BasicBlock *bb, ir::Value *inst) {
-            if (vis.find(inst) != vis.end()) return;
-            vis.insert(inst);
-            bb->eraseInst((ir::Inst *) inst);
-            bb->InsertAtEnd(inst);
-            for (auto &use:inst->uList) {
-                if (use->user->bb == bb) {
-                    LCM_schedule(vis,bb,use->user);
-                }
-            }
-        }*/
 
-        /*void LCM(ir::BasicBlock *bb) {
+        void move_icmp_back(ir::BasicBlock* bb){
             std::vector<ir::Value *> insts;
-            std::unordered_set<ir::Value *> vis;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
                 insts.emplace_back(inst);
             }
-            for (auto &i:insts) {
-                //LCM_schedule(vis,bb, i);
+            for(auto &inst:insts){
+                if(auto bininst = dynamic_cast<ir::BinaryInst*>(inst)){
+                    if(!bininst->is_icmp()) continue;
+                    if(inst->uList.size()>1) continue;
+                    for(auto &use:inst->uList){
+                        if(use->user->bb == inst->bb && dynamic_cast<ir::BranchInst*>(use->user)){
+                            move_inst(inst,inst->bb);
+                        }
+                    }
+                }
             }
-        }*/
+        }
+        void move_terminal_inst_back(ir::BasicBlock* bb){
+            std::vector<ir::Value *> insts;
+            insts.reserve(bb->iList.size() + 10);
+            for (auto &inst:bb->iList) {
+                insts.emplace_back(inst);
+            }
+            for(auto &inst:insts){
+                if(dynamic_cast<ir::ReturnInst*>(inst) || dynamic_cast<ir::BranchInst*>(inst) || dynamic_cast<ir::JumpInst*>(inst)){
+                    move_inst(inst,inst->bb);
+                }
+            }
+        }
+        void move_phi_front(ir::BasicBlock* bb){
+            int cnt = 0;
+            std::vector<ir::Value *> insts;
+            insts.reserve(bb->iList.size() + 10);
+            for (auto &inst:bb->iList) {
+                insts.emplace_back(inst);
+            }
+            for(auto inst = insts.rbegin();inst!=insts.rend();inst++){
+                if(dynamic_cast<ir::PhiInst*>(*inst)){
+                    cnt++;
+                    move_inst(*inst,(*inst)->bb,true);
+                }
+            }
+        }
 
         void run_pass() {
             //saving all instruction's ptr, or the move would cause problem
@@ -164,26 +186,23 @@ namespace ir_passes {
                 schedule_early(inst);
             }
 
-            for (auto &inst:insts) {
-                if (!dynamic_cast<ir::GetElementPtrInst *>(inst) && !dynamic_cast<ir::BinaryInst *>(inst)) {
-                    vis_late.emplace(inst);
-                    for (auto &use:inst->uList) {
-                        schedule_late(inst);
-                    }
-                }
+            for(auto inst = insts.begin();inst!=insts.end();inst++){
+                schedule_late(*inst);
             }
-            /*for (auto &bb:func->bList) {
-                LCM(bb);
-            }*/
+            for (auto &bb:func->bList) {
+                move_icmp_back(bb);
+                move_terminal_inst_back(bb);
+                move_phi_front(bb);
+            }
         }
 
         ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
             if (a == nullptr) return b;
             while (a->dom_tree_depth < b->dom_tree_depth) {
-                a = a->idom;
+                b = b->idom;
             }
             while (b->dom_tree_depth < a->dom_tree_depth) {
-                b = b->idom;
+                a = a->idom;
             }
             while (a != b) {
                 a = a->idom;
@@ -196,12 +215,12 @@ namespace ir_passes {
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
 
-        void move_inst(ir::Value *_inst, ir::BasicBlock *block) {
+        void move_inst(ir::Value *_inst, ir::BasicBlock *block , bool move_to_front = false) {
             if (auto inst = dynamic_cast<ir::Inst *>(_inst)) {
-                if (inst->bb == block) return;
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
-                block->InsertBeforeLast(inst);
+                if(move_to_front) block->InsertAtFront(inst);
+                else block->InsertAtEnd(inst);
             }
         }
 
@@ -263,19 +282,29 @@ namespace ir_passes {
         }
 
         void schedule_late(ir::Value *inst) {
-            if (vis_late.find(inst) != vis_late.end()) return;
+            if (vis_late.find(inst) != vis_late.end())
+                return;
             vis_late.insert(inst);
             ir::BasicBlock *lca = nullptr;
+
             for (auto &y:inst->uList) {
-                schedule_late(y->value);
+                schedule_late(y->user);
+                if(is_pinned(inst)) continue;
                 ir::BasicBlock *use = y->value->bb;
-                if (auto phiinst = dynamic_cast<ir::PhiInst *>(inst)) {
+                if (auto phiinst = dynamic_cast<ir::PhiInst *>(y->user)) {
                     auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(), [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
                         return pair.second.get() == y;
                     });
                     use = it->first;
                 }
                 lca = find_lca(lca, use);
+            }
+            if(is_pinned(inst)){
+                return;
+            }
+            if(inst->uList.empty()){
+                inst->bb = func->bList.back();
+                return;
             }
             ir::BasicBlock *best = lca;
             while (lca != inst->bb) {
@@ -284,8 +313,8 @@ namespace ir_passes {
                 }
                 lca = lca->idom;
             }
-            move_inst(inst, best);
-
+            if(inst->bb!=best)
+                move_inst(inst, best);
         }
     };
 
