@@ -263,17 +263,13 @@ namespace ir {
             if (!is_first)
                 os << ", ";
             is_first = false;
-            auto pGEP = dynamic_cast<ir::GetElementPtrInst *>(p.value);
-            if (pGEP){
+            if (auto pGEP = dynamic_cast<ir::GetElementPtrInst *>(p.value)) {
                 pGEP->print_llvm_type(os, pGEP->dims.size());
-                os<<"* ";
-            }
-            auto pFP = dynamic_cast<ir::FuncParam *>(p.value);
-            if (pFP){
+                os << "* ";
+            } else if (auto pFP = dynamic_cast<ir::FuncParam *>(p.value)) {
                 pFP->print_llvm_type(os);
-                os<<"* ";
-            }
-            else os << "i32 ";
+                os << "* ";
+            } else os << "i32 ";
             os << get_name_of_value(p.value);
         }
         os << ")";
