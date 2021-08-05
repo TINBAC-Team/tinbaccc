@@ -178,6 +178,8 @@ namespace ir {
         ast::Decl *decl;
 
         FuncParam(ast::Decl *d) : Value(OpType::PARAM), decl(d) {}
+
+        void print_llvm_type(std::ostream &os) const;
     };
 
     class Function {

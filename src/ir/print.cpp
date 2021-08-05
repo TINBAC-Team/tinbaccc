@@ -263,9 +263,14 @@ namespace ir {
             if (!is_first)
                 os << ", ";
             is_first = false;
-            auto par = dynamic_cast<ir::GetElementPtrInst *>(p.value);
-            if (par){
-                par->print_llvm_type(os,par->dims.size());
+            auto pGEP = dynamic_cast<ir::GetElementPtrInst *>(p.value);
+            if (pGEP){
+                pGEP->print_llvm_type(os, pGEP->dims.size());
+                os<<"* ";
+            }
+            auto pFP = dynamic_cast<ir::FuncParam *>(p.value);
+            if (pFP){
+                pFP->print_llvm_type(os);
                 os<<"* ";
             }
             else os << "i32 ";
@@ -356,6 +361,14 @@ namespace ir {
         else
             throw std::runtime_error("no decl for GEP.");
     }
+
+    void FuncParam::print_llvm_type(std::ostream &os) const {
+        if (decl)
+            print_llvm_arr_inner_decl(os,decl->array_dims,0);
+        else
+            throw std::runtime_error("no decl for FuncParam.");
+    }
+
     void GetElementPtrInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
