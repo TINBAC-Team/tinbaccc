@@ -72,6 +72,38 @@ namespace ir_passes {
                         delete phi;
                     }
 
+                    // 3. eliminate BBs with only a single unconditional branch
+                    if (bb->parentInsts.size() == 1 && bb->iList.front()->optype == ir::OpType::JUMP) {
+                        auto succ = bb->succ().front();
+                        auto pred = bb->parentInsts.front()->bb;
+                        // check if PHI in succ merges different value from pred and bb
+                        bool can_be_eliminated = true;
+                        for (auto i:succ->iList) {
+                            if (auto phi = dynamic_cast<ir::PhiInst *>(i)) {
+                                auto succ_val = phi->GetRelatedValue(pred);
+                                if (!succ_val)
+                                    continue;
+                                if (succ_val != phi->GetRelatedValue(bb)) {
+                                    can_be_eliminated = false;
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        // If this doesn't work we can't do the next step on current BB. Skip it.
+                        if (!can_be_eliminated) {
+                            bb_it++;
+                            continue;
+                        }
+                        done = false;
+                        pred->replaceSucc(bb, succ);
+                        succ->replacePred(bb, pred);
+                        func->unreachableBList.push_back(bb);
+                        func->bList.erase(bb_it++);
+                        continue;
+                    }
+
                     bb_it++;
                 }
             }

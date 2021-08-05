@@ -1,6 +1,7 @@
 #include <ir/ir.h>
 #include <ast/ast.h>
 #include <utility>
+#include <iostream>
 
 namespace ir {
 
@@ -103,7 +104,7 @@ namespace ir {
                 continue;
             cur_use->use(val, false);
         }
-        if(clear_ulist)
+        if (clear_ulist)
             uList.clear();
     }
 
@@ -120,7 +121,7 @@ namespace ir {
     }
 
     void Use::use(Value *v, bool remove_from_user) {
-        if(remove_from_user)
+        if (remove_from_user)
             removeFromUList();
         value = v;
         v->addUse(this);
@@ -274,6 +275,44 @@ namespace ir {
             x->removeBB(bb);
         }
         parentInsts.remove_if(([&](Value *inst) { return inst->bb == bb; }));
+    }
+
+    void BasicBlock::replacePred(BasicBlock *oldbb, BasicBlock *newbb) {
+        for (auto &inst:iList) {
+            auto x = dynamic_cast<ir::PhiInst *>(inst);
+            if (!x)
+                break;
+            x->replaceBB(oldbb, newbb);
+        }
+        parentInsts.remove_if(([&](Value *inst) { return inst->bb == oldbb; }));
+    }
+
+    void BasicBlock::replaceSucc(BasicBlock *oldbb, BasicBlock *newbb) {
+        if (auto branch = dynamic_cast<BranchInst *>(iList.back())) {
+            if ((branch->true_block != oldbb) && (branch->false_block != oldbb))
+                throw std::runtime_error("old bb isn't a branch target of current bb.");
+            oldbb->parentInsts.remove(branch);
+            if (branch->true_block == oldbb)
+                branch->true_block = newbb;
+            if (branch->false_block == oldbb)
+                branch->false_block = newbb;
+            if (branch->true_block == branch->false_block) {
+                std::cerr << "useless conditional branch eliminated." << std::endl;
+                eraseInst(branch);
+                newbb->parentInsts.remove(branch);
+                delete branch;
+                InsertAtEnd(new JumpInst(newbb));
+            } else {
+                newbb->addParentInst(branch);
+            }
+        } else if (auto jump = dynamic_cast<JumpInst *>(iList.back())) {
+            if (jump->to != oldbb)
+                throw std::runtime_error("old bb isn't a jump target of current bb.");
+            jump->to = newbb;
+            newbb->addParentInst(jump);
+        } else {
+            throw std::runtime_error("this bb doesn't go elsewhere.");
+        }
     }
 
     bool BasicBlock::operator<(const BasicBlock &x) const {

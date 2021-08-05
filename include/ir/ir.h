@@ -254,6 +254,12 @@ namespace ir {
 
         void removeParent(BasicBlock *bb);
 
+        // replace predecessor in PHIs and remove oldbb from parentInsts
+        void replacePred(BasicBlock *oldbb, BasicBlock *newbb);
+
+        // replace successor in branch instructions and add branch into newbb.parentInsts
+        void replaceSucc(BasicBlock *oldbb, BasicBlock *newbb);
+
         bool operator < (const BasicBlock &x) const;
 
     private:
