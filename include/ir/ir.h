@@ -185,7 +185,6 @@ namespace ir {
         std::string name;
         bool return_int;
         BlockList bList;
-        BlockList unreachableBList;
         BlockList rpoBList;
         std::vector<FuncParam *> params;
 

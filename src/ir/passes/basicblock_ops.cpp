@@ -27,7 +27,7 @@ namespace ir_passes {
                         for (auto &succ:bb->succ()) {
                             succ->removeParent(bb);
                         }
-                        func->unreachableBList.push_back(bb);
+                        delete bb;
                         func->bList.erase(bb_it++);
                         continue;
                     }
@@ -99,7 +99,7 @@ namespace ir_passes {
                         done = false;
                         pred->replaceSucc(bb, succ);
                         succ->replacePred(bb, pred);
-                        func->unreachableBList.push_back(bb);
+                        delete bb;
                         func->bList.erase(bb_it++);
                         continue;
                     }

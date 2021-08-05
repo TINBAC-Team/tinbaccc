@@ -336,6 +336,7 @@ namespace ir {
         } else {
             throw std::runtime_error("this bb doesn't go elsewhere.");
         }
+        oldbb->removeParent(this);
     }
 
     bool BasicBlock::operator<(const BasicBlock &x) const {
