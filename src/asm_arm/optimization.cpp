@@ -103,6 +103,8 @@ void asm_arm::livenessAnalysis(Function *function) {
         b->use.clear();
         b->def.clear();
         for (const auto &i:b->insts) {
+            if (i->nop())
+                continue;
             for (auto &u : i->use)
                 if (u->type != Operand::Type::Imm && b->def.find(u) == b->def.end())
                     b->use.insert(u);
