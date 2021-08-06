@@ -317,18 +317,45 @@ namespace ir {
     }
 
     asm_arm::Operand * LoadInst::codegen(asm_arm::Builder &builder) {
-        auto op = genptr(builder, ptr.value);
-        // TODO: Handle offset
-        auto inst = builder.createLDR(op, asm_arm::Operand::newImm(0));
+        asm_arm::LDRInst *inst;
+        auto ro = builder.getRegOffsOfValue(ptr.value);
+        if (ro) {
+            asm_arm::Operand *offs;
+            if (ro->offs)
+                offs = ro->offs;
+            else if (ro->const_offs < 1024)
+                offs = asm_arm::Operand::newImm(ro->const_offs * 4);
+            else
+                offs = builder.createLDR(ro->const_offs * 4)->dst;
+            inst = builder.createLDR(ro->reg, offs);
+            if (ro->offs)
+                inst->lsl = 2;
+        } else {
+            auto op = genptr(builder, ptr.value);
+            inst = builder.createLDR(op, asm_arm::Operand::newImm(0));
+        }
         builder.setOperandOfValue(this, inst->dst);
         return inst->dst;
     }
 
     asm_arm::Operand * StoreInst::codegen(asm_arm::Builder &builder) {
-        auto addrop = genptr(builder, ptr.value);
         auto valop = builder.getOrCreateOperandOfValue(val.value);
-        // TODO: Handle offset
-        builder.createSTR(valop, addrop, asm_arm::Operand::newImm(0));
+        auto ro = builder.getRegOffsOfValue(ptr.value);
+        if (ro) {
+            asm_arm::Operand *offs;
+            if (ro->offs)
+                offs = ro->offs;
+            else if (ro->const_offs < 1024)
+                offs = asm_arm::Operand::newImm(ro->const_offs * 4);
+            else
+                offs = builder.createLDR(ro->const_offs * 4)->dst;
+            auto inst = builder.createSTR(valop, ro->reg, offs);
+            if (ro->offs)
+                inst->lsl = 2;
+        } else {
+            auto addrop = genptr(builder, ptr.value);
+            builder.createSTR(valop, addrop, asm_arm::Operand::newImm(0));
+        }
         return nullptr;
     }
 
@@ -338,33 +365,58 @@ namespace ir {
         return ret;
     }
 
-    asm_arm::Operand * GetElementPtrInst::codegen(asm_arm::Builder &builder) {
-        // TODO: offset...
-        auto base = AccessInst::genptr(builder, arr.value);
-        // FIXME: This "offset" is currently calculating absolute address instead!
-        auto offset = base;
-        //auto offset = builder.createLDR(0)->dst;
-        for(int i=0;i<dims.size();i++) {
+    asm_arm::Operand *GetElementPtrInst::codegen(asm_arm::Builder &builder) {
+        auto ro = builder.getRegOffsOfValue(arr.value);
+        asm_arm::Operand *base;
+        asm_arm::Operand *offs_reg;
+        int offs_const;
+        if (ro) {
+            base = ro->reg;
+            offs_reg = ro->offs;
+            offs_const = ro->const_offs;
+        } else {
+            base = AccessInst::genptr(builder, arr.value);
+            offs_const = 0;
+            offs_reg = nullptr;
+        }
+        for (int i = 0; i < dims.size(); i++) {
             // skip zero offset
-            auto val_const = dynamic_cast<ConstValue*>(dims[i].value);
-            if(val_const && !val_const->value)
-                continue;
-            // TODO: this *4 can be done with LSL 2 in LDR/STR
-            int mul_by4 = multipliers[i] * 4;
-            int pow = __builtin_ffs(mul_by4) - 1;
-            if (1 << pow == mul_by4) {
-                auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
-                auto res = builder.createBinaryInst(asm_arm::Inst::Op::ADD, offset, dim_val);
-                res->lsl = pow;
-                offset = res->dst;
+            auto val_const = dynamic_cast<ConstValue *>(dims[i].value);
+            if (val_const) {
+                if (!val_const->value)
+                    continue;
+                if (!offs_reg) {
+                    offs_const += multipliers[i] * val_const->value;
+                    continue;
+                }
+            }
+            int pow = __builtin_ffs(multipliers[i]) - 1;
+            auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
+            if (offs_const)
+                offs_reg = builder.createLDR(offs_const)->dst;
+            if (offs_reg) {
+                if (1 << pow == multipliers[i]) {
+                    auto res = builder.createBinaryInst(asm_arm::Inst::Op::ADD, offs_reg, dim_val);
+                    res->lsl = pow;
+                    offs_reg = res->dst;
+                } else {
+                    auto dim_mul = builder.createLDR(multipliers[i])->dst;
+                    auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, dim_mul, dim_val, offs_reg);
+                    offs_reg = res->dst;
+                }
+            } else if (1 << pow == multipliers[i]) {
+                auto res = builder.createLSL(dim_val, pow);
+                offs_reg = res->dst;
             } else {
-                auto dim_mul = builder.createLDR(multipliers[i] * 4)->dst;
-                auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
-                auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, dim_mul, dim_val, offset);
-                offset = res->dst;
+                auto dim_mul = builder.createLDR(multipliers[i])->dst;
+                auto res = builder.createBinaryInst(asm_arm::Inst::Op::MUL, dim_mul, dim_val);
+                offs_reg = res->dst;
             }
         }
-        builder.setOperandOfValue(this, offset);
-        return offset;
+        if (offs_reg)
+            builder.setRegOffsOfValue(this, std::make_unique<asm_arm::RegOffs>(base, offs_reg));
+        else
+            builder.setRegOffsOfValue(this, std::make_unique<asm_arm::RegOffs>(base, offs_const));
+        return nullptr;
     }
 }
