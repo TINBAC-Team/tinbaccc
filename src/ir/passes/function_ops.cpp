@@ -91,7 +91,7 @@ namespace ir_passes {
         for (auto &func:module->functionList) {
             if (not_inlinable_func.find(func) != not_inlinable_func.end())
                 continue;
-            if (call_count[func] > 1 && func_length[func] > 100)
+            if (func_length[func] > 32)
                 continue;
             if (call_count[func] == 0)
                 continue;
