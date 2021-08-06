@@ -51,7 +51,6 @@ namespace ir {
         auto *constL = dynamic_cast<ConstValue *>(_ValueL);
         auto *constR = dynamic_cast<ConstValue *>(_ValueR);
         if (constL && constR) {
-
             return getConstant(constL->value, constR->value, optype);
         }
         auto *instp = new BinaryInst(optype, _ValueL, _ValueR);

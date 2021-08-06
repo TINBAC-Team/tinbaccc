@@ -1,4 +1,5 @@
 #include <ir/passes.h>
+#include <unordered_map>
 
 namespace ir_passes {
     void remove_decl_uses(ir::Module *module) {
@@ -17,4 +18,6 @@ namespace ir_passes {
             }
         }
     }
+
 }
+

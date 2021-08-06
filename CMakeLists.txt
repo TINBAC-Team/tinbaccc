@@ -48,7 +48,7 @@ set(ASM_SOURCES
         src/asm_arm/print.cpp
         src/asm_arm/registers.cpp
         src/asm_arm/function_fixup.cpp
-        src/asm_arm/optimization.cpp)
+        src/asm_arm/optimization.cpp src/ir/passes/dce.cpp)
 
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}
