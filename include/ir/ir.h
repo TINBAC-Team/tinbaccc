@@ -416,7 +416,7 @@ namespace ir {
     public:
         AccessInst(OpType _optype);
 
-        static asm_arm::Operand* genptr(asm_arm::Builder &builder, Value *val);
+        asm_arm::Operand *genptr(asm_arm::Builder &builder, Value *val);
     };
 
     class LoadInst : public AccessInst {

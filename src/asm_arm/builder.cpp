@@ -23,6 +23,10 @@ namespace asm_arm {
         Operand *ret = getOperandOfValue(val);
         if (ret)
             return ret;
+        if (auto ro = getRegOffsOfValue(val)) {
+            ret = genValueFromRegOffs(ro);
+            return ret;
+        }
         auto binop = dynamic_cast<ir::BinaryInst *>(val);
         if (binop)
             return binop->codegen_value(*this);
@@ -35,6 +39,42 @@ namespace asm_arm {
             throw std::runtime_error("Non-const value should have been created!");
         ret = val->codegen(*this);
         return ret;
+    }
+
+    void Builder::setRegOffsOfValue(ir::Value *val, std::unique_ptr<RegOffs> ro) {
+        regoffs_map[val] = std::move(ro);
+    }
+
+    RegOffs *Builder::getRegOffsOfValue(ir::Value *val) {
+        auto it = regoffs_map.find(val);
+        if (it != regoffs_map.end())
+            return it->second.get();
+        if (auto op = getOperandOfValue(val)) {
+            setRegOffsOfValue(val, std::make_unique<RegOffs>(op, 0));
+            return regoffs_map[val].get();
+        }
+        return nullptr;
+    }
+
+    Operand *Builder::genValueFromRegOffs(RegOffs *ro) {
+        if (ro->offs) {
+            auto inst = createBinaryInst(Inst::Op::ADD, ro->reg, ro->offs);
+            // * 4
+            inst->lsl = 2;
+            return inst->dst;
+        } else if (ro->const_offs) {
+            BinaryInst *inst;
+            if (Operand::op2Imm(ro->const_offs * 4)) {
+                inst = createBinaryInst(Inst::Op::ADD, ro->reg, Operand::newImm(ro->const_offs * 4));
+            } else {
+                auto ldr = createLDR(ro->const_offs * 4);
+                inst = createBinaryInst(Inst::Op::ADD, ro->reg, ldr->dst);
+            }
+            return inst->dst;
+        } else {
+            // zero offset
+            return ro->reg;
+        }
     }
 
     BasicBlock *Builder::getASMBBfromIRBB(ir::BasicBlock *bb) {

@@ -8,6 +8,15 @@
 #include <utility>
 
 namespace asm_arm {
+    struct RegOffs {
+        Operand *reg;
+        Operand *offs;
+        int const_offs;
+
+        RegOffs(Operand *r, Operand *o) : reg(r), offs(o), const_offs(-1) {}
+
+        RegOffs(Operand *r, int o) : reg(r), offs(nullptr), const_offs(o) {}
+    };
     class Builder {
     public:
         Module *module;
@@ -16,6 +25,7 @@ namespace asm_arm {
         std::unordered_map<ir::Value*, Operand*> value_map;
         std::unordered_map<ir::BasicBlock*, BasicBlock*> block_map;
         std::list<std::pair<BasicBlock**, ir::BasicBlock*>> block_fill_list;
+        std::unordered_map<ir::Value*, std::unique_ptr<RegOffs>> regoffs_map;
         bool params_prepared;
         struct PhiMOV {
             ir::BasicBlock* irbb;
@@ -31,6 +41,12 @@ namespace asm_arm {
         Operand *getOrCreateOperandOfValue(ir::Value* val);
 
         void setOperandOfValue(ir::Value* val, Operand *operand);
+
+        void setRegOffsOfValue(ir::Value* val, std::unique_ptr<RegOffs>);
+
+        RegOffs *getRegOffsOfValue(ir::Value* val);
+
+        Operand *genValueFromRegOffs(RegOffs * ro);
 
         BasicBlock* getASMBBfromIRBB(ir::BasicBlock* bb);
 
