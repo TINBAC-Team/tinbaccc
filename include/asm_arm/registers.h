@@ -112,6 +112,10 @@ namespace asm_arm {
 
         void rewriteProgram();
 
+        void spillByReload(Operand *op);
+
+        void spillByRecreate(Operand *op);
+
         void updateLoopDeep(BasicBlock *bb, Operand *node);
 
     public:

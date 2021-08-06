@@ -284,6 +284,59 @@ void asm_arm::RegisterAllocator::assignColors() {
         color[n] = color[getAlias(n)];
 }
 
+void asm_arm::RegisterAllocator::spillByReload(Operand *op) {
+    // allocate memory locations and generate load and store instruction for spilled node
+    int offs = function->allocate_stack(1);
+    Operand *new_op = Operand::newVReg();
+    for (auto &bb:function->bList) {
+        for (auto inst_it = bb->insts.begin(); inst_it != bb->insts.end(); inst_it++) {
+            if ((*inst_it)->nop())
+                continue;
+            if ((*inst_it)->replace_use(op, new_op)) {
+                Operand *ldr_offs_op;
+                if (offs < 4096) {
+                    ldr_offs_op = Operand::newImm(offs);
+                } else {
+                    ldr_offs_op = Operand::newVReg();
+                    auto ldrimm = new LDRInst(offs, ldr_offs_op);
+                    initial.insert(ldr_offs_op);
+                    updateLoopDeep(bb, ldr_offs_op);
+                    bb->insert(inst_it, ldrimm);
+                }
+                auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
+                ldrinst->comment << "for spilling";
+                bb->insert(inst_it, ldrinst);
+                initial.insert(new_op);
+                updateLoopDeep(bb, new_op);
+                new_op = Operand::newVReg();
+            }
+            // in case we generated spill code between function call instructions.
+            if ((*inst_it)->move_stack)
+                offs -= (*inst_it)->move_stack;
+            if ((*inst_it)->replace_def(op, new_op)) {
+                auto inst_next = std::next(inst_it);
+                Operand *str_offs_op;
+                if (offs < 4096) {
+                    str_offs_op = Operand::newImm(offs);
+                } else {
+                    str_offs_op = Operand::newVReg();
+                    auto ldrimm = new LDRInst(offs, str_offs_op);
+                    initial.insert(str_offs_op);
+                    updateLoopDeep(bb, str_offs_op);
+                    bb->insert(inst_next, ldrimm);
+                }
+                auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
+                strinst->comment << "for spilling";
+                bb->insert(inst_next, strinst);
+                initial.insert(new_op);
+                updateLoopDeep(bb, new_op);
+                new_op = Operand::newVReg();
+            }
+        }
+    }
+    delete new_op;
+}
+
 void asm_arm::RegisterAllocator::rewriteProgram() {
     // initial := coloredNodes ∪ coalescedNodes ∪ {vi}
     initial.clear();
@@ -291,56 +344,7 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                    coalescedNodes.cbegin(), coalescedNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
     for (const auto &v : spilledNodes) {
-        // allocate memory locations and generate load and store instruction for spilled node
-        int offs = function->allocate_stack(1);
-        Operand *new_op = Operand::newVReg();
-        for (auto &bb:function->bList) {
-            for (auto inst_it = bb->insts.begin(); inst_it != bb->insts.end(); inst_it++) {
-                if ((*inst_it)->nop())
-                    continue;
-                if ((*inst_it)->replace_use(v, new_op)) {
-                    Operand *ldr_offs_op;
-                    if (offs < 4096) {
-                        ldr_offs_op = Operand::newImm(offs);
-                    } else {
-                        ldr_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs, ldr_offs_op);
-                        initial.insert(ldr_offs_op);
-                        updateLoopDeep(bb, ldr_offs_op);
-                        bb->insert(inst_it, ldrimm);
-                    }
-                    auto ldrinst = new LDRInst(new_op, Operand::getReg(Reg::sp), ldr_offs_op);
-                    ldrinst->comment << "for spilling";
-                    bb->insert(inst_it, ldrinst);
-                    initial.insert(new_op);
-                    updateLoopDeep(bb, new_op);
-                    new_op = Operand::newVReg();
-                }
-                // in case we generated spill code between function call instructions.
-                if ((*inst_it)->move_stack)
-                    offs -= (*inst_it)->move_stack;
-                if ((*inst_it)->replace_def(v, new_op)) {
-                    auto inst_next = std::next(inst_it);
-                    Operand *str_offs_op;
-                    if (offs < 4096) {
-                        str_offs_op = Operand::newImm(offs);
-                    } else {
-                        str_offs_op = Operand::newVReg();
-                        auto ldrimm = new LDRInst(offs, str_offs_op);
-                        initial.insert(str_offs_op);
-                        updateLoopDeep(bb, str_offs_op);
-                        bb->insert(inst_next, ldrimm);
-                    }
-                    auto strinst = new STRInst(new_op, Operand::getReg(Reg::sp), str_offs_op);
-                    strinst->comment << "for spilling";
-                    bb->insert(inst_next, strinst);
-                    initial.insert(new_op);
-                    updateLoopDeep(bb, new_op);
-                    new_op = Operand::newVReg();
-                }
-            }
-        }
-        delete new_op;
+        spillByReload(v);
     }
     spilledNodes.clear();
     coloredNodes.clear();
