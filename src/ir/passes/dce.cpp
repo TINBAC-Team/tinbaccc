@@ -105,13 +105,6 @@ namespace ir_passes {
                     else
                         iter++;
                 }
-                for (auto &_i : bb->iList) {
-                    auto _inst = dynamic_cast<ir::Inst *>(_i);
-                    if (!inst2info[_inst]->isLiveInst()) {
-                        auto inst_p = _i;
-                        bb->iList.remove(_i);
-                    }
-                }
             }
         }
     }
