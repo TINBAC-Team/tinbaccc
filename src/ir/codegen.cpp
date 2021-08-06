@@ -148,6 +148,7 @@ namespace ir {
         auto ret = builder.createLDR(0);
         auto meet_cond = builder.createLDR(1,ret->dst);
         meet_cond->cond = asmcond;
+        meet_cond->add_use(ret->dst);
         return ret->dst;
 
     }
@@ -176,6 +177,7 @@ namespace ir {
             // The result of the previous AND can't be negative so flag N can only be set by CMP.
             auto subInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::SUB, res, res, asm_arm::Operand::newImm((1 << pow2)));
             subInst->cond=asm_arm::Inst::OpCond::MI;
+            subInst->add_use(res);
             builder.curBlock->insertAtEnd(subInst);
             builder.setOperandOfValue(this, res);
             return res;
