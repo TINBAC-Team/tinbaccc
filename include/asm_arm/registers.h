@@ -1,0 +1,123 @@
+#ifndef TINBACCC_REGISTERS_H
+#define TINBACCC_REGISTERS_H
+
+#include <set>
+#include <vector>
+#include <unordered_map>
+#include <utility>
+#include <asm_arm/instructions.h>
+#include <stack>
+#include <algorithm>
+
+
+namespace asm_arm {
+    const int K = 13;
+    typedef std::pair<Operand *, Operand *> Edge;
+    typedef std::vector<Operand *> OperandArrayList;
+    typedef std::set<Operand *> OperandSet;
+    typedef std::set<Edge> EdgeSet;
+    typedef std::stack<Operand *> OperandStack;
+    typedef std::set<int> ColorSet;
+
+    typedef std::set<Inst *> InstSet;
+    typedef std::vector<Inst *> InstArrayList;
+    typedef std::set<MOVInst *> MOVInstSet;
+    typedef std::vector<MOVInst *> MOVInstArrayList;
+
+    typedef std::unordered_map<Operand *, OperandSet> Operand2OperandSet;
+    typedef std::unordered_map<Operand *, OperandArrayList> Operand2OperandList;
+    typedef std::unordered_map<Operand *, InstSet> Operand2InstSet;
+    typedef std::unordered_map<Operand *, InstArrayList> Operand2InstList;
+    typedef std::unordered_map<Operand *, MOVInstSet> Operand2MOVInstSet;
+    typedef std::unordered_map<Operand *, Operand *> Operand2Operand;
+
+    typedef std::unordered_map<Operand *, int> Operand2Int;
+
+
+    class RegisterAllocator {
+    private:
+        // Node
+        OperandSet  preColored;         // machine registers, preassigned a color.
+        OperandSet  initial;            // machine registers, preassigned a color.
+        OperandArrayList simplifyWorklist;   // list of low-degree non-move-related nodes.
+        OperandSet  freezeWorklist;     // low-degree move-related nodes.
+        OperandSet  spillWorklist;      // high-degree nodes.
+        OperandSet  spilledNodes;       // nodes marked for spilling during this round; initially empty.
+        OperandSet  coalescedNodes;     // registers that have been coalesced.
+        OperandSet coloredNodes;        // nodes successfully colored.
+        OperandArrayList selectStack;        // stack containing temporaries removed from the graph.
+
+        // Move Sets: for move instructions
+        MOVInstSet coalescedMoves;      // moves that have been coalesced.
+        MOVInstSet constrainedMoves;    // moves whose source and target interfere.
+        MOVInstSet frozenMoves;         // moves that will no longer be considered for coalescing.
+        MOVInstSet worklistMoves;       // moves enabled for possible coalescing.
+        MOVInstSet activeMoves;         // moves not yet ready for coalescing.
+
+
+        // Graph
+        EdgeSet             adjSet;     // the symmetrical set of interference edges (u, v) in the graph.
+        Operand2OperandList adjList;    // We represent adjSet as a hash table of integer pairs.
+        Operand2Int         degree;     // an array containing the current degree of each node.
+        Operand2MOVInstSet  moveList;   // a mapping from node to the list of moves it is associated with.
+        Operand2Operand     alias;      // (u, v) has been coalesced, and v put in coalescedNodes, then alias(v) = u.
+        Operand2Int         color;      // the color chosen by the algorithm for a node.
+
+        Operand2Int         loop_deep;
+
+
+        asm_arm::Function *function = nullptr;
+
+
+        void grabInitialVRegs();
+
+        void build();
+
+        void mkWorklist();
+
+        void addEdge(Operand *u, Operand *v);
+
+        void simplify();
+
+        void coalesce();
+
+        void freeze();
+
+        void selectSpill();
+
+        void assignColors();
+
+        OperandSet adjacent(Operand *n) const;
+
+        MOVInstSet nodeMoves(Operand *n);
+
+        bool isMoveRelated(Operand *n);
+
+        bool isOK(Operand *t, Operand *r) const;
+
+
+        void decrementDegree(Operand *m);
+
+        bool isConservative(OperandArrayList &nodes) const;
+
+        Operand *getAlias(Operand *n);
+
+        void addWorkList(Operand *u);
+
+        void enableMoves(OperandSet &nodes);
+
+        void combine(Operand *u, Operand *v);
+
+        void freezeMoves(Operand *u);
+
+        void rewriteProgram();
+
+        void updateLoopDeep(BasicBlock *bb, Operand *node);
+
+    public:
+
+        void allocatedRegister(Function *func);
+
+    };
+}
+#endif //TINBACCC_REGISTERS_H
