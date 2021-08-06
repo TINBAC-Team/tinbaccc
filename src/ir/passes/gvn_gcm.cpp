@@ -354,9 +354,15 @@ namespace ir_passes {
 
     void gvn(ir::Module *module) {
         int erase_count = 0;
-        for (auto &i:module->functionList)
-            if (!i->bList.empty())
-                erase_count += GVNPass(i).run_pass();
+        for (auto &i:module->functionList) {
+            if (!i->bList.empty()) {
+                int cur_erase_count;
+                while ((cur_erase_count = GVNPass(i).run_pass())) {
+                    erase_count += cur_erase_count;
+                }
+            }
+        }
+
         if (erase_count > 0)
             std::cerr << "GVN: Eliminated " << erase_count << " instructions." << std::endl;
     }
