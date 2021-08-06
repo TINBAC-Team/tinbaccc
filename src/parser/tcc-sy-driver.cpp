@@ -76,6 +76,7 @@ void tcc_sy_driver::process_ir() {
     ir_passes::dom_compute(module);
     ir_passes::gvn(module);
     ir_passes::gcm(module);
+    ir_passes::deleteDeadInst(module);
 }
 
 void tcc_sy_driver::generate_asm() {
