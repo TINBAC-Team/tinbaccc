@@ -345,6 +345,9 @@ namespace ast {
     };
 
     class Stmt : public Node {
+    public:
+        int loop_deep = 0;
+        void validate(ValidationContext &ctx) override;
     };
 
     // Code block is a statement itself.

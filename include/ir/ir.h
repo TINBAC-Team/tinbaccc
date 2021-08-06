@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 #include <unordered_map>
+#include <map>
 #include <memory>
 #include <string>
 #include <iostream>
@@ -25,8 +26,6 @@ namespace asm_arm {
     class Builder;
 
     class Operand;
-
-
 }
 
 namespace ir {
@@ -47,7 +46,7 @@ namespace ir {
     class PhiInst;
 
     typedef std::unordered_map<int, ConstValue *> ConstPool;
-    typedef std::unordered_map<BasicBlock *, std::unique_ptr<Use>> PhiContent;
+    typedef std::map<BasicBlock *, std::unique_ptr<Use>> PhiContent;
 
     typedef std::list<Value *> instList;
     typedef std::set<Use *> UseList;
@@ -62,7 +61,7 @@ namespace ir {
 
     class Module {
     public:
-        FunctionList functionList;
+        FunctionList functionList, unusedFunctionList;
         GlobalVarList globalVarList;
 
         void codegen(asm_arm::Builder &builder);
@@ -72,7 +71,11 @@ namespace ir {
 
     class IRBuilder {
     public:
+        ConstPool const_pool;
         IRBuilder(Module *m);
+
+        // Current loop deep
+        int loop_deep = 0;
 
         Module *module;
         Function *curFunction;
@@ -113,7 +116,7 @@ namespace ir {
 
         Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params);
 
-        static Value *getConstant(int _value);
+        Value *getConstant(int _value);
 
         Value *getConstant(int valueL, int valueR, OpType optype);
     };
@@ -127,6 +130,8 @@ namespace ir {
         Value(OpType _optype);
 
         int addUse(Use *use);
+
+        void replaceWith(Value *val, bool clear_ulist = true);
 
         virtual void print(std::ostream &os) const;
 
@@ -147,7 +152,11 @@ namespace ir {
 
         Use(Value *_user, Value *_value = nullptr);
 
-        void use(Value *v);
+        ~Use() { removeFromUList(); }
+
+        void use(Value *v, bool remove_from_user = true);
+
+        void removeFromUList();
     };
 
     class GlobalVar : public Value {
@@ -176,6 +185,8 @@ namespace ir {
         std::string name;
         bool return_int;
         BlockList bList;
+        BlockList unreachableBList;
+        BlockList rpoBList;
         std::vector<FuncParam *> params;
 
         explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
@@ -184,7 +195,7 @@ namespace ir {
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
          */
-        BasicBlock *CreateBlock();
+        BasicBlock *CreateBlock(int deep);
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
@@ -197,19 +208,32 @@ namespace ir {
         void codegen(asm_arm::Builder &builder);
 
         bool is_extern() const { return bList.empty(); }
+
+        int getInstCount();
     };
 
     class BasicBlock {
     public:
-        BasicBlock();
+        BasicBlock(int deep);
+
+        int loop_deep;
 
         instList iList;
         instList parentInsts;
         // true when constructed. It should be manually unsealed for while entry.
         bool sealed;
         std::unordered_map<ast::Decl *, PhiInst *> incompletePhis;
+        // the index of this BB in function reverse-postorder traversal list. Used by dominator calculation.
+        int rpo_id;
+        // The depth in dominator tree of current node.
+        int dom_tree_depth;
+        // immediate dominator
+        BasicBlock *idom;
+
 
         int InsertAtEnd(Value *value);
+
+        int InsertBeforeLast(Value *value);
 
         int InsertAtFront(Value *value);
 
@@ -221,9 +245,16 @@ namespace ir {
 
         void eraseInst(Inst *inst);
 
+
         void print(std::ostream &os) const;
 
         void codegen(asm_arm::Builder &builder);
+
+        std::vector<BasicBlock *> succ();
+
+        void removeParent(BasicBlock *bb);
+
+        bool operator < (const BasicBlock &x) const;
 
     private:
         Value *addPhiOperands(ast::Decl *decl, PhiInst *phi, IRBuilder &builder);
@@ -265,6 +296,10 @@ namespace ir {
         Value *GetRelatedValue(BasicBlock *basicblock);
 
         int InsertElem(BasicBlock *basicblock, Value *value);
+
+        void replaceBB(BasicBlock *oldbb, BasicBlock *newbb);
+
+        void removeBB(BasicBlock *bb);
 
         void print(std::ostream &os) const;
 
@@ -376,6 +411,7 @@ namespace ir {
     class GetElementPtrInst : public AccessInst {
     public:
         Use arr;
+        ast::Decl *decl;
         std::vector<Use> dims;
         std::vector<int> multipliers;
 
@@ -391,7 +427,6 @@ namespace ir {
     class ConstValue : public Value {
     public:
         int value;
-        static ConstPool const_pool;
 
         explicit ConstValue(int _value);
 

@@ -3,6 +3,7 @@
 # include <string>
 # include <map>
 #include <memory>
+#include <ir/passes.h>
 # include "tcc-sy-parser.hh"
 
 namespace ast {
@@ -53,6 +54,7 @@ public:
     void validate_ast();
     void generate_ir();
     void print_ir(const char *path);
+    void process_ir();
     void generate_asm();
     void print_asm(const char *path);
     void process_asm();

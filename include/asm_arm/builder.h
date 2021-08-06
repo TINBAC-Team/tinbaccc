@@ -48,7 +48,7 @@ namespace asm_arm {
 
         void prepareFunctionParams();
 
-        BasicBlock *createBlock();
+        BasicBlock *createBlock(int deep);
 
         LDRInst *createLDR(std::string s);
 
@@ -102,7 +102,6 @@ namespace asm_arm {
         void generate_pool();
 
         void generate_pool(Function* func);
-
     };
 }
 #endif //TINBACCC_BUILDER_H
