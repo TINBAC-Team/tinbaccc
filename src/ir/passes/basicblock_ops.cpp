@@ -10,7 +10,7 @@
 #include <ir/passes.h>
 
 namespace ir_passes {
-    void simplify_cfg(ir::Module *module) {
+    void simplify_cfg(ir::Module *module, bool remove_empty_bb) {
         bool done = false;
         while (!done) {
             done = true;
@@ -73,7 +73,8 @@ namespace ir_passes {
                     }
 
                     // 3. eliminate BBs with only a single unconditional branch
-                    if (bb->parentInsts.size() == 1 && bb->iList.front()->optype == ir::OpType::JUMP) {
+                    if (remove_empty_bb && bb->parentInsts.size() == 1 &&
+                        bb->iList.front()->optype == ir::OpType::JUMP) {
                         auto succ = bb->succ().front();
                         auto pred = bb->parentInsts.front()->bb;
                         // check if PHI in succ merges different value from pred and bb
