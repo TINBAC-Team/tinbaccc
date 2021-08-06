@@ -352,6 +352,17 @@ void asm_arm::RegisterAllocator::spillByReload(Operand *op) {
                 bb->insert(inst_next, strinst);
                 initial.insert(new_op);
                 updateLoopDeep(bb, new_op);
+                // avoid back-to-back STR&LDR
+                while (inst_next != bb->insts.end() &&
+                       (*inst_next)->def.find(op) == (*inst_next)->def.end() &&
+                       (*inst_next)->replace_use(op, new_op)) {
+                    inst_next++;
+                    inst_it++;
+                    // in case we generated spill code between function call instructions.
+                    if ((*inst_it)->move_stack)
+                        offs -= (*inst_it)->move_stack;
+                    std::cerr << "eliminated 1 back-to-back STR&LDR during spilling." << std::endl;
+                }
                 new_op = Operand::newVReg();
             }
         }
