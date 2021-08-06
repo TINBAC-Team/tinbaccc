@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cmath>
+#include <map>
 
 void asm_arm::RegisterAllocator::grabInitialVRegs() {
     for (const auto &b : function->bList) {
@@ -21,10 +22,13 @@ void asm_arm::RegisterAllocator::grabInitialVRegs() {
 void asm_arm::RegisterAllocator::build() {
     for (const auto &b : function->bList) {
         auto &live = b->liveOut;
+        std::map<Operand *, int> bb_lifespan_map;
+        int inst_count = 0;
         for (auto iter = b->insts.rbegin(); iter != b->insts.rend(); iter++) {
             auto *inst = *iter;
             if (inst->nop())
                 continue;
+            inst_count++;
             if (auto *movInst = dynamic_cast<MOVInst *>(inst)) {
                 // live := live\use(I)
                 for (const auto &x : movInst->use)
@@ -56,10 +60,20 @@ void asm_arm::RegisterAllocator::build() {
                 }
 
             // live := use(I) ∪ (live\def(I))
-            for (auto & d : inst->def) live.erase(d);
+            for (auto &d : inst->def) {
+                live.erase(d);
+                auto lifespan_it = bb_lifespan_map.find(d);
+                if (lifespan_it != bb_lifespan_map.end())
+                    d->lifespan = inst_count - lifespan_it->second;
+            }
             for (auto &u : inst->use)
-                if (u->type != Operand::Type::Imm)
-                    live.insert(u);
+                if (u->type != Operand::Type::Imm) {
+                    auto ret = live.insert(u);
+                    // check if it's a new element inserted.
+                    // We determine lifespan inside a BB so liveOut are skipped this way.
+                    if (ret.second)
+                        bb_lifespan_map[u] = inst_count;
+                }
         }
     }
 }
@@ -234,6 +248,14 @@ void asm_arm::RegisterAllocator::selectSpill() {
     Operand *m = *std::max_element(
             spillWorklist.cbegin(), spillWorklist.cend(),
             [this](Operand *a, Operand *b) {
+                if (a->lifespan && b->lifespan) {
+                    // still compare degree if lifespan is equal!
+                    if (a->lifespan != b->lifespan)
+                        return a->lifespan < b->lifespan;
+                } else if (a->lifespan)
+                    return true;
+                else if (b->lifespan)
+                    return false;
                 if (loop_deep.find(a) == loop_deep.cend() || loop_deep.find(b) == loop_deep.cend())
                     throw std::runtime_error("Cannot find loop_deep!");
                 return degree[a] / pow(2, loop_deep[a]) < degree[b] / pow(2, loop_deep[b]);
@@ -344,7 +366,12 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                    coalescedNodes.cbegin(), coalescedNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
     for (const auto &v : spilledNodes) {
-        spillByReload(v);
+        if (v->lifespan == 1) {
+            std::cerr << "asm: WARN: refuse to spill variable with lifespan of 1!" << std::endl;
+            initial.insert(v);
+        } else {
+            spillByReload(v);
+        }
     }
     spilledNodes.clear();
     coloredNodes.clear();
