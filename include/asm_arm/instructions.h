@@ -181,6 +181,7 @@ namespace asm_arm {
         int value;
         Operand *dst;
         Operand *src, *offs;
+        int lsl;
 
         LDRInst(std::string l, Operand *d);
 
@@ -205,6 +206,7 @@ namespace asm_arm {
     class STRInst : public Inst {
     public:
         Operand *val, *addr, *offset;
+        int lsl;
 
         STRInst(Operand *v, Operand *a, Operand *o);
 
@@ -320,6 +322,7 @@ namespace asm_arm {
     class BinaryInst : public Inst { // 3 operands, including 2 registers and 1 <Operand2>
     public:
         Operand *dst, *lhs, *rhs;
+        int lsl = 0;
 
         BinaryInst(Op o, Operand *d, Operand *l, Operand *r);
 

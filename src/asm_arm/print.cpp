@@ -244,10 +244,14 @@ namespace asm_arm {
                 break;
             case Type::REGOFFS:
                 os << dst->getOperandName() << ", [" << src->getOperandName();
-                if (!offs)
+                if (!offs) {
                     os << "]";
-                else
-                    os << ", " << offs->getOperandName() << "]";
+                } else {
+                    os << ", " << offs->getOperandName();
+                    if (lsl)
+                        os << ", LSL #" << lsl;
+                    os << "]";
+                }
                 break;
             default:
                 std::cerr << "Error in LDR print_body!\n";
@@ -261,10 +265,14 @@ namespace asm_arm {
 
     void STRInst::print_body(std::ostream &os) const {
         os << val->getOperandName() << ", [" << addr->getOperandName();
-        if (offset)
-            os << ", " << offset->getOperandName() << "]";
-        else
+        if (offset) {
+            os << ", " << offset->getOperandName();
+            if (lsl)
+                os << ", LSL #" << lsl;
             os << "]";
+        } else {
+            os << "]";
+        }
     }
 
     void ADRInst::print_body(std::ostream &os) const {
@@ -293,6 +301,8 @@ namespace asm_arm {
 
     void BinaryInst::print_body(std::ostream &os) const {
         os << dst->getOperandName() << ", " << lhs->getOperandName() << ", " << rhs->getOperandName();
+        if (lsl)
+            os << ", LSL #" << lsl;
     }
 
     void TernaryInst::print_body(std::ostream &os) const {

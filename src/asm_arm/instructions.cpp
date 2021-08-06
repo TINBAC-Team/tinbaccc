@@ -97,7 +97,7 @@ namespace asm_arm {
     }
 
     LDRInst::LDRInst(Operand *d, Operand *s, Operand *o) : Inst(Inst::Op::LDR), type(Type::REGOFFS), dst(d), src(s),
-                                                           offs(o) {
+                                                           offs(o), lsl(0) {
         add_use(s);
         add_use(o);
         add_def(d);
@@ -126,7 +126,7 @@ namespace asm_arm {
         return true;
     }
 
-    STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o) {
+    STRInst::STRInst(Operand *v, Operand *a, Operand *o) : Inst(Inst::Op::STR), val(v), addr(a), offset(o), lsl(0) {
         add_use(v);
         add_use(a);
         add_use(o);
@@ -319,7 +319,7 @@ namespace asm_arm {
         throw std::runtime_error("Call shouldn't be spilled?");
     }
 
-    BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r) {
+    BinaryInst::BinaryInst(Op o, Operand *d, Operand *l, Operand *r) : Inst(o), dst(d), lhs(l), rhs(r), lsl(0) {
         if (o == Op::MUL || o == Op::SDIV)
             if (rhs->type == Operand::Type::Imm)
                 throw std::runtime_error("IMM not allowed in MUL/SDIV");
