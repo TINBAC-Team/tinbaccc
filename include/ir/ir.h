@@ -59,6 +59,18 @@ namespace ir {
 #include "allop.inc"
     };
 
+    struct Loop {
+        BasicBlock* head = nullptr;
+        std::set<BasicBlock*> body;
+        std::vector<Loop*> nested;
+        Loop* external = nullptr;
+        int depth = 1;
+
+        Loop();
+
+        void updateBasicBlocks();
+    };
+
     class Module {
     public:
         FunctionList functionList, unusedFunctionList;
@@ -232,6 +244,10 @@ namespace ir {
         int dom_tree_depth;
         // immediate dominator
         BasicBlock *idom;
+        // The depth in depth first search tree of current node.
+        int dfs_tree_depth;
+        // the depth of loop
+        int loop_depth;
 
 
         int InsertAtEnd(Value *value);

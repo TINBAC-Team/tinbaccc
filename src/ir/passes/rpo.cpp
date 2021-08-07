@@ -1,6 +1,5 @@
 /**
  * compute reverse postorder for a function.
- *
  * to be confirmed: Aren't we already generating BBs in RPO?
  */
 #include <ir/passes.h>
@@ -11,11 +10,13 @@ namespace ir_passes {
         ir::Function *func;
         std::set<ir::BasicBlock *> vis;
 
-        void _dfs(ir::BasicBlock *b) {
+        void _dfs(ir::BasicBlock *b, int depth=1) {
             vis.insert(b);
+            b->dfs_tree_depth = depth;
             for (auto &i:b->succ())
-                if (vis.find(i) == vis.end())
-                    _dfs(i);
+                if (vis.find(i) == vis.end()) {
+                    _dfs(i, depth + 1);
+                }
             func->rpoBList.push_front(b);
         }
 

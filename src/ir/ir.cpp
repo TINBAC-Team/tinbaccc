@@ -541,4 +541,15 @@ namespace ir {
         return optype == OpType::EQ || optype == OpType::NE || optype == OpType::SGE || optype == OpType::SGT ||
                optype == OpType::SLE || optype == OpType::SLT;
     }
+
+    Loop::Loop() {}
+
+    void Loop::updateBasicBlocks() {
+        for (auto * bb : body)
+            bb->loop_depth = this->depth;
+    }
+
+
+
+
 }
