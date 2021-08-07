@@ -8,6 +8,7 @@ using std::endl;
 
 namespace ir {
     std::unordered_map<Value *, std::string> nameOfValue;
+    std::unordered_map<std::string, int> namePool;
     std::unordered_map<const BasicBlock *, std::string> nameOfBB;
     int seed;
     int bb_seed;
@@ -16,14 +17,15 @@ namespace ir {
         return "x" + std::to_string(seed++);
     };
 
-    static std::string generate_new_bb_name() {
-        return "__bb" + std::to_string(bb_seed++);
+    static std::string generate_new_bb_name(const BasicBlock *bb) {
+        if (namePool.find(bb->name) == namePool.end()) namePool[bb->name] = 0;
+        else namePool[bb->name]++;
+        return "_" + bb->name + (namePool[bb->name] ? std::to_string(namePool[bb->name]) : "");
     };
 
     static std::string get_valid_name(std::string str) {
-        if(std::regex_match(str,std::regex("^x[0-9]+")))
-        {
-            return "_"+str;
+        if (std::regex_match(str, std::regex("^x[0-9]+"))) {
+            return "_" + str;
         } else return str;
     }
 
@@ -47,7 +49,7 @@ namespace ir {
 
     static std::string get_name_of_BB(const BasicBlock *bb) {
         if (nameOfBB.find(bb) == nameOfBB.end())
-            nameOfBB[bb] = generate_new_bb_name();
+            nameOfBB[bb] = generate_new_bb_name(bb);
         return nameOfBB[bb];
     }
     bool has_llvm_arr_initval(ast::Decl* decl,int l,int r)

@@ -118,7 +118,7 @@ namespace ast {
         if(!block)
             return nullptr;
         // LLVM requires that the first block must have no predecessors. Create it here.
-        ir::BasicBlock *bb = builder.CreateBlock();
+        ir::BasicBlock *bb = builder.CreateBlock("entry");
         irFunc->addParamsToBB(bb);
         auto ret= block->codegen(builder);
         if(irFunc->return_int)
@@ -154,14 +154,14 @@ namespace ast {
 
     ir::Value *IfStmt::codegen(ir::IRBuilder &builder) {
         ir::BasicBlock *t_old = builder.TrueBlock, *f_old = builder.FalseBlock, *cont_old = builder.ContBlock;
-        builder.ContBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.ContBlock = new ir::BasicBlock(builder.loop_deep,"if.cont");
         if(true_block)
-            builder.TrueBlock = new ir::BasicBlock(builder.loop_deep);
+            builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"if.true");
         else
             builder.TrueBlock = builder.ContBlock;
 
         if(false_block)
-            builder.FalseBlock = new ir::BasicBlock(builder.loop_deep);
+            builder.FalseBlock = new ir::BasicBlock(builder.loop_deep,"if.false");
         else
             builder.FalseBlock = builder.ContBlock;
 
@@ -194,11 +194,11 @@ namespace ast {
         ir::BasicBlock *f_old = builder.FalseBlock;
         ir::BasicBlock *cont_old = builder.WhileContBlock;
         ir::BasicBlock *e_old = builder.EntryBlock;
-        builder.EntryBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.EntryBlock = new ir::BasicBlock(builder.loop_deep,"while.entry");
         builder.CreateJumpInst(builder.EntryBlock);
         builder.appendBlock(builder.EntryBlock);
-        builder.WhileContBlock = new ir::BasicBlock(builder.loop_deep - 1);
-        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.WhileContBlock = new ir::BasicBlock(builder.loop_deep - 1,"while.cont");
+        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"while.true");
         builder.FalseBlock = builder.WhileContBlock;
 
         // incomplete CFG: TrueBlock can enter EntryBlock after its execution
@@ -314,7 +314,7 @@ namespace ast {
 
     ir::Value * Exp::codegen_and(ir::IRBuilder &builder) {
         ir::BasicBlock *t_old = builder.TrueBlock;
-        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"logiand.true");
         //builder.TrueBlock->sealed = false;
         ir::Value *cond_val = lhs->codegen(builder);
         builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
@@ -326,7 +326,7 @@ namespace ast {
 
     ir::Value * Exp::codegen_or(ir::IRBuilder &builder) {
         ir::BasicBlock *f_old = builder.FalseBlock;
-        builder.FalseBlock = new ir::BasicBlock(builder.loop_deep);
+        builder.FalseBlock = new ir::BasicBlock(builder.loop_deep,"logicor.false");
         ir::Value *cond_val = lhs->codegen(builder);
         builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
         builder.appendBlock(builder.FalseBlock);

@@ -86,7 +86,7 @@ namespace ir {
         // EntryBlock is the while condition entry
         BasicBlock *TrueBlock, *FalseBlock, *ContBlock, *WhileContBlock, *EntryBlock;
 
-        BasicBlock *CreateBlock(); //create and enter the created block
+        BasicBlock *CreateBlock(std::string name = "bb"); //create and enter the created block
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
@@ -196,7 +196,7 @@ namespace ir {
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
          */
-        BasicBlock *CreateBlock(int deep);
+        BasicBlock *CreateBlock(int deep,std::string name);
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
@@ -215,7 +215,7 @@ namespace ir {
 
     class BasicBlock {
     public:
-        BasicBlock(int deep);
+        BasicBlock(int deep,std::string _name = "bb");
 
         ~BasicBlock();
 
@@ -232,6 +232,8 @@ namespace ir {
         int dom_tree_depth;
         // immediate dominator
         BasicBlock *idom;
+
+        std::string name;
 
 
         int InsertAtEnd(Value *value);

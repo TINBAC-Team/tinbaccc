@@ -19,8 +19,8 @@ namespace ir {
         decl->addr = this;
     }
 
-    BasicBlock *IRBuilder::CreateBlock() {
-        CurBlock = curFunction->CreateBlock(this->loop_deep);
+    BasicBlock *IRBuilder::CreateBlock(std::string name) {
+        CurBlock = curFunction->CreateBlock(this->loop_deep,name);
         return CurBlock;
     }
 
@@ -67,8 +67,8 @@ namespace ir {
         return var;
     }
 
-    BasicBlock *Function::CreateBlock(int deep) {
-        auto *BasicBlockp = new BasicBlock(deep);
+    BasicBlock *Function::CreateBlock(int deep,std::string name="bb") {
+        auto *BasicBlockp = new BasicBlock(deep,name);
         appendBlock(BasicBlockp);
         return BasicBlockp;
     }
@@ -142,7 +142,7 @@ namespace ir {
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
             Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
-    BasicBlock::BasicBlock(int deep) : sealed(true), idom(nullptr), dom_tree_depth(-1), loop_deep(deep) {
+    BasicBlock::BasicBlock(int deep,std::string _name) : sealed(true), idom(nullptr), dom_tree_depth(-1), loop_deep(deep),name(_name) {
 
     }
 
