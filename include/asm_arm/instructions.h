@@ -367,7 +367,7 @@ namespace asm_arm {
 
     class BasicBlock {
     public:
-        int loop_deep;
+        int loop_depth;
         std::list<Inst *> insts;
         std::list<Inst *>::const_iterator it_branch;
         std::list<Inst *>::const_iterator it_insert;

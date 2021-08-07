@@ -116,7 +116,8 @@ namespace ir_passes {
                     throw std::runtime_error("value not defined!");
             };
             // 1. split caller BB into two
-            auto ret_bb = new ir::BasicBlock(call_bb->loop_deep);
+            auto ret_bb = new ir::BasicBlock();
+            ret_bb->loop_depth = call_bb->loop_depth;
             for (auto inst_it = std::next(call_tgt.call_it); inst_it != call_bb->iList.end(); inst_it++)
                 ret_bb->InsertAtEnd(*inst_it);
             // at this point the call instruction exists in call_tgt.call only.
@@ -124,7 +125,8 @@ namespace ir_passes {
             auto ret_bb_it = call_tgt.func->bList.insert(std::next(call_tgt.bb_it), ret_bb);
             // 2. create all BBs
             for (auto &bb:func->bList) {
-                auto new_bb = new ir::BasicBlock(call_bb->loop_deep + bb->loop_deep);
+                auto new_bb = new ir::BasicBlock();
+                new_bb->loop_depth = call_bb->loop_depth + bb->loop_depth;
                 bb_map[bb] = new_bb;
                 call_tgt.func->bList.insert(ret_bb_it, new_bb);
             }

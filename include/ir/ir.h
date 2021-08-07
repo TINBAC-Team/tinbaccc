@@ -86,9 +86,6 @@ namespace ir {
         ConstPool const_pool;
         IRBuilder(Module *m);
 
-        // Current loop deep
-        int loop_deep = 0;
-
         Module *module;
         Function *curFunction;
         BasicBlock *CurBlock;
@@ -208,7 +205,7 @@ namespace ir {
          * create a new block, add it to current function and return it.
          * @return pointer to the created block.
          */
-        BasicBlock *CreateBlock(int deep,std::string name);
+        BasicBlock *CreateBlock(std::string name);
 
         void appendBlock(BasicBlock *block); // append a manually created block
 
@@ -227,11 +224,9 @@ namespace ir {
 
     class BasicBlock {
     public:
-        BasicBlock(int deep,std::string _name = "bb");
+        BasicBlock(std::string _name = "bb");
 
         ~BasicBlock();
-
-        int loop_deep;
 
         instList iList;
         instList parentInsts;

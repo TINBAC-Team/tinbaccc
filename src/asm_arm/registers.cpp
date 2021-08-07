@@ -257,7 +257,7 @@ void asm_arm::RegisterAllocator::selectSpill() {
                 else if (b->lifespan)
                     return false;
                 if (loop_deep.find(a) == loop_deep.cend() || loop_deep.find(b) == loop_deep.cend())
-                    throw std::runtime_error("Cannot find loop_deep!");
+                    throw std::runtime_error("Cannot find loop_depth!");
                 return degree[a] / pow(2, loop_deep[a]) < degree[b] / pow(2, loop_deep[b]);
             });
     spillWorklist.erase(m);
@@ -471,8 +471,8 @@ void asm_arm::RegisterAllocator::allocatedRegister(asm_arm::Function *func) {
 }
 
 void asm_arm::RegisterAllocator::updateLoopDeep(BasicBlock *bb, Operand *node) {
-    if (loop_deep[node] < bb->loop_deep)
-        loop_deep[node] = bb->loop_deep;
+    if (loop_deep[node] < bb->loop_depth)
+        loop_deep[node] = bb->loop_depth;
 }
 
 namespace asm_arm {

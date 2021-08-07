@@ -330,16 +330,16 @@ namespace ir_passes {
             }
             ir::BasicBlock *best = lca;
             /*while (lca != inst->bb) {
-                if (lca->loop_deep < best->loop_deep) {
+                if (lca->loop_depth < best->loop_depth) {
                     best = lca;
                 }
                 lca = lca->idom;
             }*/
 
             //different from Click's paper, inspired by TrivialCompiler
-            int best_loop_depth =best->loop_deep;
+            int best_loop_depth =best->loop_depth;
             while (true) {
-                int cur_loop_depth = lca->loop_deep;
+                int cur_loop_depth = lca->loop_depth;
                 if (cur_loop_depth < best_loop_depth) {
                     best = lca;
                     best_loop_depth = cur_loop_depth;

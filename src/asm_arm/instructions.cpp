@@ -393,7 +393,7 @@ namespace asm_arm {
     }
 
     static int bb_seed2 = 0;
-    BasicBlock::BasicBlock(int deep) : branch_marked(false), loop_deep(deep) {
+    BasicBlock::BasicBlock(int deep) : branch_marked(false), loop_depth(deep) {
         bb_label = ".L";
         bb_label += std::to_string(bb_seed2++);
     }

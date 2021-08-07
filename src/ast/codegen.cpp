@@ -154,14 +154,14 @@ namespace ast {
 
     ir::Value *IfStmt::codegen(ir::IRBuilder &builder) {
         ir::BasicBlock *t_old = builder.TrueBlock, *f_old = builder.FalseBlock, *cont_old = builder.ContBlock;
-        builder.ContBlock = new ir::BasicBlock(builder.loop_deep,"if.cont");
+        builder.ContBlock = new ir::BasicBlock("if.cont");
         if(true_block)
-            builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"if.true");
+            builder.TrueBlock = new ir::BasicBlock("if.true");
         else
             builder.TrueBlock = builder.ContBlock;
 
         if(false_block)
-            builder.FalseBlock = new ir::BasicBlock(builder.loop_deep,"if.false");
+            builder.FalseBlock = new ir::BasicBlock("if.false");
         else
             builder.FalseBlock = builder.ContBlock;
 
@@ -189,16 +189,15 @@ namespace ast {
     }
 
     ir::Value *WhileStmt::codegen(ir::IRBuilder &builder) {
-        builder.loop_deep++;
         ir::BasicBlock *t_old = builder.TrueBlock;
         ir::BasicBlock *f_old = builder.FalseBlock;
         ir::BasicBlock *cont_old = builder.WhileContBlock;
         ir::BasicBlock *e_old = builder.EntryBlock;
-        builder.EntryBlock = new ir::BasicBlock(builder.loop_deep,"while.entry");
+        builder.EntryBlock = new ir::BasicBlock("while.entry");
         builder.CreateJumpInst(builder.EntryBlock);
         builder.appendBlock(builder.EntryBlock);
-        builder.WhileContBlock = new ir::BasicBlock(builder.loop_deep - 1,"while.cont");
-        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"while.true");
+        builder.WhileContBlock = new ir::BasicBlock("while.cont");
+        builder.TrueBlock = new ir::BasicBlock("while.true");
         builder.FalseBlock = builder.WhileContBlock;
 
         // incomplete CFG: TrueBlock can enter EntryBlock after its execution
@@ -215,7 +214,6 @@ namespace ast {
         builder.WhileContBlock = cont_old;
         builder.FalseBlock = f_old;
         builder.TrueBlock = t_old;
-        builder.loop_deep--;
         return nullptr;
     }
 
@@ -314,7 +312,7 @@ namespace ast {
 
     ir::Value * Exp::codegen_and(ir::IRBuilder &builder) {
         ir::BasicBlock *t_old = builder.TrueBlock;
-        builder.TrueBlock = new ir::BasicBlock(builder.loop_deep,"logiand.true");
+        builder.TrueBlock = new ir::BasicBlock("logiand.true");
         //builder.TrueBlock->sealed = false;
         ir::Value *cond_val = lhs->codegen(builder);
         builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
@@ -326,7 +324,7 @@ namespace ast {
 
     ir::Value * Exp::codegen_or(ir::IRBuilder &builder) {
         ir::BasicBlock *f_old = builder.FalseBlock;
-        builder.FalseBlock = new ir::BasicBlock(builder.loop_deep,"logicor.false");
+        builder.FalseBlock = new ir::BasicBlock("logicor.false");
         ir::Value *cond_val = lhs->codegen(builder);
         builder.CreateBranchInst(cond_val, builder.TrueBlock, builder.FalseBlock);
         builder.appendBlock(builder.FalseBlock);
