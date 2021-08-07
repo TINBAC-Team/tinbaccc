@@ -240,8 +240,8 @@ namespace ir {
             comment << " idom = %" << get_name_of_BB(idom);
         if (dom_tree_depth >= 0)
             comment << " dom_tree_depth = " << dom_tree_depth;
-	if (loop_deep > 0)
-	    comment << " loop_deep = " << loop_deep;
+	if (loop_depth > 0)
+	    comment << " loop_depth = " << loop_depth;
         if (!comment.str().empty())
             os << "\t;" << comment.str();
         os << std::endl;
