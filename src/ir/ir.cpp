@@ -3,8 +3,10 @@
 #include <utility>
 #include <iostream>
 
+
 namespace ir {
 
+    std::unordered_map<std::string,int> BasicBlock::namePool;
 
     GlobalVar::GlobalVar(ast::Decl *d) :
             Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
@@ -157,8 +159,10 @@ namespace ir {
     BinaryInst::BinaryInst(OpType _optype, Value *_ValueL, Value *_ValueR) :
             Inst(_optype), ValueL(this, _ValueL), ValueR(this, _ValueR) {}
 
-    BasicBlock::BasicBlock(std::string _name) : sealed(true), idom(nullptr), dom_tree_depth(-1), name(_name) {
-
+    BasicBlock::BasicBlock(std::string _name) : sealed(true), idom(nullptr), dom_tree_depth(-1) {
+        if (namePool.find(_name) == namePool.end()) namePool[_name] = 0;
+        else namePool[_name]++;
+        name =  "_" + _name + (namePool[_name] ? std::to_string(namePool[_name]) : "");
     }
 
     BranchInst::~BranchInst() {

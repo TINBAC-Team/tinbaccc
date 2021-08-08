@@ -84,6 +84,7 @@ namespace ir {
     class IRBuilder {
     public:
         ConstPool const_pool;
+        std::unordered_map<std::string, int> namePool;
         IRBuilder(Module *m);
 
         Module *module;
@@ -128,6 +129,7 @@ namespace ir {
         Value *getConstant(int _value);
 
         Value *getConstant(int valueL, int valueR, OpType optype);
+
     };
 
     class Value {
@@ -226,6 +228,8 @@ namespace ir {
 
     class BasicBlock {
     public:
+
+        static std::unordered_map<std::string,int> namePool;
         BasicBlock(std::string _name = "bb");
 
         ~BasicBlock();

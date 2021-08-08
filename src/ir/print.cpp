@@ -8,19 +8,10 @@ using std::endl;
 
 namespace ir {
     std::unordered_map<Value *, std::string> nameOfValue;
-    std::unordered_map<std::string, int> namePool;
-    std::unordered_map<const BasicBlock *, std::string> nameOfBB;
     int seed;
-    int bb_seed;
 
     static std::string generate_new_name() {
         return "x" + std::to_string(seed++);
-    };
-
-    static std::string generate_new_bb_name(const BasicBlock *bb) {
-        if (namePool.find(bb->name) == namePool.end()) namePool[bb->name] = 0;
-        else namePool[bb->name]++;
-        return "_" + bb->name + (namePool[bb->name] ? std::to_string(namePool[bb->name]) : "");
     };
 
     static std::string get_valid_name(std::string str) {
@@ -47,11 +38,6 @@ namespace ir {
         return "%" + nameOfValue[val];
     }
 
-    static std::string get_name_of_BB(const BasicBlock *bb) {
-        if (nameOfBB.find(bb) == nameOfBB.end())
-            nameOfBB[bb] = generate_new_bb_name(bb);
-        return nameOfBB[bb];
-    }
     bool has_llvm_arr_initval(ast::Decl* decl,int l,int r)
     {
         for(int i=l;i<=r;i++)
@@ -194,7 +180,6 @@ namespace ir {
 
     void Function::print(std::ostream &os) const {
         seed = 0;
-        bb_seed = 0;
         os << (is_extern() ? "declare " : "define ")
            << (return_int ? "i32 " : "void ")
            << "@" << name << " (";
@@ -226,18 +211,18 @@ namespace ir {
 
     void BasicBlock::print(std::ostream &os) const {
         std::ostringstream comment;
-        os << get_name_of_BB(this) << ":";
+        os << name << ":";
         if (!parentInsts.empty()) {
             comment << " preds = ";
             bool is_first = true;
             for (auto &i:parentInsts) {
                 if (!is_first) comment << ", ";
                 is_first = false;
-                comment << "%" << get_name_of_BB(i->bb);
+                comment << "%" << i->bb->name;
             }
         }
         if (idom)
-            comment << " idom = %" << get_name_of_BB(idom);
+            comment << " idom = %" << idom->name;
         if (dom_tree_depth >= 0)
             comment << " dom_tree_depth = " << dom_tree_depth;
 	if (loop_depth > 0)
@@ -309,12 +294,12 @@ namespace ir {
         if(need_i1_convert)
             os<<"%s" << s_cnt++ ;
         else os<<get_name_of_value(cond.value);
-        os<<", label %" << get_name_of_BB(true_block) << ", label %"<< get_name_of_BB(false_block);
+        os<<", label %" << true_block->name << ", label %"<< false_block->name;
     }
 
     void JumpInst::print(std::ostream &os) const {
         Value::print(os);
-        os << "label %" << get_name_of_BB(to);
+        os << "label %" << to->name;
     }
 
     void ReturnInst::print(std::ostream &os) const {
@@ -433,7 +418,7 @@ namespace ir {
         for (auto &i:phicont) {
             if (!is_first) os << ", ";
             is_first = false;
-            os << "[ " << get_name_of_value(i.second->value) << ", %" << get_name_of_BB(i.first) << " ]";
+            os << "[ " << get_name_of_value(i.second->value) << ", %" << i.first->name << " ]";
 
         }
     }
