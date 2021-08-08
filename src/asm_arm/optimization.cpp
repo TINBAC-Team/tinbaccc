@@ -49,6 +49,8 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
     Inst::Op opType;
     switch (inst->op) {
         case Inst::Op::ADD:
+            if (dynamic_cast<BinaryInst *>(inst)->lsl)
+                return;
             opType = Inst::Op::MLA;
             break;
         case Inst::Op::SUB:
