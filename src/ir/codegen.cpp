@@ -350,10 +350,19 @@ namespace ir {
             if(val_const && !val_const->value)
                 continue;
             // TODO: this *4 can be done with LSL 2 in LDR/STR
-            auto dim_mul = builder.createLDR(multipliers[i]*4)->dst;
-            auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
-            auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, dim_mul, dim_val, offset);
-            offset = res->dst;
+            int mul_by4 = multipliers[i] * 4;
+            int pow = __builtin_ffs(mul_by4) - 1;
+            if (1 << pow == mul_by4) {
+                auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
+                auto res = builder.createBinaryInst(asm_arm::Inst::Op::ADD, offset, dim_val);
+                res->lsl = pow;
+                offset = res->dst;
+            } else {
+                auto dim_mul = builder.createLDR(multipliers[i] * 4)->dst;
+                auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
+                auto res = builder.createTernaryInst(asm_arm::Inst::Op::MLA, dim_mul, dim_val, offset);
+                offset = res->dst;
+            }
         }
         builder.setOperandOfValue(this, offset);
         return offset;
