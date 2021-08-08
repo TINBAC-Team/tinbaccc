@@ -561,6 +561,53 @@ namespace ir {
                optype == OpType::SLE || optype == OpType::SLT;
     }
 
+    std::vector<Value *> BinaryInst::uses() {
+        return {ValueL.value, ValueR.value};
+    }
+
+    std::vector<Value *> PhiInst::uses() {
+        std::vector<Value *> ret;
+        ret.reserve(phicont.size());
+        for (auto &i:phicont)
+            ret.emplace_back(i.second->value);
+        return ret;
+    }
+
+    std::vector<Value *> CallInst::uses() {
+        std::vector<Value *> ret;
+        ret.reserve(params.size());
+        for (auto &i:params)
+            ret.emplace_back(i.value);
+        return ret;
+    }
+
+    std::vector<Value *> BranchInst::uses() {
+        return {cond.value};
+    }
+
+    std::vector<Value *> ReturnInst::uses() {
+        if (val.value)
+            return {val.value};
+        return {};
+    }
+
+    std::vector<Value *> LoadInst::uses() {
+        return {ptr.value};
+    }
+
+    std::vector<Value *> StoreInst::uses() {
+        return {ptr.value, val.value};
+    }
+
+    std::vector<Value *> GetElementPtrInst::uses() {
+        std::vector<Value *> ret;
+        ret.reserve(dims.size() + 1);
+        for (auto &i:dims)
+            ret.emplace_back(i.value);
+        ret.emplace_back(arr.value);
+        return ret;
+    }
+
     Loop::Loop() {}
 
     void Loop::updateBasicBlocks() {

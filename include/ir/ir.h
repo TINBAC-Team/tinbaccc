@@ -155,6 +155,8 @@ namespace ir {
          */
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
 
+        virtual std::vector<Value *> uses() { return {}; }
+
         virtual ~Value();
     };
 
@@ -315,6 +317,8 @@ namespace ir {
         asm_arm::Operand* codegen_mod(asm_arm::Builder &builder);
 
         asm_arm::Operand* codegen_mul(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class PhiInst : public Inst {
@@ -334,6 +338,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class CallInst : public Inst {
@@ -347,6 +353,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class BranchInst : public Inst {
@@ -372,6 +380,8 @@ namespace ir {
          * @return
          */
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class JumpInst : public Inst {
@@ -398,6 +408,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class AccessInst : public Inst {
@@ -416,6 +428,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class StoreInst : public AccessInst {
@@ -427,6 +441,8 @@ namespace ir {
         void print(std::ostream &os) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class AllocaInst : public Inst {
@@ -456,6 +472,8 @@ namespace ir {
         void print_llvm_type(std::ostream &os, int start_dim) const;
 
         virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+
+        std::vector<Value *> uses();
     };
 
     class ConstValue : public Value {
