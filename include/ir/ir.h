@@ -144,6 +144,8 @@ namespace ir {
 
         virtual void print(std::ostream &os) const;
 
+        bool sideEffect() const;
+
         /**
          *
          * @param builder

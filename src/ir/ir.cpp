@@ -108,6 +108,21 @@ namespace ir {
             uList.clear();
     }
 
+    bool Value::sideEffect() const {
+        switch (optype) {
+            case ir::OpType::RETURN:
+            case ir::OpType::BRANCH:
+            case ir::OpType::JUMP:
+            case ir::OpType::STORE:
+                return true;
+            case ir::OpType::CALL:
+                // TODO: determine its side-effect from callee
+                return true;
+            default:
+                return false;
+        }
+    }
+
     Value::~Value() {
         for (auto &u:uList)
             if (u->value == this)
