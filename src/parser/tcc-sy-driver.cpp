@@ -72,7 +72,7 @@ void tcc_sy_driver::process_ir() {
     ir_passes::remove_decl_uses(module);
     ir_passes::function_process(module);
     ir_passes::simplify_cfg(module, false);
-    //ir_passes::tail_call_elimination(module);
+    ir_passes::tail_call_elimination(module);
     ir_passes::rpo_compute(module);
     ir_passes::loop_detect_compute(module);
     ir_passes::dom_compute(module);

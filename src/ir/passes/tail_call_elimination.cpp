@@ -31,7 +31,7 @@ namespace ir_passes {
         }
 
         // 2. create new entry block
-        auto new_entry = new ir::BasicBlock(0);
+        auto new_entry = new ir::BasicBlock("tce_entry");
         func->bList.push_front(new_entry);
         new_entry->InsertAtEnd(new ir::JumpInst(entry));
 

@@ -3,6 +3,14 @@
 namespace ir_passes {
     void remove_decl_uses(ir::Module *module) {
         for (auto &func:module->functionList) {
+            for (auto &param:func->params) {
+                for (auto it = param->uList.begin(); it != param->uList.end();) {
+                    if (!(*it)->user)
+                        param->uList.erase(it++);
+                    else
+                        it++;
+                }
+            }
             for (auto &bb:func->bList) {
                 for (auto &inst:bb->iList) {
                     std::list<ir::Use *> rm_uses;
