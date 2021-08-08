@@ -11,6 +11,7 @@ namespace ir_passes {
     void tail_call_elimination(ir::Module *module);
     void rpo_compute(ir::Module *module);
     void dom_compute(ir::Module *module);
+    void aggressive_dce(ir::Module *module);
     void gvn(ir::Module *module);
     void gcm(ir::Module *module);
 }
