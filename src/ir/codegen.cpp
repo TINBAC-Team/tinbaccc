@@ -393,7 +393,7 @@ namespace ir {
             }
             int pow = __builtin_ffs(multipliers[i]) - 1;
             auto dim_val = builder.getOrCreateOperandOfValue(dims[i].value);
-            if (offs_const)
+            if (!offs_reg && offs_const)
                 offs_reg = builder.createLDR(offs_const)->dst;
             if (offs_reg) {
                 if (1 << pow == multipliers[i]) {
