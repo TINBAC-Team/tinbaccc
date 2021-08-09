@@ -257,7 +257,7 @@ namespace ir {
 
         int InsertAtEnd(Value *value);
 
-        int InsertBeforeLast(Value *value);
+        int InsertBefore(Value *value, std::_List_const_iterator<Value *> it);
 
         int InsertAtFront(Value *value);
 

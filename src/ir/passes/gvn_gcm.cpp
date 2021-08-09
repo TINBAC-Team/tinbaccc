@@ -121,6 +121,11 @@ namespace ir_passes {
 
     class GCMPass {
     public:
+        enum class MoveBehavior {
+            MOVE_FRONT,
+            MOVE_END,
+            MOVE_BEFORE_USAGE
+        };
         std::unordered_set<ir::Value *> vis_early;
         std::unordered_set<ir::Value *> vis_late;
         ir::Function *func;
@@ -166,7 +171,6 @@ namespace ir_passes {
             }
         }
         void move_phi_front(ir::BasicBlock* bb){
-            int cnt = 0;
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
@@ -174,8 +178,20 @@ namespace ir_passes {
             }
             for(auto inst = insts.rbegin();inst!=insts.rend();inst++){
                 if(dynamic_cast<ir::PhiInst*>(*inst)){
-                    cnt++;
-                    move_inst(*inst,(*inst)->bb,true);
+                    move_inst(*inst,(*inst)->bb,MoveBehavior::MOVE_FRONT);
+                }
+            }
+        }
+        void reschedule_inst_order(ir::BasicBlock* bb){
+            int cnt = 0;
+            std::vector<ir::Value *> insts;
+            insts.reserve(bb->iList.size() + 10);
+            for (auto &inst:bb->iList) {
+                insts.emplace_back(inst);
+            }
+            for(auto inst = insts.begin();inst!=insts.end();inst++){
+                if(dynamic_cast<ir::BinaryInst*>(*inst)){
+                    move_inst(*inst,(*inst)->bb,MoveBehavior::MOVE_BEFORE_USAGE);
                 }
             }
         }
@@ -200,6 +216,10 @@ namespace ir_passes {
                 schedule_late(*inst);
             }
             for (auto &bb:func->bList) {
+                move_icmp_back(bb);
+                move_terminal_inst_back(bb);
+                move_phi_front(bb);
+                reschedule_inst_order(bb);
                 move_icmp_back(bb);
                 move_terminal_inst_back(bb);
                 move_phi_front(bb);
@@ -228,12 +248,30 @@ namespace ir_passes {
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
 
-        void move_inst(ir::Value *_inst, ir::BasicBlock *block , bool move_to_front = false) {
+        void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END) {
             if (auto inst = dynamic_cast<ir::Inst *>(_inst)) {
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
-                if(move_to_front) block->InsertAtFront(inst);
-                else block->InsertAtEnd(inst);
+                switch (move_behavior) {
+                    case MoveBehavior::MOVE_FRONT:
+                        block->InsertAtFront(inst);
+                        break;
+                    case MoveBehavior::MOVE_END:
+                        block->InsertAtEnd(inst);
+                        break;
+                    case MoveBehavior::MOVE_BEFORE_USAGE:
+                        for (auto i = block->iList.begin(); i != block->iList.end(); i++) {
+                            std::vector<ir::Value*> uses;
+                            uses.reserve((*i)->uses().size());
+                            for(auto &val : (*i)->uses())
+                                uses.emplace_back(val);
+                            if (std::find(uses.begin(), uses.end(), _inst) != uses.end()) {
+                                block->InsertBefore(inst, i);
+                                return;
+                            }
+                        }
+                        block->InsertAtEnd(inst);
+                }
             }
         }
 
@@ -330,13 +368,6 @@ namespace ir_passes {
                 return;
             }
             ir::BasicBlock *best = lca;
-            /*while (lca != inst->bb) {
-                if (lca->loop_depth < best->loop_depth) {
-                    best = lca;
-                }
-                lca = lca->idom;
-            }*/
-
             //different from Click's paper, inspired by TrivialCompiler
             int best_loop_depth =best->loop_depth;
             while (true) {
@@ -349,7 +380,7 @@ namespace ir_passes {
                 lca = lca->idom;
             }
             if(inst->bb!=best)
-                move_inst(inst, best,true);
+                move_inst(inst, best,MoveBehavior::MOVE_FRONT);
         }
     };
 

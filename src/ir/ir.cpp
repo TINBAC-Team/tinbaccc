@@ -193,13 +193,7 @@ namespace ir {
         return 0;
     }
 
-    int BasicBlock::InsertBeforeLast(Value *value){
-        if(iList.empty())
-        {
-            return InsertAtEnd(value);
-        }
-        auto it = iList.end();
-        it--;
+    int BasicBlock::InsertBefore (Value *value, std::_List_const_iterator<Value *> it){
         iList.insert(it,value);
         return 0;
     }
