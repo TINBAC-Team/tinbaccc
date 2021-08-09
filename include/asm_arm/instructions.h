@@ -381,6 +381,7 @@ namespace asm_arm {
         std::set<Operand*> use;
         std::set<Operand*> def;
         std::string bb_label;
+        std::ostringstream comment;
         bool branch_marked;
 
         BasicBlock(int deep);

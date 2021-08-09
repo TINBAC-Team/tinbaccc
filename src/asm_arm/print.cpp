@@ -317,6 +317,7 @@ namespace asm_arm {
 
     void BasicBlock::print(std::ostream &os, bool single) const {
         std::ostringstream bbcomment;
+        bbcomment << comment.str();
         auto bbsucc = succ();
         if (!bbsucc.empty()) {
             bbcomment << " succ:";
