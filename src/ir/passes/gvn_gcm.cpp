@@ -190,10 +190,11 @@ namespace ir_passes {
                 insts.emplace_back(inst);
             }
             for(auto inst = insts.begin();inst!=insts.end();inst++){
-                if(dynamic_cast<ir::BinaryInst*>(*inst)){
+                if(dynamic_cast<ir::BinaryInst*>(*inst) || dynamic_cast<ir::GetElementPtrInst*>(*inst)){
                     move_inst(*inst,(*inst)->bb,MoveBehavior::MOVE_BEFORE_USAGE);
                 }
             }
+
         }
 
         void run_pass() {
