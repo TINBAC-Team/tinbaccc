@@ -27,6 +27,7 @@ namespace ir {
 
     void BasicBlock::codegen(asm_arm::Builder &builder) {
         auto asmbb = builder.createBlock(this->loop_depth);
+        asmbb->comment << "ir: " << name;
         builder.setASMBBtoIRBB(this, asmbb);
         for (auto &i:iList)
             i->codegen(builder);
