@@ -43,7 +43,8 @@ set(IR_PASSES_SOURCES
         src/ir/passes/basicblock_ops.cpp
         src/ir/passes/tail_call_elimination.cpp
         src/ir/passes/loop_detect.cpp
-        src/ir/passes/adce.cpp)
+        src/ir/passes/adce.cpp
+        src/ir/passes/loop_unrolling.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp
