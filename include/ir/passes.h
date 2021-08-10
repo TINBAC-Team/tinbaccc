@@ -5,6 +5,7 @@
 
 namespace ir_passes {
     void remove_decl_uses(ir::Module *module);
+    void eliminate_load(ir::Module *module);
     void simplify_cfg(ir::Module *module, bool remove_empty_bb);
     void function_process(ir::Module *module);
     void loop_detect_compute(ir::Module *module);
