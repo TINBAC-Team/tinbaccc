@@ -45,10 +45,12 @@ namespace ir_passes {
             // detect natural loop for each retreating edge
             for (auto &edge : retreatingEdges) {
                 auto *loop = new ir::Loop();
+                func->loops.insert(loop);
                 // Step1 detect natural loop
                 auto &n = edge.first;
                 auto &d = edge.second;
                 std::stack<ir::BasicBlock *> st;
+                loop->head = *(++std::find(func->bList.crbegin(),  func->bList.crend(), d));
                 loop->body.insert(d);
                 insert(n, st, loop->body);
                 while (!st.empty()) {
@@ -88,6 +90,7 @@ namespace ir_passes {
                                 for (auto *currBB : loop->body) blocks2loop[currBB].insert(findLoop);
                                 loop->depth = findLoop->depth;
                                 loop->updateBasicBlocks();
+                                func->loops.erase(loop);
                                 delete loop;
                                 return;
                             } else {
@@ -103,8 +106,12 @@ namespace ir_passes {
                 for (auto *currBB : loop->body)
                     blocks2loop[currBB].insert(loop);
 
-
             }
+
+            // mark deepest loop
+            for (auto * loop : func->loops)
+                if (loop->nested.empty())
+                    func->deepestLoop.push_back(loop);
         }
 
     public:

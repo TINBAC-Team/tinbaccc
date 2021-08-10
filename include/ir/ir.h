@@ -205,6 +205,8 @@ namespace ir {
         BlockList bList;
         BlockList rpoBList;
         std::vector<FuncParam *> params;
+        std::set<Loop*> loops;
+        std::vector<Loop*> deepestLoop;
 
         explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
 
