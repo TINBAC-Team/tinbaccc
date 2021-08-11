@@ -74,7 +74,7 @@ namespace asm_arm {
 
         LDRInst *createLDR(Operand *s, Operand *o);
 
-        LSLInst *createLSL(Operand *s, int shift);
+        ShiftInst *createLSL(Operand *s, int shift);
 
         STRInst * createSTR(Operand *v, Operand *a, Operand *o);
 
@@ -118,6 +118,10 @@ namespace asm_arm {
         void generate_pool();
 
         void generate_pool(Function* func);
+
+        ShiftInst *createASR(Operand *s, int shift);
+
+        ShiftInst *createLSR(Operand *s, int shift);
     };
 }
 #endif //TINBACCC_BUILDER_H

@@ -77,6 +77,8 @@ namespace ir {
 
     asm_arm::Operand* BinaryInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Operand *lhs, *rhs;
+        if(optype == OpType::SDIV)
+            return codegen_div(builder);
         if(optype == OpType::SREM)
             return codegen_mod(builder);
         if(optype == OpType::MUL)
@@ -108,11 +110,6 @@ namespace ir {
                     rhs = dynamic_cast<ConstValue *>(ValueR.value)->genop2(builder);
                 else
                     rhs = builder.getOrCreateOperandOfValue(ValueR.value);
-                break;
-            case OpType::SDIV:
-                op=asm_arm::Inst::Op::SDIV;
-                lhs= builder.getOrCreateOperandOfValue(ValueL.value);
-                rhs= builder.getOrCreateOperandOfValue(ValueR.value);
                 break;
             case OpType::EQ:
             case OpType::NE:
@@ -152,6 +149,62 @@ namespace ir {
         meet_cond->add_use(ret->dst);
         return ret->dst;
 
+    }
+
+    asm_arm::Operand *BinaryInst::codegen_div(asm_arm::Builder &builder) {
+        if (ValueR.value->optype == OpType::CONST) {
+            int cval = dynamic_cast<ConstValue *>(ValueR.value)->value;
+            // skip negative stuff for now.
+            if (cval > 0)
+                return codegen_div_const(builder, cval);
+        }
+        asm_arm::Operand *lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+        asm_arm::Operand *rhs = builder.getOrCreateOperandOfValue(ValueR.value);
+        asm_arm::Operand *res = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
+        builder.setOperandOfValue(this, res);
+        return res;
+    }
+
+    // Implementation of Chapter 10 in "Hacker's Delight", Henry S. Warren, Jr.
+    asm_arm::Operand *BinaryInst::codegen_div_const(asm_arm::Builder &builder, int d) {
+        if (d == 0)
+            throw std::runtime_error("divide by zero");
+        int pow = __builtin_ffs(d) - 1;
+        asm_arm::Operand *res;
+        asm_arm::Operand *lhs = builder.getOrCreateOperandOfValue(ValueL.value);
+        if (d == 1) {
+            res = lhs;
+        } else if (1 << pow == d) {
+            builder.createCMPInst(lhs, asm_arm::Operand::newImm(0));
+            auto addInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::ADD, lhs, lhs,
+                                                   asm_arm::Operand::newImm(1 << (pow - 1)));
+            addInst->cond = asm_arm::Inst::OpCond::LT;
+            builder.curBlock->insertAtEnd(addInst);
+            auto resinst = builder.createASR(lhs, pow);
+            res = resinst->dst;
+        } else {
+            uint32_t d_u32 = d;
+            const uint32_t W = 32;
+            uint64_t n_c = (1 << (W - 1)) - ((1 << (W - 1)) % d_u32) - 1;
+            uint64_t p = W;
+            while (((uint64_t) 1 << p) <= n_c * (d_u32 - ((uint64_t) 1 << p) % d_u32)) {
+                p++;
+            }
+            uint32_t m = (((uint64_t) 1 << p) + (uint64_t) d_u32 - ((uint64_t) 1 << p) % d_u32) / (uint64_t) d_u32;
+            uint32_t shift = p - W;
+            auto magic = builder.createLDR(m)->dst;
+            asm_arm::Operand *mul_res;
+            if (m >= 0x80000000)
+                mul_res = builder.createTernaryInst(asm_arm::Inst::Op::SMMLA, magic, lhs, lhs)->dst;
+            else
+                mul_res = builder.createBinaryInst(asm_arm::Inst::Op::SMMUL, magic, lhs)->dst;
+            auto res_tmp = builder.createASR(mul_res, shift);
+            auto resInst = builder.createBinaryInst(asm_arm::Inst::Op::ADD, res_tmp->dst, lhs);
+            resInst->lsl = -31;
+            res = resInst->dst;
+        }
+        builder.setOperandOfValue(this, res);
+        return res;
     }
 
     asm_arm::Operand *BinaryInst::codegen_mod(asm_arm::Builder &builder) {

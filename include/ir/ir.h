@@ -317,6 +317,10 @@ namespace ir {
         bool is_icmp() const;
 
     private:
+        asm_arm::Operand* codegen_div_const(asm_arm::Builder &builder, int d);
+
+        asm_arm::Operand* codegen_div(asm_arm::Builder &builder);
+
         asm_arm::Operand* codegen_mod(asm_arm::Builder &builder);
 
         asm_arm::Operand* codegen_mul(asm_arm::Builder &builder);

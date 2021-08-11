@@ -111,6 +111,10 @@ namespace asm_arm {
             SUB,
             RSB,
             LSL,
+            ASR,
+            LSR,
+            SMMLA,
+            SMMUL,
             MLA,
             MLS,
             MUL,
@@ -271,13 +275,13 @@ namespace asm_arm {
         TSTInst(Operand *d, Operand *s);
     };
 
-    class LSLInst : public Inst {
+    class ShiftInst : public Inst {
     public:
         Operand *dst;
         Operand *src;
         int shift;
 
-        LSLInst(Operand *d, Operand *s, int _shift);
+        ShiftInst(Inst::Op op, Operand *d, Operand *s, int _shift);
 
         void print_body(std::ostream &os) const;
 

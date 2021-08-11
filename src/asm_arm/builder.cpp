@@ -188,8 +188,20 @@ namespace asm_arm {
         return ret;
     }
 
-    LSLInst *Builder::createLSL(Operand *s, int shift) {
-        auto ret = new LSLInst(Operand::newVReg(), s, shift);
+    ShiftInst *Builder::createLSL(Operand *s, int shift) {
+        auto ret = new ShiftInst(Inst::Op::LSL, Operand::newVReg(), s, shift);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
+    ShiftInst *Builder::createASR(Operand *s, int shift) {
+        auto ret = new ShiftInst(Inst::Op::ASR, Operand::newVReg(), s, shift);
+        curBlock->insertAtEnd(ret);
+        return ret;
+    }
+
+    ShiftInst *Builder::createLSR(Operand *s, int shift) {
+        auto ret = new ShiftInst(Inst::Op::LSR, Operand::newVReg(), s, shift);
         curBlock->insertAtEnd(ret);
         return ret;
     }

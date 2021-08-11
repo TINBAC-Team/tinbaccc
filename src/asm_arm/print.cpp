@@ -129,6 +129,18 @@ namespace asm_arm {
             case Op::LSL:
                 ret_s = "LSL";
                 break;
+            case Op::ASR:
+                ret_s = "ASR";
+                break;
+            case Op::LSR:
+                ret_s = "LSR";
+                break;
+            case Op::SMMLA:
+                ret_s = "SMMLA";
+                break;
+            case Op::SMMUL:
+                ret_s = "SMMUL";
+                break;
             case Op::AND:
                 ret_s = "AND";
                 break;
@@ -259,7 +271,7 @@ namespace asm_arm {
         }
     }
 
-    void LSLInst::print_body(std::ostream &os) const {
+    void ShiftInst::print_body(std::ostream &os) const {
         os << dst->getOperandName() << ", " << src->getOperandName() << ", #" << shift;
     }
 
@@ -301,8 +313,10 @@ namespace asm_arm {
 
     void BinaryInst::print_body(std::ostream &os) const {
         os << dst->getOperandName() << ", " << lhs->getOperandName() << ", " << rhs->getOperandName();
-        if (lsl)
+        if (lsl > 0)
             os << ", LSL #" << lsl;
+        else if (lsl < 0)
+            os << ", LSR #" << -lsl;
     }
 
     void TernaryInst::print_body(std::ostream &os) const {

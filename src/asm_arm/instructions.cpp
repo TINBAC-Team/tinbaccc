@@ -146,12 +146,12 @@ namespace asm_arm {
         return true;
     }
 
-    LSLInst::LSLInst(Operand *d, Operand *s, int _shift) : Inst(Inst::Op::LSL), dst(d), src(s), shift(_shift) {
+    ShiftInst::ShiftInst(Inst::Op op, Operand *d, Operand *s, int _shift) : Inst(op), dst(d), src(s), shift(_shift) {
         add_use(s);
         add_def(d);
     }
 
-    bool LSLInst::replace_def(Operand *orig, Operand *newop) {
+    bool ShiftInst::replace_def(Operand *orig, Operand *newop) {
         if (dst != orig)
             return false;
         dst = newop;
@@ -160,7 +160,7 @@ namespace asm_arm {
         return true;
     }
 
-    bool LSLInst::replace_use(Operand *orig, Operand *newop) {
+    bool ShiftInst::replace_use(Operand *orig, Operand *newop) {
         if (src != orig)
             return false;
         src = newop;
