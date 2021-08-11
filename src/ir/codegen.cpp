@@ -183,6 +183,9 @@ namespace ir {
             auto resinst = builder.createASR(lhs, pow);
             res = resinst->dst;
         } else {
+            // this constant division is a 7-cycle sequence while SDIV in Cortex-A72 takes 4-12 cycles.
+            // Testing on provided testcases shows that it produces negative impact on actual performance.
+#if 0
             uint32_t d_u32 = d;
             const uint32_t W = 32;
             uint64_t n_c = (1 << (W - 1)) - ((1 << (W - 1)) % d_u32) - 1;
@@ -202,6 +205,10 @@ namespace ir {
             auto resInst = builder.createBinaryInst(asm_arm::Inst::Op::ADD, res_tmp->dst, lhs);
             resInst->lsl = -31;
             res = resInst->dst;
+#else
+            asm_arm::Operand *rhs = builder.getOrCreateOperandOfValue(ValueR.value);
+            res = builder.createBinaryInst(asm_arm::Inst::Op::SDIV, lhs, rhs)->dst;
+#endif
         }
         builder.setOperandOfValue(this, res);
         return res;
