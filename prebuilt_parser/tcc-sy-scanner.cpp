@@ -1192,7 +1192,7 @@ case 42:
 YY_RULE_SETUP
 #line 85 "src/parser/scanner.ll"
 {
-  long n = strtol (yytext, NULL, 10);
+  long long n = strtoll (yytext, NULL, 10);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 	YY_BREAK
@@ -1200,7 +1200,7 @@ case 43:
 YY_RULE_SETUP
 #line 90 "src/parser/scanner.ll"
 {
-  long n = strtol (yytext, NULL, 0);
+  long long n = strtoll (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 	YY_BREAK
@@ -1208,7 +1208,7 @@ case 44:
 YY_RULE_SETUP
 #line 95 "src/parser/scanner.ll"
 {
-  long n = strtol (yytext, NULL, 0);
+  long long n = strtoll (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 	YY_BREAK

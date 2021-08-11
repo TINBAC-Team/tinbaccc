@@ -82,17 +82,17 @@ blank [ \t]
 
 
 {IntConst}   {
-  long n = strtol (yytext, NULL, 10);
+  long long n = strtoll (yytext, NULL, 10);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 
 {HexConst}   {
-  long n = strtol (yytext, NULL, 0);
+  long long n = strtoll (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 
 {OctConst}   {
-  long n = strtol (yytext, NULL, 0);
+  long long n = strtoll (yytext, NULL, 0);
   return yy::tcc_sy_parser::make_INTCONST(n, loc);
 }
 
