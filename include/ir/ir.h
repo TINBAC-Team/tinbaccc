@@ -253,7 +253,7 @@ namespace ir {
         // The depth in depth first search tree of current node.
         int dfs_tree_depth;
         // the depth of loop
-        int loop_depth;
+        int loop_depth = 0;
 
         std::string name;
 
