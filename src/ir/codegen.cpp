@@ -176,11 +176,15 @@ namespace ir {
             res = lhs;
         } else if (1 << pow == d) {
             builder.createCMPInst(lhs, asm_arm::Operand::newImm(0));
+            auto asr1 = builder.createASR(lhs, 31);
+            auto add = builder.createBinaryInst(asm_arm::Inst::Op::ADD, lhs, asr1->dst);
+            auto resinst = builder.createASR(add->dst, pow);
+            /*
             auto addInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::ADD, lhs, lhs,
                                                    asm_arm::Operand::newImm(1 << (pow - 1)));
             addInst->cond = asm_arm::Inst::OpCond::LT;
             builder.curBlock->insertAtEnd(addInst);
-            auto resinst = builder.createASR(lhs, pow);
+            auto resinst = builder.createASR(lhs, pow);*/
             res = resinst->dst;
         } else {
             // this constant division is a 7-cycle sequence while SDIV in Cortex-A72 takes 4-12 cycles.
