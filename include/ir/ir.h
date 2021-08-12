@@ -61,7 +61,6 @@ namespace ir {
 
     struct Loop {
         BasicBlock* head = nullptr;
-        std::set<BasicBlock*> tail;
         std::set<BasicBlock*> body;
         std::vector<Loop*> nested;
         Loop* external = nullptr;
