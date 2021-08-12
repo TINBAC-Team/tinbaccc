@@ -144,7 +144,9 @@ public:
         loopDelta = 0;
         if (cmpValueR && !cmpValueL) {
             // left operator is loopVar and right operator is const
-            loopVar->init(loop, branchInst, dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value));
+            auto * phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
+            if (!phiInst) return false;
+            loopVar->init(loop, branchInst, dynamic_cast<ir::PhiInst *>(phiInst));
             auto *loopVarInit = dynamic_cast<ir::ConstValue *>(loopVar->loopVarInit);
             if (!loopVarInit) return false;
             int loopInit = loopVarInit->value;
@@ -155,7 +157,9 @@ public:
             }
         } else if (cmpValueL && !cmpValueR) {
             // right operator is loopVar and left operator is const
-            loopVar->init(loop, branchInst, dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value));
+            auto * phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
+            if (!phiInst) return false;
+            loopVar->init(loop, branchInst, dynamic_cast<ir::PhiInst *>(phiInst));
             auto *loopVarInit = dynamic_cast<ir::ConstValue *>(loopVar->loopVarInit);
             if (!loopVarInit) return false;
             int loopInit = loopVarInit->value;
