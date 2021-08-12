@@ -209,7 +209,7 @@ public:
                 else
                     // corresponding position
                     return loopIR->getCorrespondingPhiInst(originLoopIR, dynamic_cast<ir::PhiInst *>(u.value));
-            else if (u.value->bb != body)
+            else if (u.value->bb != originLoopIR->body)
                 return u.value; // special case: outside loop body
             else if (value_map.find(u.value) != value_map.cend())
                 return value_map[u.value];
