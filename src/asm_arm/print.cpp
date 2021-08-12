@@ -227,33 +227,42 @@ namespace asm_arm {
 
     void LDRInst::print(std::ostream &os) {
         if (type == Type::IMM) {
-            bool printed = false;
             if (Operand::op2Imm(value) || !(value & 0xffff0000)) {
                 os << "\tMOV" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << value;
-                printed = true;
-            }
-            if (Operand::op2Imm(~value)) {
+            } else if (Operand::op2Imm(~value)) {
                 os << "\tMVN" << OpCond_to_string() << " " << dst->getOperandName() << ", #" << (~value);
-                printed = true;
+            } else {
+                os << "\tMOVW" << OpCond_to_string() << " " << dst->getOperandName()
+                   << ", #" << (value & 0xffff) << std::endl;
+                os << "\tMOVT" << OpCond_to_string() << " " << dst->getOperandName()
+                   << ", #" << (value >> 16);
             }
-            if (printed) {
-                if (!comment.str().empty())
-                    os << "  @" << comment.str();
-                os << std::endl;
-                return;
-            }
+            if (!comment.str().empty())
+                os << "  @" << comment.str();
+            os << std::endl;
+        } else if (type == Type::LABEL) {
+            os << "\tMOVW" << OpCond_to_string() << " " << dst->getOperandName()
+               << ", :lower16:" << label << std::endl;
+            os << "\tMOVT" << OpCond_to_string() << " " << dst->getOperandName()
+               << ", :upper16:" << label;
+            if (!comment.str().empty())
+                os << "  @" << comment.str();
+            os << std::endl;
+        } else {
+            Inst::print(os);
         }
-        Inst::print(os);
     }
 
     void LDRInst::print_body(std::ostream &os) const {
         switch (type) {
+#if 0
             case Type::LABEL:
                 os << dst->getOperandName() << ", =" << label;
                 break;
             case Type::IMM:
                 os << dst->getOperandName() << ", " << "=" + std::to_string(value);
                 break;
+#endif
             case Type::REGOFFS:
                 os << dst->getOperandName() << ", [" << src->getOperandName();
                 if (!offs) {
