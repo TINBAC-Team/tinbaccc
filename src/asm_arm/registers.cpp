@@ -68,6 +68,7 @@ void asm_arm::RegisterAllocator::build() {
             }
             for (auto &u : inst->use)
                 if (u->type != Operand::Type::Imm) {
+                    u->lifespan = 0;
                     auto ret = live.insert(u);
                     // check if it's a new element inserted.
                     // We determine lifespan inside a BB so liveOut are skipped this way.
