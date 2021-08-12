@@ -1,38 +1,52 @@
 #include <ir/passes.h>
 #include <algorithm>
-#include <cmath>
 
 const int K = 4;
 
+/**
+ * Represent a loop variable which is defined outside the loop body and use inside the loop body.
+ */
 struct LoopVariable {
-    ir::Loop *loop;
-    ir::Value *loopVarInit;
-    ir::PhiInst *loopVarEnter;
-    ir::Value *loopVarExit;
+    ir::Loop *loop = nullptr;
+    ir::Value *loopVarInit = nullptr;
+    ir::PhiInst *loopVarDefine = nullptr;
+    ir::Value *loopVarBody = nullptr;
 
     void init(ir::Loop *loop, ir::BranchInst *branchInst, ir::PhiInst *defineInst) {
         this->loop = loop;
-        this->loopVarEnter = defineInst;
-        this->loopVarInit = loopVarEnter->GetRelatedValue(loop->head);
-        this->loopVarExit = loopVarEnter->GetRelatedValue(branchInst->true_block);
+        this->loopVarDefine = defineInst;
+        this->loopVarInit = loopVarDefine->GetRelatedValue(loop->head);
+        this->loopVarBody = loopVarDefine->GetRelatedValue(branchInst->true_block);
     }
 
 };
 
+/**
+ * Represent a loop with single basic block (IR form)
+ */
 struct LoopIR {
-    ir::Loop *loop;
-    ir::BasicBlock *cond;
-    ir::BasicBlock *body;
-    ir::BinaryInst *cmpInst;
-    ir::BranchInst *branchInst;
+    ir::Loop *loop = nullptr;
+    ir::BasicBlock *cond = nullptr;
+    ir::BasicBlock *body = nullptr;
+    ir::BinaryInst *cmpInst = nullptr;
+    ir::BranchInst *branchInst = nullptr;
 
-    std::unordered_map<ir::Value *, LoopVariable*> loopVarsByDefine;
-    std::unordered_map<ir::Value *, LoopVariable*> loopVarsByEnter;
+    std::vector<ir::PhiInst *> phiInst;
+    std::unordered_map<ir::Value *, LoopVariable *> loopVarsByDefine;
+    std::unordered_map<ir::Value *, LoopVariable *> loopVarsByEnter;
+
+     ir::PhiInst* getCorrespondingPhiInst(const LoopIR *loopIR, const ir::PhiInst *phiInst) {
+        auto iter = std::find(loopIR->phiInst.begin(), loopIR->phiInst.end(), phiInst);
+        if (iter == loopIR->phiInst.cend()) return nullptr;
+        int index = iter - loopIR->phiInst.cbegin();
+        return this->phiInst[index];
+    }
 
     void build() {
-        for(auto * inst : cond->iList) {
-            if (auto * x = dynamic_cast<ir::PhiInst*>(inst)) {
-                auto * loopVar = new LoopVariable();
+        for (auto *inst : cond->iList) {
+            if (auto *x = dynamic_cast<ir::PhiInst *>(inst)) {
+                phiInst.push_back(x);
+                auto *loopVar = new LoopVariable();
                 loopVar->init(loop, branchInst, x);
                 loopVarsByDefine[x] = loopVar;
                 loopVarsByEnter[x->GetRelatedValue(branchInst->true_block)] = loopVar;
@@ -70,8 +84,8 @@ public:
     LoopUnrolling(ir::Function *function) : function(function) {}
 
     bool tryInferLoopVarDelta(LoopVariable *loopVar, ir::BasicBlock *scope, int &delta) {
-        auto *currInst = loopVar->loopVarExit;
-        while (currInst != loopVar->loopVarEnter && currInst->bb == scope) {
+        auto *currInst = loopVar->loopVarBody;
+        while (currInst != loopVar->loopVarDefine && currInst->bb == scope) {
             auto *binaryInst = dynamic_cast<ir::BinaryInst *>(currInst);
             if (!binaryInst) return false;
             if (binaryInst->optype == ir::OpType::ADD) {
@@ -172,17 +186,29 @@ public:
         }
         return false;
     }
-#include <iostream>
 
-    void duplicateLoopBody(LoopIR *loopIR, LoopVariable *newLoopVar, ir::BasicBlock *body, std::vector<ir::Value *> &originInstList,
-                           LoopVariable *originLoopVar) {
-
+    /**
+     * Copy instruction to one basic block.
+     * Note that loopIR and originLoopIR can be the same if the instructions to duplicate in the same basic block of
+     * target. From loopIR, the loopVarDefine must filled.
+     * @param loopIR  the loopIR corresponding to the body
+     * @param body the basic block to insert instructions
+     * @param originLoopIR the loopIR corresponding to the originInstList
+     * @param originInstList the instructions to insert
+     */
+    void duplicateLoopBody(LoopIR *loopIR, ir::BasicBlock *body, const LoopIR *originLoopIR,
+                           const std::vector<ir::Value *> &originInstList) {
         // Step1 prepare for value remapping
         std::unordered_map<ir::Value *, ir::Value *> value_map;
         auto get_val = [&](const ir::Use &u) -> ir::Value * {
             ir::Value *ret;
-            if (loopIR->loopVarsByDefine.find(u.value) != loopIR->loopVarsByDefine.cend())
-                return loopIR->loopVarsByDefine[u.value]->loopVarEnter->GetRelatedValue(loopIR->branchInst->true_block);
+            if (originLoopIR->loopVarsByDefine.find(u.value) != loopIR->loopVarsByDefine.cend())
+                if (loopIR == originLoopIR)
+                    return loopIR->loopVarsByDefine[u.value]->loopVarDefine->GetRelatedValue(
+                            loopIR->branchInst->true_block);
+                else
+                    // corresponding position
+                    return loopIR->getCorrespondingPhiInst(originLoopIR, dynamic_cast<ir::PhiInst *>(u.value));
             else if (u.value->bb != body)
                 return u.value; // special case: outside loop body
             else if (value_map.find(u.value) != value_map.cend())
@@ -229,12 +255,22 @@ public:
             } else {
                 throw std::runtime_error("unknown instruction to duplicate.");
             }
-            // set newLoopVar.loopVarExit
-            if (loopIR->loopVarsByEnter.find(inst) != loopIR->loopVarsByEnter.cend()) {
-                LoopVariable* loopVar = loopIR->loopVarsByEnter[inst];
-                loopVar->loopVarEnter->InsertElem(loopIR->branchInst->true_block, loopIR->body->iList.back());
-                loopIR->body->iList.back()->print(std::cout);
-                std::cout << std::endl;
+            // modify the phiNode of loopVar
+            if (originLoopIR->loopVarsByEnter.find(inst) != originLoopIR->loopVarsByEnter.cend()) {
+                if (loopIR == originLoopIR) {
+                    LoopVariable *loopVar = loopIR->loopVarsByEnter[inst];
+                    // replace
+                    loopVar->loopVarDefine->InsertElem(loopIR->branchInst->true_block, loopIR->body->iList.back());
+                } else {
+                    LoopVariable *loopVar = new LoopVariable();
+                    loopVar->loop = loopIR->loop;
+                    auto * originLoopVar = originLoopIR->loopVarsByEnter.find(inst)->second;
+                    loopVar->loopVarInit  = originLoopVar->loopVarDefine;
+                    loopVar->loopVarDefine = loopIR->getCorrespondingPhiInst(originLoopIR, originLoopVar->loopVarDefine);
+                    loopVar->loopVarBody  =  loopIR->body->iList.back();
+                    loopIR->loopVarsByDefine[loopVar->loopVarDefine] = loopVar;
+                    loopIR->loopVarsByEnter[loopIR->body->iList.back()] = loopVar;
+                }
             }
 
         }
@@ -249,38 +285,67 @@ public:
         reset_loop->depth = originLoopIR->loop->depth;
 
         // Step2 prepare LoopIR struct
-        LoopIR reset_loopIR{};
+        LoopIR reset_loopIR;
+        reset_loopIR.loop = reset_loop;
         reset_loopIR.cond = new ir::BasicBlock("while_unrolling.entry");
         reset_loopIR.body = new ir::BasicBlock("while_unrolling.true");
-        reset_loopIR.cmpInst = new ir::BinaryInst(originLoopIR->cmpInst->optype,
-                                                  originLoopIR->cmpInst->ValueL.value,
-                                                  originLoopIR->cmpInst->ValueR.value);
-        reset_loopIR.branchInst = new ir::BranchInst(reset_loopIR.cmpInst, reset_loopIR.body,
-                                                     originLoopIR->branchInst->false_block);
 
-        // Step3 prepare LoopVariable struct, note that loopVarEnter must be assigned
-        LoopVariable reset_loopVar{};
-        reset_loopVar.loopVarEnter = new ir::PhiInst();
+        // Step3 prepare phi instructions
+        for (auto &originPhiInst : originLoopIR->phiInst) {
+            auto *phiInst = new ir::PhiInst();
+            phiInst->InsertElem(originLoopIR->cond, originPhiInst);
+            reset_loopIR.phiInst.push_back(phiInst);
+            reset_loopIR.cond->InsertAtEnd(phiInst);
+        }
 
-        // Step4 generate IR for reset_loop body
-        duplicateLoopBody(&reset_loopIR, &reset_loopVar, reset_loopIR.body, originInstList, unrollingLoopVar);
+        // Step4 insert the basic blocks
+        auto iter = std::find(function->bList.begin(), function->bList.end(), originLoopIR->body);
+        iter++;
+        iter = function->bList.insert(iter, reset_loopIR.cond);
+        iter++;
+        function->bList.insert(iter, reset_loopIR.body);
+
+        // Step5 generate IR for reset_loop body
+        duplicateLoopBody(&reset_loopIR, reset_loopIR.body, originLoopIR, originInstList);
         reset_loopIR.body->InsertAtEnd(new ir::JumpInst(reset_loopIR.cond));
 
-        // Step5 generate IR for reset_loop cond
-        reset_loopVar.loopVarEnter->InsertElem(reset_loop->head, unrollingLoopVar->loopVarEnter); // init value
-        reset_loopVar.loopVarEnter->InsertElem(reset_loopIR.body, reset_loopVar.loopVarExit); // loop value
-        if (reset_loopIR.cmpInst->ValueL.value == originLoopVar->loopVarEnter) {
-            reset_loopIR.cmpInst->ValueL.value = reset_loopVar.loopVarEnter;
-        } else if (reset_loopIR.cmpInst->ValueR.value == originLoopVar->loopVarEnter) {
-            reset_loopIR.cmpInst->ValueR.value = reset_loopVar.loopVarEnter;
-        } else throw std::runtime_error("One of cmpInst\'s must be originLoopVar.loopVarEnter.");
+
+
+        // Step6 generate IR for reset_loop cond
+        LoopVariable *reset_loopVar =
+                reset_loopIR.loopVarsByDefine[reset_loopIR.getCorrespondingPhiInst(originLoopIR, originLoopVar->loopVarDefine)];
+        auto * valueL = originLoopIR->cmpInst->ValueL.value;
+        auto * valueR = originLoopIR->cmpInst->ValueR.value;
+        if (valueL == originLoopVar->loopVarDefine) {
+            valueL = reset_loopVar->loopVarDefine;
+        } else if (valueR == originLoopVar->loopVarDefine) {
+            valueR = reset_loopVar->loopVarDefine;
+        } else throw std::runtime_error("One of cmpInst\'s must be originLoopVar.loopVarDefine.");
+        reset_loopIR.cmpInst = new ir::BinaryInst(originLoopIR->cmpInst->optype, valueL, valueR);
+        reset_loopIR.branchInst = new ir::BranchInst(reset_loopIR.cmpInst, reset_loopIR.body,
+                                                     originLoopIR->branchInst->false_block);
         reset_loopIR.cond->InsertAtEnd(reset_loopIR.cmpInst);
         reset_loopIR.cond->InsertAtEnd(reset_loopIR.branchInst);
 
-        // Step6 apply changes to loops
+        // Step6 fill phi instruction
+        for (auto & pair : reset_loopIR.loopVarsByEnter) {
+            auto * loopVar = pair.second;
+            auto * enterVar = pair.first;
+            loopVar->loopVarDefine->InsertElem(reset_loopIR.branchInst->true_block, enterVar);
+        }
+
+        // Step7 modify origin loop jumpInst
+        originLoopIR->cond->replaceSucc(originLoopIR->branchInst->false_block, reset_loopIR.cond);
+
+        // Step8 apply changes to loops
         function->deepestLoop.push_back(reset_loop);
         function->loops.insert(reset_loop);
-        if (originLoopIR->loop->external) originLoopIR->loop->external->nested.push_back(reset_loop);
+        if (originLoopIR->loop->external)
+            originLoopIR->loop->external->nested.push_back(reset_loop);
+        reset_loop->body.insert(reset_loopIR.cond);
+        reset_loop->body.insert(reset_loopIR.body);
+
+
     }
 
     void unrolling(ir::Loop *loop) {
@@ -308,15 +373,16 @@ public:
             // reserve last loopVar
             LoopVariable unrollingLoopVar{};
             for (int i = 0; i < K - 1; i++) {
-                // loopVarEnter must be filled
-                unrollingLoopVar.loopVarEnter = loopVar.loopVarEnter;
-                duplicateLoopBody(&loopIR, &unrollingLoopVar, loopIR.body, iList, &loopVar);
+                // loopVarDefine must be filled
+                unrollingLoopVar.loopVarDefine = loopVar.loopVarDefine;
+                duplicateLoopBody(&loopIR, loopIR.body, &loopIR, iList);
             }
             loopIR.body->InsertAtEnd(jumpToCond);
             if (loopResetCount > 0) {
                 insertResetLoop(&loopVar, &loopIR, iList, &unrollingLoopVar);
 
             }
+            int debugHere = 0;
         }
     }
 };
