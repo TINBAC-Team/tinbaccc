@@ -1,7 +1,7 @@
 #include <ir/passes.h>
 #include <algorithm>
 
-const int K = 4;
+const int K = 2;
 
 /**
  * Represent a loop variable which is defined outside the loop body and use inside the loop body.
@@ -137,11 +137,11 @@ public:
         return true;
     }
 
-    int constLoopCondAnalysis(ir::Loop *loop, ir::BinaryInst *cmpInst, ir::BranchInst *branchInst, int &loopCount,
-                              LoopVariable *loopVar) {
+    bool constLoopCondAnalysis(ir::Loop *loop, ir::BinaryInst *cmpInst, ir::BranchInst *branchInst, int &loopCount,
+                              int &loopDelta, LoopVariable *loopVar) {
         auto *cmpValueL = dynamic_cast<ir::ConstValue *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::ConstValue *>(cmpInst->ValueR.value);
-        int loopDelta = 0;
+        loopDelta = 0;
         if (cmpValueR && !cmpValueL) {
             // left operator is loopVar and right operator is const
             loopVar->init(loop, branchInst, dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value));
@@ -345,7 +345,22 @@ public:
         reset_loop->body.insert(reset_loopIR.cond);
         reset_loop->body.insert(reset_loopIR.body);
 
+        // Step9 replace value
+        std::set<ir::BasicBlock*> ignore;
+        std::set_union(originLoopIR->loop->body.cbegin(),  originLoopIR->loop->body.cend(),
+                       reset_loop->body.cbegin(),  reset_loop->body.cend(), std::inserter(ignore, ignore.cbegin()));
 
+        auto resetIter = reset_loopIR.phiInst.begin();
+        for (auto * phiInst : originLoopIR->phiInst) {
+            std::vector<ir::Use*> usesCopy;
+            usesCopy.assign(phiInst->uList.cbegin(), phiInst->uList.cend());
+            for (auto & use : usesCopy) {
+                if (ignore.find(use->user->bb) != ignore.cend()) continue;
+                std::cout << "rep" << std::endl;
+                use->use(*resetIter, true);
+            }
+            resetIter++;
+        }
     }
 
     void unrolling(ir::Loop *loop) {
@@ -361,7 +376,8 @@ public:
 
         // Step3 Process loop which execution times can be inferred
         // TODO Remove loop where cnt = 0
-        if (constLoopCondAnalysis(loop, loopIR.cmpInst, loopIR.branchInst, cnt, &loopVar) && cnt > 0) {
+        int loopDelta;
+        if (constLoopCondAnalysis(loop, loopIR.cmpInst, loopIR.branchInst, cnt, loopDelta, &loopVar) && cnt > 0) {
             int loopUnrollingCount = cnt / K;
             int loopResetCount = cnt - loopUnrollingCount * K;
             if (loopUnrollingCount == 0) return; // do nothing
@@ -377,12 +393,23 @@ public:
                 unrollingLoopVar.loopVarDefine = loopVar.loopVarDefine;
                 duplicateLoopBody(&loopIR, loopIR.body, &loopIR, iList);
             }
+            std::cout << "unrolling #1" << std::endl;
             loopIR.body->InsertAtEnd(jumpToCond);
             if (loopResetCount > 0) {
                 insertResetLoop(&loopVar, &loopIR, iList, &unrollingLoopVar);
-
+                std::cout << "unrolling #2" << std::endl;
             }
-            int debugHere = 0;
+
+            if (loopDelta > 0) {
+                loopDelta = -loopResetCount;
+            } else {
+                loopDelta = loopResetCount;
+            }
+            if (auto x = dynamic_cast<ir::ConstValue*>(loopIR.cmpInst->ValueL.value)) {
+                loopIR.cmpInst->ValueL = {loopIR.cmpInst, new ir::ConstValue(x->value + loopDelta)};
+            } else if (auto x = dynamic_cast<ir::ConstValue*>(loopIR.cmpInst->ValueR.value)) {
+                loopIR.cmpInst->ValueR = {loopIR.cmpInst, new ir::ConstValue(x->value + loopDelta)};
+            }
         }
     }
 };
