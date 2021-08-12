@@ -9,6 +9,12 @@
  */
 #include <ir/passes.h>
 
+#if 0
+#define DBG(a) std::cerr << "simplifycfg: " << a << std::endl
+#else
+#define DBG(a)
+#endif
+
 namespace ir_passes {
     void simplify_cfg(ir::Module *module, bool remove_empty_bb) {
         bool done = false;
@@ -22,11 +28,19 @@ namespace ir_passes {
                     auto &bb = *bb_it;
 
                     // 1. remove unreachable BBs
-                    if (bb->parentInsts.empty()) {
+                    bool unreachable = true;
+                    for (auto &pinst:bb->parentInsts) {
+                        if (pinst->bb != bb) {
+                            unreachable = false;
+                            break;
+                        }
+                    }
+                    if (unreachable) {
                         done = false;
                         for (auto &succ:bb->succ()) {
                             succ->removeParent(bb);
                         }
+                        DBG("unreachable bb " << bb->name << " removed.");
                         delete bb;
                         func->bList.erase(bb_it++);
                         continue;
@@ -72,6 +86,32 @@ namespace ir_passes {
                         delete phi;
                     }
 
+                    // make branch on constant a jump instead
+                    if (!bb->iList.empty() && bb->iList.back()->optype == ir::OpType::BRANCH) {
+                        auto branch = dynamic_cast<ir::BranchInst * >(bb->iList.back());
+                        if (branch->cond.value->optype == ir::OpType::CONST) {
+                            auto constval = dynamic_cast<ir::ConstValue *>(branch->cond.value)->value;
+                            ir::BasicBlock *tgt;
+                            if (constval) {
+                                branch->false_block->removeParent(bb);
+                                branch->true_block->parentInsts.remove(branch);
+                                tgt = branch->true_block;
+                                branch->true_block = nullptr;
+
+                            } else {
+                                branch->true_block->removeParent(bb);
+                                branch->false_block->parentInsts.remove(branch);
+                                tgt = branch->false_block;
+                                branch->false_block = nullptr;
+                            }
+                            bb->iList.pop_back();
+                            delete branch;
+                            bb->InsertAtEnd(new ir::JumpInst(tgt));
+                            DBG("branch in " << bb->name << " replaced with a jump to " << tgt->name << ".");
+                            done = false;
+                        }
+                    }
+
                     // 3. eliminate BBs with only a single unconditional branch
                     if (remove_empty_bb && bb->parentInsts.size() == 1 &&
                         bb->iList.front()->optype == ir::OpType::JUMP) {
@@ -100,6 +140,7 @@ namespace ir_passes {
                         done = false;
                         pred->replaceSucc(bb, succ);
                         succ->replacePred(bb, pred);
+                        DBG("basicblock " << bb->name << " with only a jump removed.");
                         delete bb;
                         func->bList.erase(bb_it++);
                         continue;
@@ -119,6 +160,7 @@ namespace ir_passes {
                             pred->InsertAtEnd(i);
                         for (auto succ:pred->succ())
                             succ->replacePred(bb, pred);
+                        DBG("basicblock " << bb->name << " merged into " << pred->name << ".");
                         delete bb;
                         func->bList.erase(bb_it++);
                         continue;

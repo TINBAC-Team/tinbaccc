@@ -178,10 +178,23 @@ namespace ir {
     }
 
     BasicBlock::~BasicBlock() {
-        if (!parentInsts.empty())
-            std::cerr << "ir: WARN! BasicBlock with predecessors destructed!" << std::endl;
         for (auto &suc:succ())
             suc->removeParent(this);
+        if (!parentInsts.empty())
+            std::cerr << "ir: WARN! BasicBlock with predecessors destructed!" << std::endl;
+        // manually clear self-loop
+        if (!iList.empty()) {
+            auto inst = iList.back();
+            if (auto branch = dynamic_cast<BranchInst *>(inst)) {
+                if (branch->true_block == this)
+                    branch->true_block = nullptr;
+                if (branch->false_block == this)
+                    branch->false_block = nullptr;
+            } else if (auto jump = dynamic_cast<JumpInst *>(inst)) {
+                if (jump->to == this)
+                    jump->to = nullptr;
+            }
+        }
         for (auto &inst:iList)
             if (inst->bb == this)
                 delete inst;
