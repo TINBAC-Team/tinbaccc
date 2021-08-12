@@ -28,6 +28,7 @@ namespace ir_passes {
             }
         };
         std::map<mem_ref, ir::Value *> mem_ref_map;
+        std::map<mem_ref, ir::Value *> mem_ref_map_idom;
         auto get_val_of_ref = [&](ir::Value *ref) -> ir::Value * {
             auto it = mem_ref_map.find(ref);
             if (it != mem_ref_map.end())
@@ -56,11 +57,26 @@ namespace ir_passes {
                     it++;
             }
         };
+        if (bb->parentInsts.size() == 1 && bb->idom == bb->parentInsts.front()->bb) {
+            for (auto inst:bb->idom->iList) {
+                if (inst->optype == ir::OpType::STORE) {
+                    auto strinst = dynamic_cast<ir::StoreInst *>(inst);
+                    mem_ref_map_idom[strinst->ptr.value] = strinst->val.value;
+                    clear_alias(strinst->ptr.value);
+                } else if (inst->optype == ir::OpType::LOAD) {
+                    auto ldrinst = dynamic_cast<ir::LoadInst *>(inst);
+                    mem_ref_map_idom[ldrinst->ptr.value] = ldrinst;
+                } else if (inst->optype == ir::OpType::CALL) {
+                    // don't bring defs across function calls for now.
+                    mem_ref_map_idom.clear();
+                }
+            }
+        }
         bool changed = true;
         int inst_cnt = 0;
         while (changed) {
             changed = false;
-            mem_ref_map.clear();
+            mem_ref_map = mem_ref_map_idom;
             for (auto inst_it = bb->iList.begin(); inst_it != bb->iList.end();) {
                 auto inst = *inst_it;
                 if (inst->optype == ir::OpType::STORE) {
