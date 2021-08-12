@@ -57,6 +57,7 @@ namespace ir {
 
             return getConstant(constL->value, constR->value, optype);
         }
+        if (constL) std::swap(_ValueL, _ValueR);
         auto *instp = new BinaryInst(optype, _ValueL, _ValueR);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
@@ -206,8 +207,23 @@ namespace ir {
         return 0;
     }
 
-    int BasicBlock::InsertBefore (Value *value, std::_List_const_iterator<Value *> it){
-        iList.insert(it,value);
+    int BasicBlock::InsertBefore(Value *value, std::_List_const_iterator<Value *> it) {
+        iList.insert(it, value);
+        value->bb = this;
+        return 0;
+    }
+
+    int BasicBlock::InsertBefore(Value *value, Value *target) {
+        auto it = std::find(iList.begin(), iList.end(), target);
+        if (it == iList.end()) throw std::runtime_error("insertBefore can not find target instruction.");
+        iList.insert(it, value);
+        value->bb = this;
+        return 0;
+    }
+    int BasicBlock::InsertAfter(Value *value, Value *target) {
+        auto it = std::find(iList.begin(), iList.end(), target);
+        it++;
+        InsertBefore(value,it);
         return 0;
     }
 
@@ -271,7 +287,7 @@ namespace ir {
         }
 
         if (!same) // The phi is unreachable or in the start block
-            same = builder.getConstant(0); // FIXME: Do we have an Undef?
+            same = builder.getConstant(0, builder); // FIXME: Do we have an Undef?
 
         // Replace all users of this Phi with same
         phi->replaceWith(same, false);
@@ -370,7 +386,6 @@ namespace ir {
     }
 
 
-
     ConstValue::ConstValue(int _value) : Value(OpType::CONST) {
         value = _value;
     }
@@ -379,11 +394,16 @@ namespace ir {
 
     }
 
-    Value *IRBuilder::getConstant(int _value) {
-        if (const_pool.find(_value) != const_pool.end()) return const_pool[_value];
+
+    Value *IRBuilder::getConstant(int _value, Module *module) {
+        if (module->const_pool.find(_value) != module->const_pool.end()) return module->const_pool[_value];
         auto constp = new ConstValue(_value);
-        const_pool[_value] = constp;
+        module->const_pool[_value] = constp;
         return constp;
+    }
+
+    Value *IRBuilder::getConstant(int _value, IRBuilder &builder) {
+        return getConstant(_value, builder.module);
     }
 
     Value *IRBuilder::CreateLoadInst(Value *ptr) {
@@ -417,27 +437,27 @@ namespace ir {
     Value *IRBuilder::getConstant(int valueL, int valueR, OpType optype) {
         switch (optype) {
             case OpType::ADD:
-                return getConstant(valueL + valueR);
+                return getConstant(valueL + valueR, *this);
             case OpType::SUB:
-                return getConstant(valueL - valueR);
+                return getConstant(valueL - valueR, *this);
             case OpType::MUL:
-                return getConstant(valueL * valueR);
+                return getConstant(valueL * valueR, *this);
             case OpType::SDIV:
-                return getConstant(valueL / valueR);
+                return getConstant(valueL / valueR, *this);
             case OpType::SREM:
-                return getConstant(valueL % valueR);
+                return getConstant(valueL % valueR, *this);
             case OpType::SLT:
-                return getConstant(valueL < valueR);
+                return getConstant(valueL < valueR, *this);
             case OpType::SLE:
-                return getConstant(valueL <= valueR);
+                return getConstant(valueL <= valueR, *this);
             case OpType::SGT:
-                return getConstant(valueL > valueR);
+                return getConstant(valueL > valueR, *this);
             case OpType::SGE:
-                return getConstant(valueL >= valueR);
+                return getConstant(valueL >= valueR, *this);
             case OpType::EQ:
-                return getConstant(valueL == valueR);
+                return getConstant(valueL == valueR, *this);
             case OpType::NE:
-                return getConstant(valueL != valueR);
+                return getConstant(valueL != valueR, *this);
             default:
                 throw std::runtime_error("Failed to get constant. OpType invalid.");
         }
@@ -547,7 +567,7 @@ namespace ir {
             //for pointer, llvm ir requires a "i32 0" in the back of the GEP
             auto gep = dynamic_cast<GetElementPtrInst *>(par);
             if (gep) {
-                gep->dims.emplace_back(gep, getConstant(0));
+                gep->dims.emplace_back(gep, getConstant(0, module));
             }
         }
 

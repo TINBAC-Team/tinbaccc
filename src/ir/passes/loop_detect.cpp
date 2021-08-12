@@ -125,8 +125,11 @@ namespace ir_passes {
 
     void loop_detect_compute(ir::Module *module) {
         for (auto &i:module->functionList)
+        {
+            i->loops.clear();
             if (!i->bList.empty())
                 LoopDetector{i}.compute();
+        }
 
     }
 }

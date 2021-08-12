@@ -16,5 +16,6 @@ namespace ir_passes {
     void aggressive_dce(ir::Module *module);
     void gvn(ir::Module *module);
     void gcm(ir::Module *module);
+    void strength_reduction(ir::Module *module);
 }
 #endif //TINBACCC_PASSES_H

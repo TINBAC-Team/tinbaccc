@@ -45,7 +45,8 @@ set(IR_PASSES_SOURCES
         src/ir/passes/loop_detect.cpp
         src/ir/passes/adce.cpp
         src/ir/passes/loop_unrolling.cpp
-        src/ir/passes/eliminate_load.cpp)
+        src/ir/passes/eliminate_load.cpp
+        src/ir/passes/strength_reduction.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp

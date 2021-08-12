@@ -76,6 +76,7 @@ namespace ir {
     public:
         FunctionList functionList, unusedFunctionList;
         GlobalVarList globalVarList;
+        ConstPool const_pool;
 
         void codegen(asm_arm::Builder &builder);
     };
@@ -84,7 +85,6 @@ namespace ir {
 
     class IRBuilder {
     public:
-        ConstPool const_pool;
         std::unordered_map<std::string, int> namePool;
         IRBuilder(Module *m);
 
@@ -127,7 +127,10 @@ namespace ir {
 
         Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params);
 
-        Value *getConstant(int _value);
+
+        static Value *getConstant(int _value,Module* module);
+
+        static Value *getConstant(int _value,IRBuilder& builder);
 
         Value *getConstant(int valueL, int valueR, OpType optype);
 
@@ -261,6 +264,10 @@ namespace ir {
         int InsertAtEnd(Value *value);
 
         int InsertBefore(Value *value, std::_List_const_iterator<Value *> it);
+
+        int InsertBefore(Value *value, Value* target); //insert before the target instruction
+
+        int InsertAfter(Value *value, Value* target); //insert after the target instruction
 
         int InsertAtFront(Value *value);
 

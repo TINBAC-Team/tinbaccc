@@ -84,7 +84,12 @@ void tcc_sy_driver::process_ir() {
     ir_passes::simplify_cfg(module, true);
     ir_passes::rpo_compute(module);
     ir_passes::dom_compute(module);
-
+    ir_passes::loop_detect_compute(module);
+    ir_passes::strength_reduction(module);
+    ir_passes::rpo_compute(module);
+    ir_passes::dom_compute(module);
+    ir_passes::gvn(module);
+    ir_passes::gcm(module);
 }
 
 void tcc_sy_driver::generate_asm() {

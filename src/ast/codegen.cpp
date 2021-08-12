@@ -16,7 +16,7 @@ namespace ast {
     }
 
     ir::Value *LVal::resolve_addr(ir::IRBuilder &builder) {
-        ir::Value *offset_val = builder.getConstant(0);
+        ir::Value *offset_val = builder.getConstant(0,builder);
         size_t decl_array_dim_cnt = decl->array_dims.size();
         size_t array_dim_cnt = array_dims.size();
         if (array_dims.empty() && decl->is_fparam)
@@ -54,7 +54,7 @@ namespace ast {
                 if(decl->initval_expanded[offset]->is_const() && decl->initval_expanded[offset]->get_value()==0) return;
                 std::vector<ir::Value*> dim_val;
                 for(auto &i:dim){
-                    dim_val.push_back(builder.getConstant(i));
+                    dim_val.push_back(builder.getConstant(i,builder));
                 }
                 auto filling_addr = builder.CreateGetElementPtrInst(decl->addr,dim_val, decl->array_multipliers);
                 builder.CreateStoreInst(filling_addr,decl->initval_expanded[offset]->codegen(builder));
@@ -122,7 +122,7 @@ namespace ast {
         irFunc->addParamsToBB(bb);
         auto ret= block->codegen(builder);
         if(irFunc->return_int)
-            builder.CreateReturnInst(builder.getConstant(0));
+            builder.CreateReturnInst(builder.getConstant(0,builder));
         else builder.CreateReturnInst(nullptr);
         return ret;
     }
@@ -246,7 +246,7 @@ namespace ast {
         ir::Value *L = nullptr, *R = nullptr;
         switch (op) {
             case Op::CONST_VAL:
-                return builder.getConstant(get_value());
+                return builder.getConstant(get_value(),builder);
             case Op::LVAL:
                 return lval->codegen(builder);
             case Op::FuncCall:
@@ -259,12 +259,12 @@ namespace ast {
                 break;
         }
         if (lhs->is_const())
-            L = builder.getConstant(lhs->get_value());
+            L = builder.getConstant(lhs->get_value(),builder);
         else
             L = lhs->codegen(builder);
         if (rhs) {
             if (rhs->is_const())
-                R = builder.getConstant(rhs->get_value());
+                R = builder.getConstant(rhs->get_value(),builder);
             else
                 R = rhs->codegen(builder);
         }
@@ -278,9 +278,9 @@ namespace ast {
             case Op::UNARY_PLUS:
                 return L;
             case Op::UNARY_MINUS:
-                return builder.CreateBinaryInst(builder.getConstant(0) ,L, ir::OpType::SUB);
+                return builder.CreateBinaryInst(builder.getConstant(0,builder) ,L, ir::OpType::SUB);
             case Op::LOGIC_NOT:
-                return builder.CreateBinaryInst(L, builder.getConstant(0), ir::OpType::EQ);
+                return builder.CreateBinaryInst(L, builder.getConstant(0,builder), ir::OpType::EQ);
 
             case Op::PLUS:
                 return builder.CreateBinaryInst(L, R, ir::OpType::ADD);
