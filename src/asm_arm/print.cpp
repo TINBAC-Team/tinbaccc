@@ -440,7 +440,6 @@ namespace asm_arm {
     }
 
     void Module::print(std::ostream &os) const {
-        os << "\t@ Build: " << __DATE__ << " " << __TIME__ << std::endl;
         os << "\t.arch armv8-a" << std::endl;
         os << "\t.arch_extension crc" << std::endl;
         for (auto &x:irModule->globalVarList)
