@@ -175,9 +175,9 @@ namespace ir {
         if (d == 1) {
             res = lhs;
         } else if (1 << pow == d) {
-            builder.createCMPInst(lhs, asm_arm::Operand::newImm(0));
-            auto asr1 = builder.createASR(lhs, 31);
+            auto asr1 = builder.createASR(lhs, pow - 1);
             auto add = builder.createBinaryInst(asm_arm::Inst::Op::ADD, lhs, asr1->dst);
+            add->lsl = pow - 32;
             auto resinst = builder.createASR(add->dst, pow);
             /*
             auto addInst = new asm_arm::BinaryInst(asm_arm::Inst::Op::ADD, lhs, lhs,
