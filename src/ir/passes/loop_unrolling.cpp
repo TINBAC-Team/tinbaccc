@@ -4,6 +4,21 @@
 const int K = 4;
 const int DELTA_LIMIT = 64;
 
+static ir::OpType flipOperator(ir::OpType opType) {
+    switch (opType) {
+        case ir::OpType::SLT:
+            return ir::OpType::SGT;
+            case ir::OpType::SLE:
+                return ir::OpType::SGE;
+                case ir::OpType::SGT:
+                    return ir::OpType::SLT;
+                    case ir::OpType::SGE:
+                        return ir::OpType::SLE;
+                        default:
+                            return opType;
+    }
+}
+
 /**
  * Represent a loop variable which is defined outside the loop body and use inside the loop body.
  */
@@ -38,7 +53,7 @@ struct LoopIR {
     std::unordered_map<ir::Value *, LoopVariable *> loopVarsByDefine;
     std::unordered_map<ir::Value *, LoopVariable *> loopVarsByEnter;
 
-     ir::PhiInst* getCorrespondingPhiInst(const LoopIR *loopIR, const ir::PhiInst *phiInst) {
+    ir::PhiInst *getCorrespondingPhiInst(const LoopIR *loopIR, const ir::PhiInst *phiInst) {
         auto iter = std::find(loopIR->phiInst.begin(), loopIR->phiInst.end(), phiInst);
         if (iter == loopIR->phiInst.cend()) return nullptr;
         int index = iter - loopIR->phiInst.cbegin();
@@ -123,20 +138,20 @@ public:
                 if (init < cond) cnt = (cond - init - 1) / delta + 1;
                 else cnt = 0;
                 break;
-            case ir::OpType::SLE:
-                if (init <= cond) cnt = (cond - init) / delta + 1;
-                else cnt = 0;
-                break;
-            case ir::OpType::SGT:
-                if (init > cond) cnt = (init - cond - 1) / delta + 1;
-                else cnt = 0;
-                break;
-            case ir::OpType::SGE:
-                if (init >= cond) cnt = (init - cond) / delta + 1;
-                else cnt = 0;
-                break;
-            default:
-                return false;
+                case ir::OpType::SLE:
+                    if (init <= cond) cnt = (cond - init) / delta + 1;
+                    else cnt = 0;
+                    break;
+                    case ir::OpType::SGT:
+                        if (init > cond) cnt = (init - cond - 1) / delta + 1;
+                        else cnt = 0;
+                        break;
+                        case ir::OpType::SGE:
+                            if (init >= cond) cnt = (init - cond) / delta + 1;
+                            else cnt = 0;
+                            break;
+                            default:
+                                return false;
         }
         return true;
     }
@@ -149,7 +164,7 @@ public:
         loopDelta = 0;
         if (cmpValueR && !cmpValueL) {
             // left operator is loopVar and right operator is const
-            auto * phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
+            auto *phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
             if (!phiInst) return false;
             auto iter = loopIR->loopVarsByDefine.find(cmpInst->ValueL.value);
             if (iter == loopIR->loopVarsByDefine.cend())
@@ -160,12 +175,12 @@ public:
             int loopInit = loopVarInit->value;
             int condConst = cmpValueR->value;
             if (tryInferLoopVarDelta(loopIR->loopCondVar, branchInst->true_block, loopDelta)
-                && tryInferLoopCount(cmpInst->optype, loopInit, condConst, loopDelta, loopCount)) {
+            && tryInferLoopCount(cmpInst->optype, loopInit, condConst, loopDelta, loopCount)) {
                 return true;
             }
         } else if (cmpValueL && !cmpValueR) {
             // right operator is loopVar and left operator is const
-            auto * phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
+            auto *phiInst = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
             if (!phiInst) return false;
             auto iter = loopIR->loopVarsByDefine.find(cmpInst->ValueR.value);
             if (iter == loopIR->loopVarsByDefine.cend())
@@ -176,27 +191,9 @@ public:
             if (!loopVarInit) return false;
             int loopInit = loopVarInit->value;
             int condConst = cmpValueL->value;
-            ir::OpType opType;
-            // flip operator
-            switch (cmpInst->optype) {
-                case ir::OpType::SLT:
-                    opType = ir::OpType::SGT;
-                    break;
-                case ir::OpType::SLE:
-                    opType = ir::OpType::SGE;
-                    break;
-                case ir::OpType::SGT:
-                    opType = ir::OpType::SLT;
-                    break;
-                case ir::OpType::SGE:
-                    opType = ir::OpType::SLE;
-                    break;
-                default:
-                    opType = cmpInst->optype;
-                    break;
-            }
+            ir::OpType opType = flipOperator(cmpInst->optype);
             if (tryInferLoopVarDelta(loopIR->loopCondVar, branchInst->true_block, loopDelta)
-                && tryInferLoopCount(opType, loopInit, condConst, loopDelta, loopCount)) {
+            && tryInferLoopCount(opType, loopInit, condConst, loopDelta, loopCount)) {
                 return true;
             }
         }
@@ -209,14 +206,14 @@ public:
         auto *cmpValueL = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
         loopIR->loopCondVar = new LoopVariable();
-        if (cmpValueL && (!cmpValueR  || !cmpValueR->GetRelatedValue(loopIR->body))) {
+        if (cmpValueL && (!cmpValueR || !cmpValueR->GetRelatedValue(loopIR->body))) {
             // left operator is loopVar and right operator will not change in loop body
             auto iter = loopIR->loopVarsByDefine.find(cmpValueL);
             if (iter == loopIR->loopVarsByDefine.cend())
                 throw std::runtime_error("Cannot find loopCondVar from cmpValueL.");
             loopIR->loopCondVar = iter->second;
             return tryInferLoopVarDelta(loopIR->loopCondVar, branchInst->true_block, loopDelta);
-        } else if (cmpValueR && (!cmpValueL  || !cmpValueL->GetRelatedValue(loopIR->body))) {
+        } else if (cmpValueR && (!cmpValueL || !cmpValueL->GetRelatedValue(loopIR->body))) {
             auto iter = loopIR->loopVarsByDefine.find(cmpValueR);
             if (iter == loopIR->loopVarsByDefine.cend())
                 throw std::runtime_error("Cannot find loopCondVar from cmpValueR.");
@@ -247,16 +244,16 @@ public:
                 else
                     // corresponding position
                     return loopIR->getCorrespondingPhiInst(originLoopIR, dynamic_cast<ir::PhiInst *>(u.value));
-            else if (u.value->bb != originLoopIR->body)
-                return u.value; // special case: outside loop body
-            else if (value_map.find(u.value) != value_map.cend())
-                return value_map[u.value];
-            else if ((ret = dynamic_cast<ir::ConstValue *>(u.value)))
-                return ret;
-            else if ((ret = dynamic_cast<ir::GlobalVar *>(u.value)))
-                return ret;
-            else
-                throw std::runtime_error("value not defined!");
+                else if (u.value->bb != originLoopIR->body)
+                    return u.value; // special case: outside loop body
+                    else if (value_map.find(u.value) != value_map.cend())
+                        return value_map[u.value];
+                    else if ((ret = dynamic_cast<ir::ConstValue *>(u.value)))
+                        return ret;
+                    else if ((ret = dynamic_cast<ir::GlobalVar *>(u.value)))
+                        return ret;
+                    else
+                        throw std::runtime_error("value not defined!");
         };
         // Step2 duplicate each value
         for (auto *inst : originInstList) {
@@ -302,10 +299,11 @@ public:
                 } else {
                     LoopVariable *loopVar = new LoopVariable();
                     loopVar->loop = loopIR->loop;
-                    auto * originLoopVar = originLoopIR->loopVarsByEnter.find(inst)->second;
-                    loopVar->loopVarInit  = originLoopVar->loopVarDefine;
-                    loopVar->loopVarDefine = loopIR->getCorrespondingPhiInst(originLoopIR, originLoopVar->loopVarDefine);
-                    loopVar->loopVarBody  =  loopIR->body->iList.back();
+                    auto *originLoopVar = originLoopIR->loopVarsByEnter.find(inst)->second;
+                    loopVar->loopVarInit = originLoopVar->loopVarDefine;
+                    loopVar->loopVarDefine = loopIR->getCorrespondingPhiInst(originLoopIR,
+                                                                             originLoopVar->loopVarDefine);
+                    loopVar->loopVarBody = loopIR->body->iList.back();
                     loopIR->loopVarsByDefine[loopVar->loopVarDefine] = loopVar;
                     loopIR->loopVarsByEnter[loopIR->body->iList.back()] = loopVar;
                 }
@@ -315,7 +313,7 @@ public:
     }
 
     void fixUnrollingLoopCondition(LoopIR *loopIR, int loopDelta, int loopResetCount) {
-        ir::Use* toFix;
+        ir::Use *toFix;
         if (loopIR->loopCondVar->loopVarDefine == loopIR->cmpInst->ValueL.value) {
             // left value
             toFix = &loopIR->cmpInst->ValueR;
@@ -323,25 +321,35 @@ public:
             toFix = &loopIR->cmpInst->ValueL;
         } else throw std::runtime_error("neither ValueL nor ValueR is loopCondVar.");
 
-        if (auto x = dynamic_cast<ir::ConstValue*>(toFix->value)) {
+        if (auto x = dynamic_cast<ir::ConstValue *>(toFix->value)) {
+            long long newValue;
             if (loopDelta > 0) {
-                *toFix = {loopIR->cmpInst, new ir::ConstValue(x->value - loopResetCount)};
+                newValue = x->value - loopResetCount;
             } else {
-                *toFix = {loopIR->cmpInst, new ir::ConstValue(x->value + loopResetCount)};
+                newValue = x->value + loopResetCount;
             }
-
-        } else {
-            auto iter = std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst);
-            ir::Inst* inst;
-            if (loopDelta > 0) {
-                inst = new ir::BinaryInst(ir::OpType::SUB, toFix->value, new ir::ConstValue(K * loopDelta));
-            } else {
-                inst = new ir::BinaryInst(ir::OpType::ADD, toFix->value, new ir::ConstValue(K * -loopDelta));
+            int castValue = (int)newValue;
+            if (castValue == newValue) {
+                // assert overflow will not occur
+                *toFix = {loopIR->cmpInst, new ir::ConstValue(castValue)};
+                return;
             }
-            loopIR->cond->iList.insert(iter, inst);
-            inst->bb = loopIR->cond;
-            toFix->use(inst, true);
         }
+        // use conservative strategy to avoid overflow
+        // while(i < n) -> while(i < n - K * delta) -> while(n - i > K * delta)
+
+        loopIR->cmpInst->optype = flipOperator(loopIR->cmpInst->optype);
+        ir::Use* useL = &loopIR->cmpInst->ValueL;
+        ir::Use* useR = &loopIR->cmpInst->ValueR;
+        if (useL->value != loopIR->loopCondVar->loopVarDefine) std::swap(useL, useR);
+        auto * subInst = new ir::BinaryInst(ir::OpType::SUB, useR->value, loopIR->loopCondVar->loopVarDefine);
+
+        auto iter = std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst);
+        loopIR->cond->iList.insert(iter, subInst);
+        subInst->bb = loopIR->cond;
+
+        useL->use(subInst);
+        useR->use(new ir::ConstValue(K * loopDelta));
     }
 
     void insertResetLoop(LoopIR *resetLoopIR, LoopIR *originLoopIR, std::vector<ir::Value *> &originInstList) {
@@ -349,7 +357,7 @@ public:
         auto *reset_loop = new ir::Loop();
         reset_loop->head = originLoopIR->body;
         reset_loop->depth = originLoopIR->loop->depth;
-        auto * originCondVar = originLoopIR->loopCondVar;
+        auto *originCondVar = originLoopIR->loopCondVar;
 
         // Step2 prepare LoopIR struct
         resetLoopIR->loop = reset_loop;
@@ -379,9 +387,10 @@ public:
 
         // Step6 generate IR for reset_loop cond
         resetLoopIR->loopCondVar =
-                resetLoopIR->loopVarsByDefine[resetLoopIR->getCorrespondingPhiInst(originLoopIR, originCondVar->loopVarDefine)];
-        auto * valueL = originLoopIR->cmpInst->ValueL.value;
-        auto * valueR = originLoopIR->cmpInst->ValueR.value;
+                resetLoopIR->loopVarsByDefine[resetLoopIR->getCorrespondingPhiInst(originLoopIR,
+                                                                                   originCondVar->loopVarDefine)];
+        auto *valueL = originLoopIR->cmpInst->ValueL.value;
+        auto *valueR = originLoopIR->cmpInst->ValueR.value;
         if (valueL == originCondVar->loopVarDefine) {
             valueL = resetLoopIR->loopCondVar->loopVarDefine;
         } else if (valueR == originCondVar->loopVarDefine) {
@@ -394,9 +403,9 @@ public:
         resetLoopIR->cond->InsertAtEnd(resetLoopIR->branchInst);
 
         // Step6 fill phi instruction
-        for (auto & pair : resetLoopIR->loopVarsByEnter) {
-            auto * loopVar = pair.second;
-            auto * enterVar = pair.first;
+        for (auto &pair : resetLoopIR->loopVarsByEnter) {
+            auto *loopVar = pair.second;
+            auto *enterVar = pair.first;
             loopVar->loopVarDefine->InsertElem(resetLoopIR->branchInst->true_block, enterVar);
         }
 
@@ -412,15 +421,15 @@ public:
         reset_loop->body.insert(resetLoopIR->body);
 
         // Step9 replace value
-        std::set<ir::BasicBlock*> ignore;
-        std::set_union(originLoopIR->loop->body.cbegin(),  originLoopIR->loop->body.cend(),
-                       reset_loop->body.cbegin(),  reset_loop->body.cend(), std::inserter(ignore, ignore.cbegin()));
+        std::set<ir::BasicBlock *> ignore;
+        std::set_union(originLoopIR->loop->body.cbegin(), originLoopIR->loop->body.cend(),
+                       reset_loop->body.cbegin(), reset_loop->body.cend(), std::inserter(ignore, ignore.cbegin()));
 
         auto resetIter = resetLoopIR->phiInst.begin();
-        for (auto * phiInst : originLoopIR->phiInst) {
-            std::vector<ir::Use*> usesCopy;
+        for (auto *phiInst : originLoopIR->phiInst) {
+            std::vector<ir::Use *> usesCopy;
             usesCopy.assign(phiInst->uList.cbegin(), phiInst->uList.cend());
-            for (auto & use : usesCopy) {
+            for (auto &use : usesCopy) {
                 if (ignore.find(use->user->bb) != ignore.cend()) continue;
                 std::cout << "rep" << std::endl;
                 use->use(*resetIter, true);
