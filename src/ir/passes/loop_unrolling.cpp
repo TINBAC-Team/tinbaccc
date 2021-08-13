@@ -8,14 +8,14 @@ static ir::OpType flipOperator(ir::OpType opType) {
     switch (opType) {
         case ir::OpType::SLT:
             return ir::OpType::SGT;
-            case ir::OpType::SLE:
-                return ir::OpType::SGE;
-                case ir::OpType::SGT:
-                    return ir::OpType::SLT;
-                    case ir::OpType::SGE:
-                        return ir::OpType::SLE;
-                        default:
-                            return opType;
+        case ir::OpType::SLE:
+            return ir::OpType::SGE;
+        case ir::OpType::SGT:
+            return ir::OpType::SLT;
+        case ir::OpType::SGE:
+            return ir::OpType::SLE;
+        default:
+            return opType;
     }
 }
 
@@ -158,7 +158,6 @@ public:
 
     bool constLoopCondAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta) {
         auto *&cmpInst = loopIR->cmpInst;
-        if (!cmpInst) return false;
         auto *&branchInst = loopIR->branchInst;
         auto *cmpValueL = dynamic_cast<ir::ConstValue *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::ConstValue *>(cmpInst->ValueR.value);
@@ -203,7 +202,6 @@ public:
 
     bool flexibleLoopAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta) {
         auto *&cmpInst = loopIR->cmpInst;
-        if (!cmpInst) return false;
         auto *&branchInst = loopIR->branchInst;
         auto *cmpValueL = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
@@ -450,7 +448,8 @@ public:
         loopIR.build();
         int loopCount;
         int loopDelta;
-
+        if (!loopIR.cmpInst || flipOperator(loopIR.cmpInst->optype) == loopIR.cmpInst->optype)
+            return;
         // Step3 Process loop which execution times can be inferred
         // TODO Remove loop where loopCount = 0
         if (constLoopCondAnalysis(&loopIR, loopCount, loopDelta) && loopCount > 0) {
