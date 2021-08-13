@@ -11,8 +11,9 @@ namespace ir_passes {
     public:
         std::vector<std::pair<ir::Value *, ir::Value *> > vn;
         ir::Function *func;
+        ir::Module *module;
 
-        explicit GVNPass(ir::Function *f) : func(f) {}
+        explicit GVNPass(ir::Function *f, ir::Module *_module) : func(f), module(_module) {}
 
         std::map<std::vector<std::pair<ir::OpType, std::vector<ir::Value *> > >, int> inst_input;
 
@@ -45,6 +46,12 @@ namespace ir_passes {
         }
 
         ir::Value *find_eq(ir::BinaryInst *inst) {
+            //constant folding
+            if (inst->ValueL.value->optype == ir::OpType::CONST && inst->ValueR.value->optype == ir::OpType::CONST) {
+                return ir::IRBuilder::getConstant(dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value,
+                                                  dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
+                                                  inst->optype,module);
+            }
             size_t size = vn.size();
             for (int i = 0; i < size; i++) {
                 auto inst_prev = dynamic_cast<ir::BinaryInst *>(vn[i].first);
@@ -421,7 +428,7 @@ namespace ir_passes {
         for (auto &i:module->functionList) {
             if (!i->bList.empty()) {
                 int cur_erase_count;
-                while ((cur_erase_count = GVNPass(i).run_pass())) {
+                while ((cur_erase_count = GVNPass(i, module).run_pass())) {
                     erase_count += cur_erase_count;
                 }
             }
