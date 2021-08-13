@@ -86,6 +86,7 @@ public:
     LoopUnrolling(ir::Function *function) : function(function) {}
 
     bool tryInferLoopVarDelta(LoopVariable *loopVar, ir::BasicBlock *scope, int &delta) {
+        delta = 0;
         auto *currInst = loopVar->loopVarBody;
         while (currInst != loopVar->loopVarDefine && currInst->bb == scope) {
             auto *binaryInst = dynamic_cast<ir::BinaryInst *>(currInst);
@@ -108,11 +109,11 @@ public:
                 } else return false;
             } else return false;
         }
-        return true;
+        return delta != 0 && abs(delta) < 1000;
     }
 
     // loopVar OP cond
-    bool tryInferLoopCount(ir::OpType opType, int init, int cond, int delta, int &cnt) {
+    bool tryInferLoopCount(ir::OpType opType, int init, int cond, long delta, int &cnt) {
         // after n-1 loop execution, loopVar := init + (n-1) * delta
         // and the n-th loop condition: loopVar OP cond
         // therefore, cnt := floor((cond - init) / delta) + 1 (SLE)
