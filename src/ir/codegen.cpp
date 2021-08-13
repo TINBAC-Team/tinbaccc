@@ -478,10 +478,21 @@ namespace ir {
                 offs_reg = res->dst;
             }
         }
+        std::unique_ptr<asm_arm::RegOffs> new_ro;
         if (offs_reg)
-            builder.setRegOffsOfValue(this, std::make_unique<asm_arm::RegOffs>(base, offs_reg));
+            new_ro = std::make_unique<asm_arm::RegOffs>(base, offs_reg);
         else
-            builder.setRegOffsOfValue(this, std::make_unique<asm_arm::RegOffs>(base, offs_const));
+            new_ro = std::make_unique<asm_arm::RegOffs>(base, offs_const);
+
+        for (auto &u:uList) {
+            if (u->user->optype != OpType::GETELEMPTR && u->user->optype != OpType::LOAD &&
+            u->user->optype != OpType::STORE) {
+                auto val = builder.genValueFromRegOffs(new_ro.get());
+                builder.setOperandOfValue(this, val);
+                return val;
+            }
+        }
+        builder.setRegOffsOfValue(this, std::move(new_ro));
         return nullptr;
     }
 }
