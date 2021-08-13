@@ -100,6 +100,7 @@ namespace ir_passes {
                         phi_new->bb->InsertBefore(new_comming_value, phi_new);
                         phi_new->InsertElem(feedback_pair->first, new_feedback_value);
                         phi_new->InsertElem(comming_pair->first, new_comming_value);
+                        (*index).removeFromUList();
                         *index = ir::Use(gepinst, ir::IRBuilder::getConstant(0, module));
                         ir::BinaryInst *ptr = new ir::BinaryInst(ir::OpType::ADD, gepinst, phi_new);
                         gepinst->bb->InsertAfter(ptr, gepinst);

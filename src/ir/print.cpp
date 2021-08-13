@@ -47,6 +47,16 @@ namespace ir {
         }
         return false;
     }
+    Value* print_ptrtoint(std::ostream& os,Value* value){
+        Value* ret = new Value(OpType::PTRTOINT);
+        os<<get_name_of_value(ret)<<" = "<< "ptrtoint i32* "<<get_name_of_value(value)<<" to i32"<<std::endl<<'\t';
+        return ret;
+    }
+    Value* print_inttoptr(std::ostream& os,Value* value){
+        Value* ret = new Value(OpType::INTTOPTR);
+        os<<get_name_of_value(ret)<<" = "<< "inttoptr i32 "<<get_name_of_value(value)<<" to i32*"<<std::endl<<'\t';
+        return ret;
+    }
     void print_llvm_arr_inner_decl(std::ostream &os, std::vector<ast::Exp *> &array_dims, int dim) {
         if (dim >= array_dims.size()) {
             os << "i32";
@@ -264,13 +274,20 @@ namespace ir {
     }
 
     void BinaryInst::print(std::ostream &os) const {
-        os << get_name_of_value((Value *) this) << " = ";
-        Value::print(os);
+
         if (optype == OpType::ADD || optype == OpType::SUB || optype == OpType::MUL || optype == OpType::SDIV
             || optype == OpType::SREM || optype == OpType::SLT || optype == OpType::SLE || optype == OpType::SGT ||
             optype == OpType::SGE ||
             optype == OpType::EQ || optype == OpType::NE) {
-            os << "i32 " << get_name_of_value(ValueL.value) << ", " << get_name_of_value(ValueR.value);
+            Value* vl = ValueL.value;
+            Value* vr = ValueR.value;
+            if(dynamic_cast<GetElementPtrInst*>(vl))
+                vl= print_ptrtoint(os,vl);
+            if(dynamic_cast<GetElementPtrInst*>(vr))
+                vr= print_ptrtoint(os,vr);
+            os << get_name_of_value((Value *) this) << " = ";
+            Value::print(os);
+            os << "i32 " << get_name_of_value(vl) << ", " << get_name_of_value(vr);
         }
     }
 
@@ -310,14 +327,22 @@ namespace ir {
     }
 
     void StoreInst::print(std::ostream &os) const {
+
+        Value* pv = ptr.value;
+        if(dynamic_cast<BinaryInst*>(pv))
+            pv = print_inttoptr(os,pv);
         Value::print(os);
-        os << "i32 " << get_name_of_value(val.value) << ", i32* " << get_name_of_value(ptr.value);
+        os << "i32 " << get_name_of_value(val.value) << ", i32* " << get_name_of_value(pv);
     }
 
     void LoadInst::print(std::ostream &os) const {
+
+        Value* pv = ptr.value;
+        if(dynamic_cast<BinaryInst*>(pv))
+            pv = print_inttoptr(os,pv);
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        os << "i32, i32* " << get_name_of_value(ptr.value);
+        os << "i32, i32* " << get_name_of_value(pv);
     }
 
     void GlobalVar::print(std::ostream &os) const {
