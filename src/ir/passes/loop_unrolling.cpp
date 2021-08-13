@@ -78,11 +78,11 @@ struct LoopIR {
         this->body = *loop->body.rbegin();
         if (*loop->head->succ().cbegin() != cond) std::swap(this->cond, this->body);
 
-        for (auto iter = cond->iList.begin(); iter != cond->iList.end(); iter++) {
-            if ((cmpInst = dynamic_cast<ir::BinaryInst *>(*iter)) && cmpInst->is_icmp()) {
-                // Assume that BranchInst immediately follows CMPInst
-                branchInst = dynamic_cast<ir::BranchInst *>(*(++iter));
-                break;
+        for (auto & iter : cond->iList) {
+            if (auto * cmpInst = dynamic_cast<ir::BinaryInst *>(iter)) {
+                if (cmpInst->is_icmp()) this->cmpInst = cmpInst;
+            } else if (auto * branchInst = dynamic_cast<ir::BranchInst*>(iter)) {
+                this->branchInst = branchInst;
             }
         }
     }
@@ -158,6 +158,7 @@ public:
 
     bool constLoopCondAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta) {
         auto *&cmpInst = loopIR->cmpInst;
+        if (!cmpInst) return false;
         auto *&branchInst = loopIR->branchInst;
         auto *cmpValueL = dynamic_cast<ir::ConstValue *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::ConstValue *>(cmpInst->ValueR.value);
@@ -202,6 +203,7 @@ public:
 
     bool flexibleLoopAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta) {
         auto *&cmpInst = loopIR->cmpInst;
+        if (!cmpInst) return false;
         auto *&branchInst = loopIR->branchInst;
         auto *cmpValueL = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
         auto *cmpValueR = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
