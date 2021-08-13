@@ -243,6 +243,7 @@ namespace ir {
         for (auto &inst:iList) {
             os << "\t";
             inst->print(os);
+            if (!inst->comment.empty()) os << '\t' << ';' << inst->comment;
             os << std::endl;
         }
     }

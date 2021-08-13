@@ -131,7 +131,9 @@ namespace ir {
 
         static Value *getConstant(int _value,IRBuilder& builder);
 
-        Value *getConstant(int valueL, int valueR, OpType optype);
+        static Value *getConstant(int valueL, int valueR, OpType optype, IRBuilder& builder);
+
+        static Value *getConstant(int valueL, int valueR, OpType optype, Module* module);
 
     };
 
@@ -140,6 +142,7 @@ namespace ir {
         UseList uList;
         OpType optype;
         BasicBlock *bb;
+        std::string comment;
 
         Value(OpType _optype);
 

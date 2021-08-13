@@ -55,7 +55,7 @@ namespace ir {
         auto *constR = dynamic_cast<ConstValue *>(_ValueR);
         if (constL && constR) {
 
-            return getConstant(constL->value, constR->value, optype);
+            return getConstant(constL->value, constR->value, optype, *this);
         }
         if (constL && (optype == OpType::ADD || optype == OpType::MUL)) std::swap(_ValueL, _ValueR);
         auto *instp = new BinaryInst(optype, _ValueL, _ValueR);
@@ -434,30 +434,34 @@ namespace ir {
         return instp;
     }
 
-    Value *IRBuilder::getConstant(int valueL, int valueR, OpType optype) {
+    Value *IRBuilder::getConstant(int valueL, int valueR, OpType optype, IRBuilder &builder) {
+        return getConstant(valueL, valueR, optype, builder.module);
+    }
+
+    Value *IRBuilder::getConstant(int valueL, int valueR, OpType optype, Module *module) {
         switch (optype) {
             case OpType::ADD:
-                return getConstant(valueL + valueR, *this);
+                return getConstant(valueL + valueR, module);
             case OpType::SUB:
-                return getConstant(valueL - valueR, *this);
+                return getConstant(valueL - valueR, module);
             case OpType::MUL:
-                return getConstant(valueL * valueR, *this);
+                return getConstant(valueL * valueR, module);
             case OpType::SDIV:
-                return getConstant(valueL / valueR, *this);
+                return getConstant(valueL / valueR, module);
             case OpType::SREM:
-                return getConstant(valueL % valueR, *this);
+                return getConstant(valueL % valueR, module);
             case OpType::SLT:
-                return getConstant(valueL < valueR, *this);
+                return getConstant(valueL < valueR, module);
             case OpType::SLE:
-                return getConstant(valueL <= valueR, *this);
+                return getConstant(valueL <= valueR, module);
             case OpType::SGT:
-                return getConstant(valueL > valueR, *this);
+                return getConstant(valueL > valueR, module);
             case OpType::SGE:
-                return getConstant(valueL >= valueR, *this);
+                return getConstant(valueL >= valueR, module);
             case OpType::EQ:
-                return getConstant(valueL == valueR, *this);
+                return getConstant(valueL == valueR, module);
             case OpType::NE:
-                return getConstant(valueL != valueR, *this);
+                return getConstant(valueL != valueR, module);
             default:
                 throw std::runtime_error("Failed to get constant. OpType invalid.");
         }

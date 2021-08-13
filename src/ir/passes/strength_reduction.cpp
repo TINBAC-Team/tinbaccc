@@ -66,7 +66,6 @@ namespace ir_passes {
             }
             //found phi and increase step
             if (phi) {
-                std::cerr << inc_step << std::endl;
                 //find gep
                 for (auto &bb:loop->body) {
                     std::vector<ir::GetElementPtrInst *> geps;
@@ -82,12 +81,12 @@ namespace ir_passes {
                                                       return val.value == phi;
                                                   });
                         if (index == gepinst->dims.end()) continue;
-                        if(gepinst->dims.size()<=2) continue;
-                        break;
+                        if(gepinst->dims.size()<2) continue;
                         int index_sub = std::distance(gepinst->dims.begin(),index);
                         int multiplier =
                                 index_sub == gepinst->dims.size()-1 ? 1 : gepinst->decl->array_multipliers[index_sub + 1];
                         ir::PhiInst *phi_new = new ir::PhiInst();
+                        phi_new->comment = "created by strength reduction";
                         phi->bb->InsertBefore(phi_new, phi);
                         ir::BinaryInst *new_feedback_value = new ir::BinaryInst(ir::OpType::ADD, phi_new,
                                                                                 ir::IRBuilder::getConstant(inc_step *
@@ -108,6 +107,7 @@ namespace ir_passes {
                         gepinst->bb->InsertAfter(ptr, gepinst);
                         gepinst->replaceWith(ptr, true);
                         ptr->ValueL.use(gepinst, true);
+                        std::cerr<<"Performed Strength RED on a GEP."<<std::endl;
                     }
                 }
             }
