@@ -57,7 +57,7 @@ namespace ir {
 
             return getConstant(constL->value, constR->value, optype);
         }
-        if (constL) std::swap(_ValueL, _ValueR);
+        if (constL && (optype == OpType::ADD || optype == OpType::MUL)) std::swap(_ValueL, _ValueR);
         auto *instp = new BinaryInst(optype, _ValueL, _ValueR);
         auto *curblock = GetCurBlock();
         curblock->InsertAtEnd(instp);
