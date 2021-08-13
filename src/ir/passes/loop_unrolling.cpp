@@ -1,7 +1,8 @@
 #include <ir/passes.h>
 #include <algorithm>
 
-const int K = 2;
+const int K = 4;
+const int DELTA_LIMIT = 64;
 
 /**
  * Represent a loop variable which is defined outside the loop body and use inside the loop body.
@@ -109,7 +110,7 @@ public:
                 } else return false;
             } else return false;
         }
-        return delta != 0 && abs(delta) < 1000;
+        return delta != 0 && abs(delta) <= DELTA_LIMIT;
     }
 
     // loopVar OP cond
@@ -333,11 +334,12 @@ public:
             auto iter = std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst);
             ir::Inst* inst;
             if (loopDelta > 0) {
-                inst = new ir::BinaryInst(ir::OpType::SUB, toFix->value, new ir::ConstValue(K));
+                inst = new ir::BinaryInst(ir::OpType::SUB, toFix->value, new ir::ConstValue(K * loopDelta));
             } else {
-                inst = new ir::BinaryInst(ir::OpType::ADD, toFix->value, new ir::ConstValue(K));
+                inst = new ir::BinaryInst(ir::OpType::ADD, toFix->value, new ir::ConstValue(K * -loopDelta));
             }
             loopIR->cond->iList.insert(iter, inst);
+            inst->bb = loopIR->cond;
             toFix->use(inst, true);
         }
     }
