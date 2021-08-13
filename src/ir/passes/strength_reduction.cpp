@@ -86,6 +86,7 @@ namespace ir_passes {
                         int multiplier =
                                 index_sub == gepinst->dims.size()-1 ? 1 : gepinst->decl->array_multipliers[index_sub + 1];
                         ir::PhiInst *phi_new = new ir::PhiInst();
+                        phi_new->comment = "created by strength reduction";
                         phi->bb->InsertBefore(phi_new, phi);
                         ir::BinaryInst *new_feedback_value = new ir::BinaryInst(ir::OpType::ADD, phi_new,
                                                                                 ir::IRBuilder::getConstant(inc_step *

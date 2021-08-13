@@ -142,6 +142,7 @@ namespace ir {
         UseList uList;
         OpType optype;
         BasicBlock *bb;
+        std::string comment;
 
         Value(OpType _optype);
 
