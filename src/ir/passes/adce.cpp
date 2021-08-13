@@ -193,9 +193,12 @@ namespace ir_passes {
                 }
             };
             // PHI is a weird thing: we need to mark its incoming BBs.
-            if (auto phi = dynamic_cast<ir::PhiInst *>(inst))
-                for (auto &i:phi->phicont)
+            if (auto phi = dynamic_cast<ir::PhiInst *>(inst)) {
+                for (auto &i:phi->phicont) {
+                    block_mark.insert(i.first);
                     mark_rdf(i.first);
+                }
+            }
             mark_rdf(inst->bb);
         }
         // Phase 2: sweep
