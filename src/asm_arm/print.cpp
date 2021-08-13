@@ -240,14 +240,6 @@ namespace asm_arm {
             if (!comment.str().empty())
                 os << "  @" << comment.str();
             os << std::endl;
-        } else if (type == Type::LABEL) {
-            os << "\tMOVW" << OpCond_to_string() << " " << dst->getOperandName()
-               << ", :lower16:" << label << std::endl;
-            os << "\tMOVT" << OpCond_to_string() << " " << dst->getOperandName()
-               << ", :upper16:" << label;
-            if (!comment.str().empty())
-                os << "  @" << comment.str();
-            os << std::endl;
         } else {
             Inst::print(os);
         }
@@ -255,10 +247,11 @@ namespace asm_arm {
 
     void LDRInst::print_body(std::ostream &os) const {
         switch (type) {
-#if 0
+
             case Type::LABEL:
                 os << dst->getOperandName() << ", =" << label;
                 break;
+#if 0
             case Type::IMM:
                 os << dst->getOperandName() << ", " << "=" + std::to_string(value);
                 break;

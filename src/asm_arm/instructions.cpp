@@ -85,9 +85,7 @@ namespace asm_arm {
 
 
     LDRInst::LDRInst(std::string l, Operand *d) : Inst(Inst::Op::LDR), type(Type::LABEL), label(std::move(l)), dst(d) {
-#if 0
         need_pool = true;
-#endif
         add_def(d);
     }
 

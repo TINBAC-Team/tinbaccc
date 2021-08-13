@@ -82,6 +82,8 @@ namespace ir_passes {
                                                       return val.value == phi;
                                                   });
                         if (index == gepinst->dims.end()) continue;
+                        if(gepinst->dims.size()<=2) continue;
+                        break;
                         int index_sub = std::distance(gepinst->dims.begin(),index);
                         int multiplier =
                                 index_sub == gepinst->dims.size()-1 ? 1 : gepinst->decl->array_multipliers[index_sub + 1];
