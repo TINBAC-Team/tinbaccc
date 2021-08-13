@@ -129,8 +129,9 @@ namespace ir_passes {
         std::unordered_set<ir::Value *> vis_early;
         std::unordered_set<ir::Value *> vis_late;
         ir::Function *func;
+        ir::Module *module;
 
-        explicit GCMPass(ir::Function *f) : func(f) {}
+        explicit GCMPass(ir::Function *f, ir::Module *_module) : func(f), module(_module) {}
 
         ir::BasicBlock *depth_max(ir::BasicBlock *a, ir::BasicBlock *b) {
             if (a == nullptr && b == nullptr) throw std::runtime_error("Requesting max depth of two null BB");
@@ -331,8 +332,8 @@ namespace ir_passes {
                 move_inst(_inst, old_bb);
             }
             if (auto inst = dynamic_cast<ir::CallInst *>(_inst)) {
-                ir::BasicBlock* old_bb = _inst->bb;
-                for(auto &i:inst->params){
+                ir::BasicBlock *old_bb = _inst->bb;
+                for (auto &i:inst->params) {
                     schedule_early(i.value);
                 }
 
@@ -341,22 +342,52 @@ namespace ir_passes {
             }
         }
 
+
+        bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
+            auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
+            auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
+            if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
+
+            if (inst->ValueR.value->optype != ir::OpType::CONST ||
+                usage->ValueR.value->optype != ir::OpType::CONST)
+                return false;
+
+            int constL = dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value;
+            int constR = dynamic_cast<ir::ConstValue *>(usage->ValueR.value)->value;
+            if (inst->optype != ir::OpType::ADD || usage->optype != ir::OpType::ADD) return false;
+            usage->ValueL.use(inst->ValueL.value);
+            usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
+            return true;
+        }
+
         void schedule_late(ir::Value *inst) {
-            if(!inst)
+            if (!inst)
                 throw std::runtime_error("invalid use which may not be part of IR!");
             if (vis_late.find(inst) != vis_late.end())
                 return;
             vis_late.insert(inst);
             ir::BasicBlock *lca = nullptr;
 
-            for (auto &y:inst->uList) {
+            //eliminate chain add
+            std::vector<ir::Use*> use;
+            use.reserve(inst->uList.size());
+            for(auto &i:inst->uList){
+                use.emplace_back(i);
+            }
+            for(auto &i:use){
+                if (dynamic_cast<ir::BinaryInst *>(inst) && dynamic_cast<ir::BinaryInst *>(i->user))
+                    try_eliminate_chain_add(inst, i->user);
+            }
+            //eliminate chain add done.
+            for (auto &y:inst->uList){
                 schedule_late(y->user);
-                if(is_pinned(inst)) continue;
+                if (is_pinned(inst)) continue;
                 ir::BasicBlock *use = y->user->bb;
                 if (auto phiinst = dynamic_cast<ir::PhiInst *>(y->user)) {
-                    auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(), [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
-                        return pair.second.get() == y;
-                    });
+                    auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(),
+                                           [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
+                                               return pair.second.get() == y;
+                                           });
                     use = it->first;
                 }
                 lca = find_lca(lca, use);
@@ -403,7 +434,7 @@ namespace ir_passes {
     void gcm(ir::Module *module) {
         for (auto &i:module->functionList)
             if (!i->bList.empty()) {
-                GCMPass(i).run_pass();
+                GCMPass(i, module).run_pass();
             }
 
     }
