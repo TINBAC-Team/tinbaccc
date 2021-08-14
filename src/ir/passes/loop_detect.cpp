@@ -57,7 +57,8 @@ namespace ir_passes {
                 auto &n = edge.first;
                 auto &d = edge.second;
                 std::stack<ir::BasicBlock *> st;
-                loop->head = *(++std::find(func->bList.crbegin(),  func->bList.crend(), d));
+                loop->prehead = *(++std::find(func->bList.crbegin(), func->bList.crend(), d));
+                loop->head = d;
                 loop->body.insert(d);
                 insert(n, st, loop->body);
                 while (!st.empty()) {
@@ -73,28 +74,20 @@ namespace ir_passes {
                     auto iter = blocks2loop.find(bb);
                     if (iter == blocks2loop.cend()) continue;
                     for (auto &findLoop : iter->second) {
-                        // the same loop head
                         if (std::includes(findLoop->body.cbegin(), findLoop->body.cend(),
                                           loop->body.cbegin(), loop->body.cend())) {
                             // body ⊆ findLoop, body is the nested loop of findLoop
-                            loop->external = findLoop;
-                            loop->updateBasicBlocks();
-                            findLoop->nested.push_back(loop);
-                            break;
+                            findLoop->nested.insert(loop);
                         } else if (std::includes(loop->body.cbegin(), loop->body.cend(),
                                                  findLoop->body.cbegin(), findLoop->body.cend())) {
                             // findLoop ⊆ body, body is the external loop of findLoop
-                            findLoop->external = loop;
-                            loop->updateBasicBlocks();
-                            loop->nested.push_back(findLoop);
-                            break;
+                            loop->nested.insert(findLoop);
                         } else {
                             // neither body ⊆ findLoop nor findLoop ⊆ body
                             if (findLoop->head == d) {
                                 // the same loop head, they should be merged into one
                                 findLoop->body.insert(loop->body.cbegin(), loop->body.cend());
                                 for (auto *currBB : loop->body) blocks2loop[currBB].insert(findLoop);
-                                loop->updateBasicBlocks();
                                 func->loops.erase(loop);
                                 delete loop;
                                 loop = nullptr;
@@ -105,33 +98,49 @@ namespace ir_passes {
                             }
                         }
                     }
+                    if (!loop)
+                        break;
                 }
 
+                if (!loop)
+                    continue;
+
                 // Step3 make sure constructed loop can be indexed
-                if (loop) {
-                    loop->updateBasicBlocks();
-                    for (auto *currBB : loop->body)
-                        blocks2loop[currBB].insert(loop);
-                }
+                loop->updateBasicBlocks();
+                for (auto *currBB : loop->body)
+                    blocks2loop[currBB].insert(loop);
 
             }
 
-            // mark deepest loop
-            for (auto * loop : func->loops) {
+            // mark deepest loop and reset loop depth
+            for (auto *loop : func->loops) {
                 if (loop->nested.empty())
                     func->deepestLoop.push_back(loop);
                 loop->depth = 1;
-                auto * external = loop->external;
-                while (external) {
-                    loop->depth++;
-                    external = external->external;
+            }
+            // use number of parent nodes as loop depth.
+            // count this by adding 1 to every nested loops for every loop
+            for (auto *loop : func->loops) {
+                for (auto &i:loop->nested)
+                    i->depth++;
+            }
+
+            for (auto *loop : func->loops) {
+                // mark direct external loop
+                for (auto &i:loop->nested) {
+                    if (i->depth - loop->depth == 1)
+                        i->external = loop;
                 }
-                for (auto * bb : loop->body) {
-                    if (bb->loop_depth < loop->depth)
-                        bb->loop_depth = loop->depth;
+                // update BB loop depth
+                loop->updateBasicBlocks();
+                // remove indirect nested loop
+                for (auto it = loop->nested.begin(); it != loop->nested.end();) {
+                    if ((*it)->depth - loop->depth != 1)
+                        it = loop->nested.erase(it);
+                    else
+                        ++it;
                 }
             }
-            throw std::runtime_error("1");
         }
 
     public:

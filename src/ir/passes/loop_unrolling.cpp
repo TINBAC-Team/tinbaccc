@@ -31,7 +31,7 @@ struct LoopVariable {
     void init(ir::Loop *loop, ir::BranchInst *branchInst, ir::PhiInst *defineInst) {
         this->loop = loop;
         this->loopVarDefine = defineInst;
-        this->loopVarInit = loopVarDefine->GetRelatedValue(loop->head);
+        this->loopVarInit = loopVarDefine->GetRelatedValue(loop->prehead);
         this->loopVarBody = loopVarDefine->GetRelatedValue(branchInst->true_block);
     }
 
@@ -76,7 +76,7 @@ struct LoopIR {
         this->loop = loop;
         this->cond = *loop->body.cbegin();
         this->body = *loop->body.rbegin();
-        if (*loop->head->succ().cbegin() != cond) std::swap(this->cond, this->body);
+        if (*loop->prehead->succ().cbegin() != cond) std::swap(this->cond, this->body);
 
         for (auto & iter : cond->iList) {
             if (auto * cmpInst = dynamic_cast<ir::BinaryInst *>(iter)) {
@@ -355,7 +355,7 @@ public:
     void insertResetLoop(LoopIR *resetLoopIR, LoopIR *originLoopIR, std::vector<ir::Value *> &originInstList) {
         // Step1 prepare Loop struct
         auto *reset_loop = new ir::Loop();
-        reset_loop->head = originLoopIR->body;
+        reset_loop->prehead = originLoopIR->body;
         reset_loop->depth = originLoopIR->loop->depth;
         auto *originCondVar = originLoopIR->loopCondVar;
 
@@ -416,7 +416,7 @@ public:
         function->deepestLoop.push_back(reset_loop);
         function->loops.insert(reset_loop);
         if (originLoopIR->loop->external)
-            originLoopIR->loop->external->nested.push_back(reset_loop);
+            originLoopIR->loop->external->nested.insert(reset_loop);
         reset_loop->body.insert(resetLoopIR->cond);
         reset_loop->body.insert(resetLoopIR->body);
 

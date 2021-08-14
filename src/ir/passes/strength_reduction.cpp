@@ -19,7 +19,7 @@ namespace ir_passes {
                                                                                               module(_module) {}
 
         void run_pass() {
-            ir::BasicBlock *pad = loop->head;
+            ir::BasicBlock *pad = loop->prehead;
             body_front = *(++std::find(func->bList.begin(), func->bList.end(), pad));
 
             std::vector<ir::PhiInst *> phis;

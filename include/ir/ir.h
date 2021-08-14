@@ -60,9 +60,10 @@ namespace ir {
     };
 
     struct Loop {
-        BasicBlock* head = nullptr;
+        BasicBlock* prehead = nullptr;
+        BasicBlock* head;
         std::set<BasicBlock*> body;
-        std::vector<Loop*> nested;
+        std::set<Loop*> nested;
         Loop* external = nullptr;
         int depth = 1;
 
