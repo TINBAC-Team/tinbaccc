@@ -461,7 +461,6 @@ namespace ir_passes {
 
 
         bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
-            return false;
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
@@ -477,7 +476,7 @@ namespace ir_passes {
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
             }
-            if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::SUB) {
+            /*if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::SUB) {
                 usage->ValueL.use(inst->ValueL.value);
                 int val = constL - constR;
                 if (val < 0) {
@@ -486,8 +485,8 @@ namespace ir_passes {
                 }
                 usage->ValueR.use(ir::IRBuilder::getConstant(val, module));
                 return true;
-            }
-            if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::ADD) {
+            }*/
+            /*if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::ADD) {
                 usage->ValueL.use(inst->ValueL.value);
                 int val = -constL + constR;
                 if (val < 0) {
@@ -501,7 +500,7 @@ namespace ir_passes {
                 usage->ValueL.use(inst->ValueL.value);
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
-            }
+            }*/
             return false;
         }
 
