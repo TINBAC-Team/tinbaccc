@@ -21,12 +21,19 @@ namespace ir_passes {
         // Mapping: Basic block -> Loop
         std::unordered_map<ir::BasicBlock*, std::set<ir::Loop*>> blocks2loop;
 
+        // check if a dominates b
+        bool dominates(ir::BasicBlock *a, ir::BasicBlock *b) {
+            while (a->dom_tree_depth < b->dom_tree_depth)
+                b = b->idom;
+            return a == b;
+        }
+
         // divide the edges of the dominator tree into advancing edge and retreating edge
         void build() {
             for (auto * u : func->bList) {
                 for (auto * v : u->succ()) {
-                    // edge {b, i} is retreating edge if and only if dfs(b) >= dfs(i)
-                    if (u->dfs_tree_depth >= v->dfs_tree_depth)
+                    // edge {b, i} is a loop retreating edge if i dominates b
+                    if (dominates(v, u))
                         retreatingEdges.insert({u, v});
                     else
                         advancingEdges.insert({u, v});
