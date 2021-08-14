@@ -235,8 +235,8 @@ namespace ir {
             comment << " idom = %" << idom->name;
         if (dom_tree_depth >= 0)
             comment << " dom_tree_depth = " << dom_tree_depth;
-	if (loop_depth > 0)
 	    comment << " loop_depth = " << loop_depth;
+	    comment << " def_depth = " << dfs_tree_depth;
         if (!comment.str().empty())
             os << "\t;" << comment.str();
         os << std::endl;

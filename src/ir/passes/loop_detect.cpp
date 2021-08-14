@@ -71,13 +71,14 @@ namespace ir_passes {
                                           loop->body.cbegin(), loop->body.cend())) {
                             // body ⊆ findLoop, body is the nested loop of findLoop
                             loop->external = findLoop;
+                            loop->updateBasicBlocks();
                             findLoop->nested.push_back(loop);
                             break;
                         } else if (std::includes(loop->body.cbegin(), loop->body.cend(),
                                                  findLoop->body.cbegin(), findLoop->body.cend())) {
                             // findLoop ⊆ body, body is the external loop of findLoop
                             findLoop->external = loop;
-                            findLoop->updateBasicBlocks();
+                            loop->updateBasicBlocks();
                             loop->nested.push_back(findLoop);
                             break;
                         } else {
@@ -89,7 +90,8 @@ namespace ir_passes {
                                 loop->updateBasicBlocks();
                                 func->loops.erase(loop);
                                 delete loop;
-                                return;
+                                loop = nullptr;
+                                break;
                             } else {
                                 // they are separated loop
                                 break;
@@ -99,9 +101,11 @@ namespace ir_passes {
                 }
 
                 // Step3 make sure constructed loop can be indexed
-                loop->updateBasicBlocks();
-                for (auto *currBB : loop->body)
-                    blocks2loop[currBB].insert(loop);
+                if (loop) {
+                    loop->updateBasicBlocks();
+                    for (auto *currBB : loop->body)
+                        blocks2loop[currBB].insert(loop);
+                }
 
             }
 
@@ -120,6 +124,7 @@ namespace ir_passes {
                         bb->loop_depth = loop->depth;
                 }
             }
+            throw std::runtime_error("1");
         }
 
     public:
@@ -138,6 +143,5 @@ namespace ir_passes {
             if (!i->bList.empty())
                 LoopDetector{i}.compute();
         }
-
     }
 }
