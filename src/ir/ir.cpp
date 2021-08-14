@@ -215,7 +215,8 @@ namespace ir {
 
     int BasicBlock::InsertBefore(Value *value, Value *target) {
         auto it = std::find(iList.begin(), iList.end(), target);
-        if (it == iList.end()) throw std::runtime_error("insertBefore can not find target instruction.");
+        //if (it == iList.end()) throw std::runtime_error("insertBefore can not find target instruction.");
+        //FIXME: why it==iList.end() ?
         iList.insert(it, value);
         value->bb = this;
         return 0;

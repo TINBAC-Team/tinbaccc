@@ -47,11 +47,13 @@ namespace ir_passes {
 
         ir::Value *find_eq(ir::BinaryInst *inst) {
             //constant folding
+#ifdef _0
             if (inst->ValueL.value->optype == ir::OpType::CONST && inst->ValueR.value->optype == ir::OpType::CONST) {
                 return ir::IRBuilder::getConstant(dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value,
                                                   dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
                                                   inst->optype, module);
             }
+#endif
             //remove add 0 or sub 0
             if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
                 inst->ValueR.value->optype == ir::OpType::CONST &&
@@ -111,7 +113,8 @@ namespace ir_passes {
             vn.reserve(inst_count);
 
             for (auto &bb:func->bList) {
-                for (auto inst = bb->iList.begin(); inst != bb->iList.end(); inst++) {
+                auto inst = bb->iList.begin();
+                while (inst != bb->iList.end()) {
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
                         erase_count++;
@@ -122,9 +125,30 @@ namespace ir_passes {
                                                   return pair.first == *inst;
                                               }));
                         inst = bb->iList.erase(inst);
-
+                        continue;
                     }
+                    inst++;
                 }
+            }
+            for (auto &bb:func->bList) {
+                auto inst = bb->iList.begin();
+                while (inst != bb->iList.end()) {
+                    auto bin_inst = dynamic_cast<ir::BinaryInst *>(*inst);
+                    if (!bin_inst) {inst++;continue;}
+                    if (bin_inst->ValueL.value->optype == ir::OpType::CONST &&
+                        bin_inst->ValueR.value->optype == ir::OpType::CONST) {
+                        bin_inst->replaceWith(ir::IRBuilder::getConstant(
+                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueL.value)->value,
+                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueR.value)->value,
+                                bin_inst->optype, module));
+                        delete bin_inst;
+                        erase_count++;
+                        inst = bb->iList.erase(inst);
+                        continue;
+                    }
+                    inst++;
+                }
+
             }
             return erase_count;
         }
@@ -461,6 +485,7 @@ namespace ir_passes {
 
 
         bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
+            return false;
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
