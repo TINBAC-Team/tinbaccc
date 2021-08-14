@@ -68,6 +68,8 @@ namespace ir_passes {
             if (phi) {
                 //find gep
                 for (auto &bb:loop->body) {
+                    //TODO: if two gep have the same comming value and increase step, they can use the same phi
+                    std::set<std::pair<ir::Value*,ir::Value*>> phi_cache;
                     std::vector<ir::GetElementPtrInst *> geps;
                     geps.reserve(bb->iList.size());
                     for (auto &inst:bb->iList) {
@@ -101,6 +103,7 @@ namespace ir_passes {
                         phi_new->bb->InsertBefore(new_comming_value, phi_new);
                         phi_new->InsertElem(feedback_pair->first, new_feedback_value);
                         phi_new->InsertElem(comming_pair->first, new_comming_value);
+                        //phi_cache.
                         (*index).removeFromUList();
                         *index = ir::Use(gepinst, ir::IRBuilder::getConstant(0, module));
                         ir::BinaryInst *ptr = new ir::BinaryInst(ir::OpType::ADD, gepinst, phi_new);
