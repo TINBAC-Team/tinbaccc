@@ -47,10 +47,18 @@ namespace ir_passes {
 
         ir::Value *find_eq(ir::BinaryInst *inst) {
             //constant folding
+#ifdef _0
             if (inst->ValueL.value->optype == ir::OpType::CONST && inst->ValueR.value->optype == ir::OpType::CONST) {
                 return ir::IRBuilder::getConstant(dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value,
                                                   dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
-                                                  inst->optype,module);
+                                                  inst->optype, module);
+            }
+#endif
+            //remove add 0 or sub 0
+            if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
+                return inst->ValueL.value;
             }
             size_t size = vn.size();
             for (int i = 0; i < size; i++) {
@@ -105,7 +113,8 @@ namespace ir_passes {
             vn.reserve(inst_count);
 
             for (auto &bb:func->bList) {
-                for (auto inst = bb->iList.begin(); inst != bb->iList.end(); inst++) {
+                auto inst = bb->iList.begin();
+                while (inst != bb->iList.end()) {
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
                         erase_count++;
@@ -116,9 +125,30 @@ namespace ir_passes {
                                                   return pair.first == *inst;
                                               }));
                         inst = bb->iList.erase(inst);
-
+                        continue;
                     }
+                    inst++;
                 }
+            }
+            for (auto &bb:func->bList) {
+                auto inst = bb->iList.begin();
+                while (inst != bb->iList.end()) {
+                    auto bin_inst = dynamic_cast<ir::BinaryInst *>(*inst);
+                    if (!bin_inst) {inst++;continue;}
+                    if (bin_inst->ValueL.value->optype == ir::OpType::CONST &&
+                        bin_inst->ValueR.value->optype == ir::OpType::CONST) {
+                        bin_inst->replaceWith(ir::IRBuilder::getConstant(
+                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueL.value)->value,
+                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueR.value)->value,
+                                bin_inst->optype, module));
+                        delete bin_inst;
+                        erase_count++;
+                        inst = bb->iList.erase(inst);
+                        continue;
+                    }
+                    inst++;
+                }
+
             }
             return erase_count;
         }
@@ -131,7 +161,8 @@ namespace ir_passes {
         enum class MoveBehavior {
             MOVE_FRONT,
             MOVE_END,
-            MOVE_BEFORE_USAGE
+            MOVE_BEFORE,
+            MOVE_AFTER
         };
         std::unordered_set<ir::Value *> vis_early;
         std::unordered_set<ir::Value *> vis_late;
@@ -148,64 +179,172 @@ namespace ir_passes {
         }
 
 
-        void move_icmp_back(ir::BasicBlock* bb){
+        void move_icmp_back(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
                 insts.emplace_back(inst);
             }
-            for(auto &inst:insts){
-                if(auto bininst = dynamic_cast<ir::BinaryInst*>(inst)){
-                    if(!bininst->is_icmp()) continue;
-                    if(inst->uList.size()>1) continue;
-                    for(auto &use:inst->uList){
-                        if(use->user->bb == inst->bb && dynamic_cast<ir::BranchInst*>(use->user)){
-                            move_inst(inst,inst->bb);
+            for (auto &inst:insts) {
+                if (auto bininst = dynamic_cast<ir::BinaryInst *>(inst)) {
+                    if (!bininst->is_icmp()) continue;
+                    if (inst->uList.size() > 1) continue;
+                    for (auto &use:inst->uList) {
+                        if (use->user->bb == inst->bb && dynamic_cast<ir::BranchInst *>(use->user)) {
+                            move_inst(inst, inst->bb);
                         }
                     }
                 }
             }
         }
-        void move_terminal_inst_back(ir::BasicBlock* bb){
+
+        void move_terminal_inst_back(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
                 insts.emplace_back(inst);
             }
-            for(auto &inst:insts){
-                if(dynamic_cast<ir::ReturnInst*>(inst) || dynamic_cast<ir::BranchInst*>(inst) || dynamic_cast<ir::JumpInst*>(inst)){
-                    move_inst(inst,inst->bb);
+            for (auto &inst:insts) {
+                if (dynamic_cast<ir::ReturnInst *>(inst) || dynamic_cast<ir::BranchInst *>(inst) ||
+                    dynamic_cast<ir::JumpInst *>(inst)) {
+                    move_inst(inst, inst->bb);
                 }
             }
         }
-        void move_phi_front(ir::BasicBlock* bb){
+
+        void move_phi_front(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
                 insts.emplace_back(inst);
             }
-            for(auto inst = insts.rbegin();inst!=insts.rend();inst++){
-                if(dynamic_cast<ir::PhiInst*>(*inst)){
-                    move_inst(*inst,(*inst)->bb,MoveBehavior::MOVE_FRONT);
+            for (auto inst = insts.rbegin(); inst != insts.rend(); inst++) {
+                if (dynamic_cast<ir::PhiInst *>(*inst)) {
+                    move_inst(*inst, (*inst)->bb, MoveBehavior::MOVE_FRONT);
                 }
             }
         }
-        void reschedule_inst_order(ir::BasicBlock* bb){
+
+        void schedule_inner_early(ir::Value *_inst) {
+            auto inst = dynamic_cast<ir::Inst *> (_inst);
+            if (inst->vis) return;
+            inst->vis = true;
+            std::vector<ir::Value *> uses;
+            uses.reserve(inst->uses().size());
+            int dis = -1;
+            ir::Value *last_input = nullptr;
+            for (auto &val : inst->uses()) {
+                if (val->bb == inst->bb) {
+                    uses.emplace_back(val);
+                }
+            }
+            for (auto &usage:uses) {
+                schedule_inner_early(usage);
+            }
+            if (!dynamic_cast<ir::BinaryInst *>(inst) && !dynamic_cast<ir::GetElementPtrInst *>(inst) &&
+                !dynamic_cast<ir::LoadInst *>(inst))
+                return;
+            for (auto &usage:uses) {
+                if (std::distance(inst->bb->iList.begin(),
+                                  std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage)) > dis) {
+                    dis = std::distance(inst->bb->iList.begin(),
+                                        std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage));
+                    last_input = usage;
+                }
+            }
+
+            if (dynamic_cast<ir::LoadInst *>(inst)) {
+                if(!last_input) return;
+                auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
+                auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), last_input);
+                int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
+                int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
+                if (inst_pos < target_pos) return;
+                auto store_inst = std::find_if(target_iter, inst_iter, [&](std::list<ir::Value *>::value_type i) {
+                    return dynamic_cast<ir::StoreInst *>(i) != nullptr;
+                });
+                auto call_inst = std::find_if(target_iter, inst_iter, [&](std::list<ir::Value *>::value_type i) {
+                    return dynamic_cast<ir::CallInst *>(i) != nullptr;
+                });
+                if ((store_inst != target_iter || call_inst != target_iter)&& dynamic_cast<ir::LoadInst *>(inst)) {
+                    //NO ALLOW LoadInst free move!
+                    return;
+                }
+            }
+            if (last_input)
+                move_inst(inst, inst->bb, MoveBehavior::MOVE_AFTER, last_input);
+            else move_inst(inst, inst->bb, MoveBehavior::MOVE_FRONT);
+        }
+
+        void schedule_inner_late(ir::Value *_inst) {
+            auto inst = dynamic_cast<ir::Inst *> (_inst);
+            if (inst->vis) return;
+            inst->vis = true;
+            int dis = std::distance(inst->bb->iList.begin(), inst->bb->iList.end()) + 1;
+            ir::Value *first_user = nullptr;
+            for (auto &use:inst->uList) {
+                if (use->user->bb != inst->bb) continue;
+                schedule_inner_late(use->user);
+            }
+            if (!dynamic_cast<ir::BinaryInst *>(inst) && !dynamic_cast<ir::GetElementPtrInst *>(inst) &&
+                !dynamic_cast<ir::LoadInst *>(inst))
+                return;
+            for(auto &use:inst->uList){
+                if (use->user->bb != inst->bb) continue;
+                if (std::distance(inst->bb->iList.begin(),
+                                  std::find(inst->bb->iList.begin(), inst->bb->iList.end(), use->user)) < dis) {
+                    dis = std::distance(inst->bb->iList.begin(),
+                                        std::find(inst->bb->iList.begin(), inst->bb->iList.end(), use->user));
+                    first_user = use->user;
+                }
+            }
+            if (dynamic_cast<ir::LoadInst *>(inst)) {
+                if(!first_user) return;
+                auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
+                auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), first_user);
+                int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
+                int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
+                if (inst_pos > target_pos) return;
+                auto store_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
+                    return dynamic_cast<ir::StoreInst *>(i) != nullptr;
+                });
+                auto call_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
+                    return dynamic_cast<ir::CallInst *>(i) != nullptr;
+                });
+                if ((store_inst != target_iter || call_inst != target_iter)&& dynamic_cast<ir::LoadInst *>(inst)) {
+                    //NO ALLOW LoadInst free move!
+                    return;
+                }
+            }
+            if (first_user)
+                move_inst(inst, inst->bb, MoveBehavior::MOVE_BEFORE, first_user);
+            else move_inst(inst, inst->bb, MoveBehavior::MOVE_END);
+        }
+
+        void reschedule_inst_order(ir::BasicBlock *bb) {
             int cnt = 0;
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
                 insts.emplace_back(inst);
+                inst->vis = false;
             }
-            for(auto inst = insts.begin();inst!=insts.end();inst++){
-                if(dynamic_cast<ir::BinaryInst*>(*inst) || dynamic_cast<ir::GetElementPtrInst*>(*inst)){
-                    move_inst(*inst,(*inst)->bb,MoveBehavior::MOVE_BEFORE_USAGE);
-                }
+            for (auto &inst:insts) {
+                schedule_inner_early(inst);
+            }
+            insts.clear();
+            insts.reserve(bb->iList.size() + 10);
+            for (auto &inst:bb->iList) {
+                insts.emplace_back(inst);
+                inst->vis = false;
+            }
+            for (auto &inst:insts) {
+                schedule_inner_late(inst);
             }
 
         }
 
-        void run_pass() {
+        void run_pass(bool sche_late = true) {
             //saving all instruction's ptr, or the move would cause problem
             std::vector<ir::Value *> insts;
             int inst_count = func->getInstCount() + 100; // number of instructions
@@ -222,7 +361,7 @@ namespace ir_passes {
             }
 
             for(auto inst = insts.begin();inst!=insts.end();inst++){
-                schedule_late(*inst);
+                if (sche_late) schedule_late(*inst);
             }
             for (auto &bb:func->bList) {
                 move_icmp_back(bb);
@@ -257,7 +396,8 @@ namespace ir_passes {
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
 
-        void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END) {
+        void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END,
+                       ir::Value *target = nullptr) {
             if (auto inst = dynamic_cast<ir::Inst *>(_inst)) {
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
@@ -268,18 +408,12 @@ namespace ir_passes {
                     case MoveBehavior::MOVE_END:
                         block->InsertAtEnd(inst);
                         break;
-                    case MoveBehavior::MOVE_BEFORE_USAGE:
-                        for (auto i = block->iList.begin(); i != block->iList.end(); i++) {
-                            std::vector<ir::Value*> uses;
-                            uses.reserve((*i)->uses().size());
-                            for(auto &val : (*i)->uses())
-                                uses.emplace_back(val);
-                            if (std::find(uses.begin(), uses.end(), _inst) != uses.end()) {
-                                block->InsertBefore(inst, i);
-                                return;
-                            }
-                        }
-                        block->InsertAtEnd(inst);
+                    case MoveBehavior::MOVE_BEFORE:
+                        block->InsertBefore(inst, target);
+                        break;
+                    case MoveBehavior::MOVE_AFTER:
+                        block->InsertAfter(inst, target);
+                        break;
                 }
             }
         }
@@ -351,6 +485,7 @@ namespace ir_passes {
 
 
         bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
+            return false;
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
@@ -361,10 +496,37 @@ namespace ir_passes {
 
             int constL = dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value;
             int constR = dynamic_cast<ir::ConstValue *>(usage->ValueR.value)->value;
-            if (inst->optype != ir::OpType::ADD || usage->optype != ir::OpType::ADD) return false;
-            usage->ValueL.use(inst->ValueL.value);
-            usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
-            return true;
+            if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::ADD) {
+                usage->ValueL.use(inst->ValueL.value);
+                usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
+                return true;
+            }
+            /*if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::SUB) {
+                usage->ValueL.use(inst->ValueL.value);
+                int val = constL - constR;
+                if (val < 0) {
+                    val = -val;
+                    usage->optype = ir::OpType::SUB;
+                }
+                usage->ValueR.use(ir::IRBuilder::getConstant(val, module));
+                return true;
+            }*/
+            /*if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::ADD) {
+                usage->ValueL.use(inst->ValueL.value);
+                int val = -constL + constR;
+                if (val < 0) {
+                    val = -val;
+                    usage->optype = ir::OpType::SUB;
+                }
+                usage->ValueR.use(ir::IRBuilder::getConstant(val, module));
+                return true;
+            }
+            if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::SUB) {
+                usage->ValueL.use(inst->ValueL.value);
+                usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
+                return true;
+            }*/
+            return false;
         }
 
         void schedule_late(ir::Value *inst) {
@@ -438,10 +600,10 @@ namespace ir_passes {
             std::cerr << "GVN: Eliminated " << erase_count << " instructions." << std::endl;
     }
 
-    void gcm(ir::Module *module) {
+    void gcm(ir::Module *module, bool sche_late) {
         for (auto &i:module->functionList)
             if (!i->bList.empty()) {
-                GCMPass(i, module).run_pass();
+                GCMPass(i, module).run_pass(sche_late);
             }
 
     }

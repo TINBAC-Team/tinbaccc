@@ -143,6 +143,7 @@ namespace ir {
         OpType optype;
         BasicBlock *bb;
         std::string comment;
+        bool vis;
 
         Value(OpType _optype);
 

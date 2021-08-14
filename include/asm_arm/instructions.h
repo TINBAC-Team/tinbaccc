@@ -53,11 +53,12 @@ namespace asm_arm {
         Reg reg;
         int val;
         Inst* inst = nullptr;
-        int lifespan;
+        int lifespan = 0;
+        bool rejected = false;
 
         static Operand *precolored_reg_map[static_cast<int>(Reg::MAX)];
 
-        Operand(Type t) : type(t), lifespan(0) {};
+        Operand(Type t) : type(t) {};
 
         void assignReg(int assigned_reg);
 

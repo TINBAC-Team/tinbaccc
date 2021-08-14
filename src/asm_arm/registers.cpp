@@ -378,10 +378,13 @@ void asm_arm::RegisterAllocator::rewriteProgram() {
                    coalescedNodes.cbegin(), coalescedNodes.cend(),
                    std::inserter(initial, initial.cbegin()));
     for (const auto &v : spilledNodes) {
-        if (v->lifespan == 1) {
+        if (v->lifespan == 1 && !v->rejected) {
             std::cerr << "asm: WARN: refuse to spill variable with lifespan of 1!" << std::endl;
+            v->rejected = true;
             initial.insert(v);
         } else {
+            if(v->rejected)
+                std::cerr << "asm: WARN: Spilling rejected vreg. WHAT THE HECK IS GOING ON!?" << std::endl;
             spillByReload(v);
         }
     }
