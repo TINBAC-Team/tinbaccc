@@ -67,18 +67,16 @@ namespace ir_passes {
                     if (iter == blocks2loop.cend()) continue;
                     for (auto &findLoop : iter->second) {
                         // the same loop head
-                        if (std::includes(loop->body.cbegin(), loop->body.cend(),
-                                          findLoop->body.cbegin(), findLoop->body.cend())) {
+                        if (std::includes(findLoop->body.cbegin(), findLoop->body.cend(),
+                                          loop->body.cbegin(), loop->body.cend())) {
                             // body ⊆ findLoop, body is the nested loop of findLoop
                             loop->external = findLoop;
-                            loop->depth = findLoop->depth + 1;
                             findLoop->nested.push_back(loop);
                             break;
-                        } else if (std::includes(findLoop->body.cbegin(), findLoop->body.cend(),
-                                                 loop->body.cbegin(), loop->body.cend())) {
-                            // findLoop ⊆ body, findLoop is the nested loop of body
+                        } else if (std::includes(loop->body.cbegin(), loop->body.cend(),
+                                                 findLoop->body.cbegin(), findLoop->body.cend())) {
+                            // findLoop ⊆ body, body is the external loop of findLoop
                             findLoop->external = loop;
-                            findLoop->depth = loop->depth + 1;
                             findLoop->updateBasicBlocks();
                             loop->nested.push_back(findLoop);
                             break;
@@ -88,7 +86,6 @@ namespace ir_passes {
                                 // the same loop head, they should be merged into one
                                 findLoop->body.insert(loop->body.cbegin(), loop->body.cend());
                                 for (auto *currBB : loop->body) blocks2loop[currBB].insert(findLoop);
-                                loop->depth = findLoop->depth;
                                 loop->updateBasicBlocks();
                                 func->loops.erase(loop);
                                 delete loop;
@@ -109,9 +106,20 @@ namespace ir_passes {
             }
 
             // mark deepest loop
-            for (auto * loop : func->loops)
+            for (auto * loop : func->loops) {
                 if (loop->nested.empty())
                     func->deepestLoop.push_back(loop);
+                loop->depth = 1;
+                auto * external = loop->external;
+                while (external) {
+                    loop->depth++;
+                    external = external->external;
+                }
+                for (auto * bb : loop->body) {
+                    if (bb->loop_depth < loop->depth)
+                        bb->loop_depth = loop->depth;
+                }
+            }
         }
 
     public:
