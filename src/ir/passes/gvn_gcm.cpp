@@ -485,7 +485,6 @@ namespace ir_passes {
 
 
         bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
-            return false;
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
