@@ -45,6 +45,7 @@ namespace ir_passes {
             if (body.find(m) == body.cend()) {
                 body.insert(m);
                 st.push(m);
+                m->loop_depth = 0;
             }
         }
 
@@ -91,10 +92,8 @@ namespace ir_passes {
                                 func->loops.erase(loop);
                                 delete loop;
                                 loop = nullptr;
-                                break;
                             } else {
                                 // they are separated loop
-                                break;
                             }
                         }
                     }
@@ -106,7 +105,6 @@ namespace ir_passes {
                     continue;
 
                 // Step3 make sure constructed loop can be indexed
-                loop->updateBasicBlocks();
                 for (auto *currBB : loop->body)
                     blocks2loop[currBB].insert(loop);
 

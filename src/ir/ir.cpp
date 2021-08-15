@@ -643,8 +643,9 @@ namespace ir {
     Loop::Loop() {}
 
     void Loop::updateBasicBlocks() {
-        for (auto * bb : body)
-            bb->loop_depth = this->depth;
+        for (auto *bb : body)
+            if (bb->loop_depth < this->depth)
+                bb->loop_depth = this->depth;
     }
 
 }
