@@ -92,6 +92,7 @@ namespace ir_passes {
                                 func->loops.erase(loop);
                                 delete loop;
                                 loop = nullptr;
+                                break;
                             } else {
                                 // they are separated loop
                             }
