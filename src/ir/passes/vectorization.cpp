@@ -68,25 +68,24 @@ public:
         return true;
     }
 
-    ir::AdjacentMemory* build() {
-        std::vector<ir::Value*> v;
+    std::vector<ir::AdjacentMemory*> build() {
+        std::vector<ir::AdjacentMemory*> result;
+        std::vector<ir::Value*> adj;
         for(auto* ptr : address) {
-            if (ptr) {
-                v.push_back(ptr);
+            if (ptr)
+                adj.push_back(ptr);
+            else
+                adj.clear();
+            if (adj.size() == 4) {
+                result.push_back(new ir::AdjacentMemory(adj));
+                result.clear();
             }
-            if (v.size() == 4)
-                break;
         }
-        if (v.size() == 4)
-            return new ir::AdjacentMemory{std::move(v)};
-        else
-            return nullptr;
+        return std::move(result);
     }
 
 
 };
-
-
 
 
 
@@ -111,7 +110,7 @@ struct EqualFunc {
 class Vectorization {
     ir::BasicBlock *bb;
     std::unordered_map<AdjacentMemoryKey, AdjacentMemoryBuilder *, HashFunc, EqualFunc> builders;
-    std::unordered_map<AdjacentMemoryKey, ir::AdjacentMemory *, HashFunc, EqualFunc> memories;
+    std::unordered_map<AdjacentMemoryKey, std::vector<ir::AdjacentMemory *>, HashFunc, EqualFunc> memories;
     std::vector<ir::GetElementPtrInst *> getPtrInstructions;
     std::vector<ir::AdjacentMemory *> adjacentMemories;
 public:
@@ -144,14 +143,8 @@ void ir_passes::vectorize(ir::Module *module) {
     for (auto *func : module->functionList) {
         if (func->is_extern()) continue;
         if (func->bList.empty()) continue;
-        int debug__use__this = 0;
         for (auto *bb : func->bList) {
-            debug__use__this++;
-            if (debug__use__this == 3) {
-                int debug__here_int = 5;
-            }
             Vectorization{bb}.analysisAdjacentMemory();
-
         }
     }
 }
