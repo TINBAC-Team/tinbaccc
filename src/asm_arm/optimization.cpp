@@ -68,6 +68,8 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
         if (maybeMULIter == bb->insts.cend() || maybeMULIter.operator*()->op != Inst::Op::MUL) return nullptr;
         auto * instMUL = dynamic_cast<BinaryInst*>(*maybeMULIter);
         // check if the operand is only use in InstAdd
+        if(bb->liveOut.find(instMUL->dst)!=bb->liveOut.end())
+            return nullptr;
         auto * dep = getUse(instMUL->dst);
         if (!dep) throw std::runtime_error("Use indicates the inst is dead but it actually used in ADD inst.");
         if (dep->size() != 1) return nullptr;
