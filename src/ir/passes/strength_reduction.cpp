@@ -94,8 +94,9 @@ namespace ir_passes {
                         for (int i = 0; i <= index_sub; i++) {
                             muls_outer.push_back(gepinst->multipliers[i]);
                         }
-                        auto outer_gep = new ir::GetElementPtrInst(gepinst->arr.value, dims_outer, muls_outer,
+                        auto outer_gep = new ir::GetElementPtrInst(gepinst->arr.value, dims_outer, {},
                                                                    gepinst->unpack, gepinst->decl);
+                        outer_gep->multipliers = std::move(muls_outer);
                         std::vector<ir::Value *> dims_inner;
                         for (int i = index_sub + 1; i < gepinst->dims.size(); i++) {
                             dims_inner.push_back(gepinst->dims[i].value);
@@ -104,8 +105,9 @@ namespace ir_passes {
                         for (int i = index_sub + 1; i < gepinst->dims.size(); i++) {
                             muls_inner.push_back(gepinst->multipliers[i]);
                         }
-                        auto inner_gep = new ir::GetElementPtrInst(outer_gep, dims_inner, muls_inner,
+                        auto inner_gep = new ir::GetElementPtrInst(outer_gep, dims_inner, {},
                                                                    index_sub + gepinst->unpack + 1);
+                        inner_gep->multipliers = std::move(muls_inner);
                         gepinst->bb->InsertBefore(inner_gep, gepinst);
                         inner_gep->bb->InsertBefore(outer_gep, inner_gep);
                         gepinst->replaceWith(inner_gep);
