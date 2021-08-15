@@ -2,12 +2,17 @@
 #include <ir/vectorization.h>
 #include <algorithm>
 
-const int MAX_MEMORY_ADJACENT = 1 << 6;
+const int MAX_MEMORY_ADJACENT = 64;
 const int FIRST_INST_POS = MAX_MEMORY_ADJACENT / 2;
 
 static bool inferDelta(ir::GetElementPtrInst *inst, int &delta, ir::Value *&base) {
     auto &use = inst->dims.back();
     base = use.value;
+    if (auto x = dynamic_cast<ir::ConstValue*>(base)) {
+        base = (ir::Value*)1;
+        delta = x->value;
+        return true;
+    }
     delta = 0;
     while (true) {
         if (auto x = dynamic_cast<ir::BinaryInst *>(base)) {
@@ -86,7 +91,7 @@ public:
                 adj.clear();
             if (adj.size() == 4) {
                 result.push_back(new ir::AdjacentMemory(adj));
-                result.clear();
+                adj.clear();
             }
         }
         return std::move(result);
@@ -141,6 +146,7 @@ public:
         for (auto &pair : builders) {
             memories[pair.first] = pair.second->build();
         }
+        int debug = 1;
     };
 
     void tryVectorize(ir::AutoVectorizationContext *context) {
@@ -150,11 +156,11 @@ public:
         }
         while (changed) {
             changed = false;
-            for (auto analyst : context->analyst) {
+            for (auto * analyst : std::set<ir::IterationAnalyst*>{context->analyst}) {
                 if (analyst->analysis(context)) {
                     changed = true;
-                    break;
                 }
+                //
             }
         }
     }
@@ -168,7 +174,11 @@ void ir_passes::vectorize(ir::Module *module) {
         if (func->is_extern()) continue;
         if (func->bList.empty()) continue;
         for (auto *bb : func->bList) {
-            Vectorization{bb}.analysisAdjacentMemory();
+            Vectorization v{bb};
+            v.analysisAdjacentMemory();
+            auto * context = new ir::AutoVectorizationContext();
+            v.tryVectorize(context);
+            delete context;
         }
     }
 }
@@ -182,11 +192,13 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
         if (auto *loadInst = dynamic_cast<LoadInst *>(inst)) {
             int index = this->indexOf(loadInst->ptr.value);
             if (index < 0) continue;
-            // ok, we must find other loadInst before storeInst
-            auto *vloadInst = new VLoadInst(this);
+            // ok, we find one, and we must find other loadInst before storeInst
+
+            std::vector<ir::LoadInst*> associated{this->address.size()};
             std::set<GetElementPtrInst *> copyAddress;
             copyAddress.insert(this->address.cbegin(), this->address.cend());
             copyAddress.erase(this->address[index]);
+            associated[index] = loadInst;
 
             auto findOtherLoadInstPtr = instPtr;
             for (++findOtherLoadInstPtr;
@@ -196,7 +208,7 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
                 if (findLoadInst) {
                     if (copyAddress.erase(dynamic_cast<GetElementPtrInst *>(findLoadInst->ptr.value))) {
                         // fine, found one
-                        vloadInst->associated[indexOf(findLoadInst->ptr.value)] = findLoadInst;
+                        associated[indexOf(findLoadInst->ptr.value)] = findLoadInst;
                     }
                     continue;
                 }
@@ -210,6 +222,7 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
             // now we check if loadInst is complete
             if (copyAddress.empty()) {
                 // analysis success
+                auto *vloadInst = new ir::VLoadInst(this, associated);
                 instPtr = front->bb->iList.insert(instPtr, vloadInst);
                 instPtr++;
                 change = true;
@@ -219,7 +232,7 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
                 }
             } else {
                 // fail
-                delete vloadInst;
+
             }
         }
     }
@@ -233,21 +246,22 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
 struct VectorizeResult {
     bool satisfyVector = false;
     bool satisfyScalar = false;
-    ir::Value* vector = nullptr;
+    ir::VInst* vector = nullptr;
 };
 
 
 bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, ir::Value* base, VectorizeResult &result) {
+    if (context->associatedVInst.find(base) != context->associatedVInst.cend()) return false;
     if(auto *binaryInst = dynamic_cast<ir::BinaryInst *>(base)) {
-        std::vector<ir::BinaryInst *> associatedBinaryInst;
+        std::vector<ir::BinaryInst *> associatedBinaryInst{(unsigned)knownVectorL->getSize()};
         if (!ir::isValidNeonOpType(binaryInst)) return false;
         // assume:  Vector OP unknown, this value indicates whether to flip
 
 
         bool isLeftKnownVector;
-        if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueR.value) {
+        if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueL.value) {
             isLeftKnownVector = true;
-        } else if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueL.value) {
+        } else if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueR.value) {
             isLeftKnownVector = false;
         } else {
             return false;
@@ -271,7 +285,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             mightSameScalar = ir::getValue(binaryInst, !isLeftKnownVector).value;
         }
 
-        if (!result.satisfyVector || !result.satisfyScalar) return false;
+        if (!result.satisfyVector && !result.satisfyScalar) return false;
 
 
         associatedBinaryInst[0] = binaryInst;
@@ -285,7 +299,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
                 if (!otherBinaryInst) continue;
                 if (binaryInst->optype != otherBinaryInst->optype) continue;
                 // check lhs
-                if (knownVectorL->getAssociatedComponent(i) != ir::getValue(binaryInst, isLeftKnownVector).value)
+                if (knownVectorL->getAssociatedComponent(i) != ir::getValue(otherBinaryInst, isLeftKnownVector).value)
                     continue;
 
                 auto &unknownValueR = ir::getValue(otherBinaryInst, isLeftKnownVector);
@@ -323,6 +337,9 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             auto * vbinaryInst = new ir::VBinaryInst(binaryInst->optype, valueL, valueR, associatedBinaryInst);
             result.vector = vbinaryInst;
         }
+        for (int i = 0; i < result.vector->getSize(); i++) {
+            context->associatedVInst[result.vector->getAssociatedComponent(i)] = {result.vector, i};
+        }
         return true;
     } else if (auto storeInst = dynamic_cast<ir::StoreInst*>(base)) {
         if (!result.satisfyVector) return false;
@@ -336,7 +353,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             return false;
         }
 
-        std::vector<ir::StoreInst *> associatedStoreInst;
+        std::vector<ir::StoreInst *> associatedStoreInst{(unsigned)knownVectorL->getSize()};
 
         if (storeInst->ptr.value != knownVectorL->getAssociatedComponent(0)) return false;
 
@@ -352,6 +369,8 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             return false;
         }
 
+        associatedStoreInst[0] = storeInst;
+
         auto * ptrVector = knownVectorL;
         auto * valVector = mightSameVectorR;
         if (!isLeftKnownVector) std::swap(ptrVector, valVector);
@@ -364,6 +383,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
                 if (otherStoreInst) continue;
                 if (otherStoreInst->ptr.value != ptrVector->getAssociatedComponent(i)) continue;
                 if (otherStoreInst->val.value != valVector->getAssociatedComponent(i)) continue;
+                associatedStoreInst[i] = otherStoreInst;
                 findVector = true;
                 break;
             }
@@ -374,6 +394,9 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         if (result.satisfyVector) {
             auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), mightSameVectorR);
             result.vector = vstoreInst;
+            for (int i = 0; i < vstoreInst->getSize(); i++) {
+                context->associatedVInst[vstoreInst->getAssociatedComponent(i)] = {vstoreInst, i};
+            }
             return true;
         }
         return false;
@@ -398,9 +421,12 @@ bool ir::VDupInst::analysis(AutoVectorizationContext *context) {
 bool ir::VInst::analysis_(ir::AutoVectorizationContext *context) {
     bool changed = false;
     auto head = getAssociatedComponent(0);
-    for (auto & base : head->uses()) {
+    for (auto & base : head->uList) {
         VectorizeResult result{true, false};
-        if (tryCombine(context, this, base, result)) {
+        if (tryCombine(context, this, base->user, result)) {
+            if (auto * analyst = dynamic_cast<IterationAnalyst*>(result.vector)) {
+                context->analyst.insert(analyst);
+            }
             changed = true;
         }
     }

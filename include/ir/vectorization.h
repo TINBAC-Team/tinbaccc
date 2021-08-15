@@ -96,7 +96,7 @@ namespace ir {
 
         VBinaryInst(OpType optype, Value *_ValueL, Value *_ValueR, std::vector<BinaryInst *> associated) :
                 VInst(optype), ValueL(this, _ValueL), ValueR(this, _ValueR), associated(std::move(associated)) {
-
+            std::cout << "VBinaryInst #" << static_cast<int>(optype) << " Create" << std::endl;
         }
 
         bool analysis(AutoVectorizationContext *context);
@@ -120,7 +120,10 @@ namespace ir {
         Use ptr;
         std::vector<LoadInst *> associated;
 
-        VLoadInst(AdjacentMemory *ptr) : VInst(OpType::LOAD), ptr(this, ptr) {}
+        VLoadInst(AdjacentMemory *ptr, std::vector<LoadInst *> associated) : VInst(OpType::LOAD),
+            ptr(this, ptr), associated(std::move(associated)) {
+            std::cout << "VLoadInst Create" << std::endl;
+        }
 
         bool analysis(AutoVectorizationContext *context) override;
 
@@ -154,7 +157,10 @@ namespace ir {
             return associated.size();
         }
 
-        VStoreInst(AdjacentMemory *ptr, VInst *val) : VInst(OpType::STORE), ptr(this, ptr), val(this, val) {}
+        VStoreInst(AdjacentMemory *ptr, VInst *val) : VInst(OpType::STORE), ptr(this, ptr),
+            val(this, val) {
+            std::cout << "VStoreInst Create" << std::endl;
+        }
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);
 
@@ -185,7 +191,6 @@ namespace ir {
             case OpType::ADD:
             case OpType::SUB:
             case OpType::MUL:
-            case OpType::SDIV:
                 return true;
             default:
                 return false;
