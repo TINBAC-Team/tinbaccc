@@ -33,6 +33,10 @@ namespace asm_arm {
             Operand *dst;
         };
         std::list<PhiMOV> phi_mov_list;
+        struct ConstInfo {
+            Operand *op = nullptr;
+            int val = 0;
+        } const_info;
 
         Builder(Module *m);
 

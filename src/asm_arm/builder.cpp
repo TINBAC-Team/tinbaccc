@@ -37,7 +37,15 @@ namespace asm_arm {
 
         if (val->optype != ir::OpType::CONST)
             throw std::runtime_error("Non-const value should have been created!");
+        int constval = dynamic_cast<ir::ConstValue *>(val)->value;
+        if (constval == const_info.val && !curBlock->insts.empty()) {
+            auto lastinst = curBlock->insts.back();
+            if (lastinst->use.find(const_info.op) != lastinst->use.end())
+                return const_info.op;
+        }
         ret = val->codegen(*this);
+        const_info.op = ret;
+        const_info.val = constval;
         return ret;
     }
 
