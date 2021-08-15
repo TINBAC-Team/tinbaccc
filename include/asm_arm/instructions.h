@@ -122,6 +122,13 @@ namespace asm_arm {
             SDIV,
             RETURN, // not an actual instruction
             POOL, // not an actual instruction
+            VDUP,
+            VMOV,
+            VADD,
+            VMUL,
+            VMLA,
+            VLD1,
+            VST1
         } op;
 
         enum class OpCond {
@@ -371,6 +378,70 @@ namespace asm_arm {
         void print_body(std::ostream &os) const;
 
         void print(std::ostream &os);
+    };
+
+    // ASIMD instructions
+    enum class SIMDQReg {
+        Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10, Q11, Q12, Q13, Q14, Q15
+    };
+
+    class VDUPInst : public Inst {
+    public:
+        SIMDQReg dst;
+        Operand *src;
+
+        VDUPInst(SIMDQReg d, Operand *s);
+
+        void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
+    };
+
+    class VMOVInst : public Inst {
+    public:
+        SIMDQReg dst;
+        int val;
+
+        VMOVInst(SIMDQReg d, int v);
+
+        static bool vmov_operand(int v);
+
+        void print_body(std::ostream &os) const;
+    };
+
+    class VBinaryInst : public Inst {
+    public:
+        SIMDQReg dst, lhs, rhs;
+
+        VBinaryInst(Op op, SIMDQReg d, SIMDQReg l, SIMDQReg r);
+
+        void print_body(std::ostream &os) const;
+    };
+
+    class VLDRInst : public Inst {
+    public:
+        std::string label;
+        SIMDQReg dst;
+        Operand *src;
+
+        VLDRInst(SIMDQReg d, Operand *s);
+
+        void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
+    };
+
+    class VSTRInst : public Inst {
+    public:
+        std::string label;
+        SIMDQReg src;
+        Operand *dst;
+
+        VSTRInst(SIMDQReg s, Operand *d);
+
+        void print_body(std::ostream &os) const;
+
+        bool replace_use(Operand *orig, Operand *newop);
     };
 
     class BasicBlock {

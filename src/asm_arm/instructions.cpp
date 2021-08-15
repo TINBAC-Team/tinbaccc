@@ -395,6 +395,57 @@ namespace asm_arm {
         throw std::runtime_error("Call shouldn't be spilled?");
     }
 
+    // ASIMD instructions
+    VDUPInst::VDUPInst(SIMDQReg d, Operand *s) : Inst(Op::VDUP), dst(d), src(s) {
+        add_use(s);
+    }
+
+    bool VDUPInst::replace_use(Operand *orig, Operand *newop) {
+        if (src != orig)
+            return false;
+        src = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
+    VMOVInst::VMOVInst(SIMDQReg d, int v) : Inst(Op::VMOV), dst(d), val(v) {
+        if(!vmov_operand(v))
+            throw std::runtime_error("invalid VMOV operand.");
+    }
+
+    bool VMOVInst::vmov_operand(int val) {
+        return !((val & ~0xff) && (val & ~0xff00) && (val & ~0xff0000) && (val & ~0xff000000));
+    }
+
+    VBinaryInst::VBinaryInst(Op op, SIMDQReg d, SIMDQReg l, SIMDQReg r) : Inst(op), dst(d), lhs(l), rhs(r) {}
+
+    VLDRInst::VLDRInst(SIMDQReg d, Operand *s) : Inst(Op::VLD1), dst(d), src(s) {
+        add_use(s);
+    }
+
+    bool VLDRInst::replace_use(Operand *orig, Operand *newop) {
+        if (src != orig)
+            return false;
+        src = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
+    VSTRInst::VSTRInst(SIMDQReg s, Operand *d) : Inst(Op::VST1), dst(d), src(s) {
+        add_use(d);
+    }
+
+    bool VSTRInst::replace_use(Operand *orig, Operand *newop) {
+        if (dst != orig)
+            return false;
+        dst = newop;
+        use.erase(orig);
+        add_use(newop);
+        return true;
+    }
+
     static int bb_seed2 = 0;
     BasicBlock::BasicBlock(int deep) : branch_marked(false), loop_depth(deep) {
         bb_label = ".L";

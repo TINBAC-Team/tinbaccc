@@ -168,6 +168,27 @@ namespace asm_arm {
             case Op::RETURN:
                 // TODO
                 break;
+            case Op::VDUP:
+                ret_s = "VDUP.32";
+                break;
+            case Op::VADD:
+                ret_s = "VADD.I32";
+                break;
+            case Op::VMUL:
+                ret_s = "VMUL.I32";
+                break;
+            case Op::VMOV:
+                ret_s = "VMOV.I32";
+                break;
+            case Op::VMLA:
+                ret_s = "VMLA.I32";
+                break;
+            case Op::VLD1:
+                ret_s = "VLD1.32";
+                break;
+            case Op::VST1:
+                ret_s = "VST1.32";
+                break;
             default:
                 ret_s = "???";
                 break;
@@ -331,6 +352,38 @@ namespace asm_arm {
         os << "@END OF FUNCTION";
     }
 
+    // ASIMD instructions
+    static std::string get_qreg_name(SIMDQReg r) {
+        return "q" + std::to_string(static_cast<int>(r));
+    }
+
+    static std::string get_dreg_group(SIMDQReg r) {
+        std::ostringstream os;
+        int qval = static_cast<int>(r);
+        os << "{d" << qval * 2 << ", " << qval * 2 + 1 << "}";
+        return os.str();
+    }
+
+    void VDUPInst::print_body(std::ostream &os) const {
+        os << get_qreg_name(dst) << ", " << src->getOperandName();
+    }
+
+    void VMOVInst::print_body(std::ostream &os) const {
+        os << get_qreg_name(dst) << ", #" << val;
+    }
+
+    void VBinaryInst::print_body(std::ostream &os) const {
+        os << get_qreg_name(dst) << ", " << get_qreg_name(lhs) << ", " << get_qreg_name(rhs);
+    }
+
+    void VLDRInst::print_body(std::ostream &os) const {
+        os << get_dreg_group(dst) << ", [" << src->getOperandName() << "]";
+    }
+
+    void VSTRInst::print_body(std::ostream &os) const {
+        os << get_dreg_group(src) << ", [" << dst->getOperandName() << "]";
+    }
+
     void BasicBlock::print(std::ostream &os, bool single) const {
         std::ostringstream bbcomment;
         bbcomment << comment.str();
@@ -356,7 +409,7 @@ namespace asm_arm {
         os << "\t.arch_extension crc" << std::endl;
         os << "\t.syntax unified" << std::endl;
         os << "\t.arm" << std::endl;
-        os << "\t.fpu vfp" << std::endl;
+        os << "\t.fpu crypto-neon-fp-armv8" << std::endl;
         os << "\t.type " << name << ", %function" << std::endl;
         os << name << ":\n";
         // TODO: optionally push lr
