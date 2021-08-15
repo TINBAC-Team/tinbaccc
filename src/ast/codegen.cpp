@@ -46,24 +46,28 @@ namespace ast {
         return builder.GetCurBlock()->getVariable(decl, builder);
     }
 
-    void store_stack_array_initval(Decl *decl, ir::IRBuilder &builder, std::vector<int> &dim,int offset) {
-        if(dim.size() == decl->array_dims.size())
-        {
-            if(decl->initval_expanded[offset])
-            {
-                if(decl->initval_expanded[offset]->is_const() && decl->initval_expanded[offset]->get_value()==0) return;
-                std::vector<ir::Value*> dim_val;
-                for(auto &i:dim){
-                    dim_val.push_back(builder.getConstant(i,builder));
-                }
-                auto filling_addr = builder.CreateGetElementPtrInst(decl->addr,dim_val, decl->array_multipliers);
-                builder.CreateStoreInst(filling_addr,decl->initval_expanded[offset]->codegen(builder));
+    void store_stack_array_initval(Decl *decl, ir::IRBuilder &builder, std::vector<int> &dim, int offset,
+                                   bool have_cleared = false) {
+
+        if (dim.size() == decl->array_dims.size()) { // last dimension, start filling numbers
+            std::vector<ir::Value *> dim_val;
+            for (auto &i:dim) {
+                dim_val.push_back(builder.getConstant(i, builder));
+            }
+            if (decl->initval_expanded[offset] || !have_cleared) {
+                if (have_cleared && decl->initval_expanded[offset]->is_const() &&
+                    decl->initval_expanded[offset]->get_value() == 0)
+                    return;
+                auto filling_addr = builder.CreateGetElementPtrInst(decl->addr, dim_val, decl->array_multipliers);
+                auto filling_value = decl->initval_expanded[offset] ? decl->initval_expanded[offset]->codegen(builder)
+                                                                    : builder.getConstant(0,builder);
+                builder.CreateStoreInst(filling_addr,filling_value);
             }
             return;
         }
         for (int i = 0; i < decl->array_dims[dim.size()]->get_value(); i++) {
             dim.emplace_back(i);
-            store_stack_array_initval(decl, builder, dim,offset);
+            store_stack_array_initval(decl, builder, dim, offset, have_cleared);
             dim.pop_back();
             if (dim.size() == decl->array_dims.size() - 1) {
                 offset += 1;
@@ -77,20 +81,21 @@ namespace ast {
         if (is_array()) {
             addr = builder.CreateAllocaInst(this);
             if (initval) {
-                int index = -1;
-                std::vector<ast::Exp *> memset_params;
-                auto memset_target = new Exp(new LVal(this));
-                for(size_t i=0;i<memset_target->lval->decl->array_dims.size()-1;i++)
-                {
-                    memset_target->lval->array_dims.emplace_back(new Exp(0));
+                bool use_memset = (array_multipliers.size() == 1 && array_multipliers[0] <= 32) ? false : true;
+                if (use_memset) {
+                    std::vector<ast::Exp *> memset_params;
+                    auto memset_target = new Exp(new LVal(this));
+                    for (size_t i = 0; i < memset_target->lval->decl->array_dims.size() - 1; i++) {
+                        memset_target->lval->array_dims.emplace_back(new Exp(0));
+                    }
+                    memset_params.emplace_back(memset_target);
+                    memset_params.emplace_back(new Exp(0));
+                    memset_params.emplace_back(new Exp(array_multipliers[0] * 4));
+                    builder.CreateFuncCall("memset", true, memset_params);
+                    memset_target->lval->array_dims.clear();
                 }
-                memset_params.emplace_back(memset_target);
-                memset_params.emplace_back(new Exp(0));
-                memset_params.emplace_back(new Exp(array_multipliers[0] * 4));
-                builder.CreateFuncCall("memset", true, memset_params);
-                memset_target->lval->array_dims.clear();
                 std::vector<int> dim;
-                store_stack_array_initval(this,builder,dim,0);
+                store_stack_array_initval(this, builder, dim, 0, use_memset);
             }
             return addr;
         } else if (initval) {
