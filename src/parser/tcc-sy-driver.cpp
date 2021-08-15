@@ -93,6 +93,7 @@ void tcc_sy_driver::process_ir() {
     ir_passes::strength_reduction(module);
     ir_passes::gvn(module);
     ir_passes::gcm(module);
+    ir_passes::eliminate_load(module);
     ir_passes::aggressive_dce(module);
     ir_passes::simplify_cfg(module, true);
     ir_passes::rpo_compute(module);
