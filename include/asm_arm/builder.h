@@ -38,6 +38,10 @@ namespace asm_arm {
             int val = 0;
         } const_info;
 
+        int asimd_reg = 0;
+        BasicBlock *asimd_reg_bb = nullptr;
+        std::unordered_map<ir::Value*, SIMDQReg> simd_value_map;
+
         Builder(Module *m);
 
         Operand *getOperandOfValue(ir::Value* val);
@@ -126,6 +130,16 @@ namespace asm_arm {
         ShiftInst *createASR(Operand *s, int shift);
 
         ShiftInst *createLSR(Operand *s, int shift);
+
+        void insertInst(Inst *inst) {
+            curBlock->insertAtEnd(inst);
+        }
+
+        SIMDQReg getSIMDReg();
+
+        SIMDQReg getSIMDRegOfValue(ir::Value* val);
+
+        void setSIMDRegOfValue(ir::Value* val, SIMDQReg reg);
     };
 }
 #endif //TINBACCC_BUILDER_H

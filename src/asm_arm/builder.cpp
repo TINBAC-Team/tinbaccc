@@ -398,4 +398,28 @@ namespace asm_arm {
             }
         }
     }
+
+    SIMDQReg Builder::getSIMDReg() {
+        if (curBlock != asimd_reg_bb) {
+            asimd_reg_bb = curBlock;
+            asimd_reg = 0;
+        }
+        // for ABI compatibility
+        if(asimd_reg == 4)
+            asimd_reg = 8;
+        if (asimd_reg >= 16)
+            throw std::runtime_error("no enough simd reg for current bb.");
+        return static_cast<SIMDQReg>(asimd_reg++);
+    }
+
+    SIMDQReg Builder::getSIMDRegOfValue(ir::Value *val) {
+        auto got = simd_value_map.find(val);
+        if (got != simd_value_map.end())
+            return got->second;
+        throw std::runtime_error("unknown simd reg for value");
+    }
+
+    void Builder::setSIMDRegOfValue(ir::Value *val, SIMDQReg reg) {
+        simd_value_map[val] = reg;
+    }
 }
