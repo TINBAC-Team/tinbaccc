@@ -125,6 +125,7 @@ namespace asm_arm {
             VDUP,
             VMOV,
             VADD,
+            VSUB,
             VMUL,
             VMLA,
             VLD1,

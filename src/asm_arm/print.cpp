@@ -174,6 +174,9 @@ namespace asm_arm {
             case Op::VADD:
                 ret_s = "VADD.I32";
                 break;
+            case Op::VSUB:
+                ret_s = "VSUB.I32";
+                break;
             case Op::VMUL:
                 ret_s = "VMUL.I32";
                 break;

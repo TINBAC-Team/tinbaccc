@@ -32,7 +32,7 @@ set(SYMTAB_SOURCES
 set(IR_SOURCES
         src/ir/ir.cpp
         src/ir/print.cpp
-        src/ir/codegen.cpp)
+        src/ir/codegen.cpp src/ir/codegen_simd.cpp)
 
 set(IR_PASSES_SOURCES
         src/ir/passes/dominator.cpp
