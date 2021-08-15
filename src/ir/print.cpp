@@ -1,5 +1,6 @@
 #include <ast/ast.h>
 #include <ir/ir.h>
+#include <ir/vectorization.h>
 #include <regex>
 #include <sstream>
 
@@ -456,5 +457,22 @@ namespace ir {
             os << "[ " << get_name_of_value(i.second->value) << ", %" << i.first->name << " ]";
 
         }
+    }
+
+    void VLoadInst::print(std::ostream &os) const{
+        os<<";";
+        VInst::print(os);
+    }
+    void VStoreInst::print(std::ostream &os) const{
+        os<<";";
+        VInst::print(os);
+    }
+    void VBinaryInst::print(std::ostream &os) const{
+        os<<";";
+        VInst::print(os);
+    }
+    void VDupInst::print(std::ostream &os) const{
+        os<<";";
+        VInst::print(os);
     }
 }

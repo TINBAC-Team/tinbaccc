@@ -84,6 +84,8 @@ namespace ir {
         }
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);
+
+        void print(std::ostream &os) const;
     };
 
     class VBinaryInst : public VInst, public IterationAnalyst {
@@ -109,6 +111,8 @@ namespace ir {
 
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);
+
+        void print(std::ostream &os) const;
     };
 
     class VLoadInst : public VInst, public IterationAnalyst {
@@ -129,6 +133,8 @@ namespace ir {
         }
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);
+
+        void print(std::ostream &os) const;
     };
 
     class VStoreInst : public VInst, public IterationAnalyst {
@@ -151,6 +157,8 @@ namespace ir {
         VStoreInst(AdjacentMemory *ptr, VInst *val) : VInst(OpType::STORE), ptr(this, ptr), val(this, val) {}
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);
+
+        void print(std::ostream &os) const;
     };
 
 
