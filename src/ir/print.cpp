@@ -382,49 +382,25 @@ namespace ir {
     void GetElementPtrInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value)) {
-            print_llvm_type(os,0);
-            os<<", ";
-            print_llvm_type(os,0);
-            os<<"* ";
-            os<<get_name_of_value((Value*)arr_val)<<", ";
-            os<<"i32 0";
-            for(auto &i:dims){
-                os<<", ";
-                os<<"i32 "<<get_name_of_value(i.value);
-            }
-        } else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value)) {
-            print_llvm_type(os,0);
-            os<<", ";
-            print_llvm_type(os,0);
-            os<<"* ";
-            os<<get_name_of_value((Value*)arr_val)<<", ";
-            os<<"i32 0";
-            for(auto &i:dims){
-                os<<", ";
-                os<<"i32 "<<get_name_of_value(i.value);
-            }
-        } else if(auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
-            print_llvm_type(os,1);
-            os<<", ";
-            print_llvm_type(os,1);
-            os<<"* ";
-            os<<get_name_of_value((Value*)arr_val)<<", ";
-            bool is_first = true;
-            for(auto &i:dims){
-                if(!is_first)
-                    os<<", ";
-                is_first = false;
-                os<<"i32 "<<get_name_of_value(i.value);
-            }
-        } else if (decl && !decl->array_dims.empty()) {
-            // the first multiplier is always 0 for function params.
-            int start_dim = decl->array_multipliers[0] ? 0 : 1;
-            print_llvm_type(os, start_dim);
+        if (dynamic_cast<AllocaInst *>(arr.value) || dynamic_cast<GlobalVar *>(arr.value)) {
+
+            print_llvm_type(os, 0);
             os << ", ";
-            print_llvm_type(os, start_dim);
+            print_llvm_type(os, 0);
             os << "* ";
-            os << get_name_of_value(arr.value) << ", ";
+            os << get_name_of_value((Value *) arr.value) << ", ";
+            os << "i32 0";
+            for (auto &i:dims) {
+                os << ", ";
+                os << "i32 " << get_name_of_value(i.value);
+            }
+        } else if (auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
+
+            print_llvm_type(os, 1);
+            os << ", ";
+            print_llvm_type(os, 1);
+            os << "* ";
+            os << get_name_of_value((Value *) arr_val) << ", ";
             bool is_first = true;
             for (auto &i:dims) {
                 if (!is_first)
@@ -432,9 +408,42 @@ namespace ir {
                 is_first = false;
                 os << "i32 " << get_name_of_value(i.value);
             }
-        }
+        } else if (auto arr_val = dynamic_cast<GetElementPtrInst *>(arr.value)) {
 
+            // the first multiplier is always 0 for function params.
+
+            if (decl->is_fparam && !unpack) //if this GEP's input eventually comes from function param
+            {
+                //printf("FOUND A GEP<-GEP eventually from fparam\n");
+                print_llvm_type(os, 1);
+                os << ", ";
+                print_llvm_type(os, 1);
+                os << "* ";
+                os << get_name_of_value(arr.value) << ", ";
+                bool is_first = true;
+                for (auto &i:dims) {
+                    if (!is_first)
+                        os << ", ";
+                    is_first = false;
+                    os << "i32 " << get_name_of_value(i.value);
+                }
+            } else {
+                //printf("FOUND A GEP<-GEP not eventually from fparam\n");
+                print_llvm_type(os, unpack);
+                os << ", ";
+                print_llvm_type(os,  unpack);
+                os << "* ";
+                os << get_name_of_value(arr.value) << ", ";
+                os << "i32 0";
+                for (auto &i:dims) {
+                    os << ", ";
+                    os << "i32 " << get_name_of_value(i.value);
+                }
+            }
+
+        }
     }
+
 
     void PhiInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";

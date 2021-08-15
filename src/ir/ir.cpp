@@ -516,16 +516,20 @@ namespace ir {
         size = decl->array_multipliers[0];
     }
 
-    GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls) :
-            AccessInst(OpType::GETELEMPTR), arr(this, _arr) {
-        if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value))
+    GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls,
+                                         int _unpack,ast::Decl* _decl) :
+            AccessInst(OpType::GETELEMPTR), arr(this, _arr), unpack(_unpack) {
+        if(_decl)
+            decl = _decl;
+        else if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value))
             decl = arr_val->decl;
         else if (auto arr_val = dynamic_cast<GlobalVar *>(arr.value))
             decl = arr_val->decl;
         else if (auto arr_val = dynamic_cast<FuncParam *>(arr.value))
             decl = arr_val->decl;
-        else
-            decl = nullptr;
+        else if (auto arr_val = dynamic_cast<GetElementPtrInst *>(arr.value)) {
+            decl = arr_val->decl;
+        } else decl = nullptr;
 
         dims.reserve(_dims.size() + 1);
         for (auto &i:_dims) {
@@ -572,7 +576,9 @@ namespace ir {
             //for pointer, llvm ir requires a "i32 0" in the back of the GEP
             auto gep = dynamic_cast<GetElementPtrInst *>(par);
             if (gep) {
+                //printf("FIND IT\n");
                 gep->dims.emplace_back(gep, getConstant(0, module));
+                //gep->unpack = gep->dims.size();
             }
         }
 
@@ -640,7 +646,6 @@ namespace ir {
         return ret;
     }
 
-    Loop::Loop() {}
 
     void Loop::updateBasicBlocks() {
         for (auto *bb : body)

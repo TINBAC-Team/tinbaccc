@@ -60,14 +60,14 @@ namespace ir {
     };
 
     struct Loop {
-        BasicBlock* prehead = nullptr;
-        BasicBlock* head;
-        std::set<BasicBlock*> body;
-        std::set<Loop*> nested;
-        Loop* external = nullptr;
-        int depth = 1;
+        BasicBlock *prehead = nullptr;
+        BasicBlock *head;
+        std::set<BasicBlock *> body;
+        std::set<Loop *> nested;
+        Loop *external;
+        int depth;
 
-        Loop();
+        Loop() : head(nullptr), external(nullptr), depth(1) {};
 
         void updateBasicBlocks();
     };
@@ -482,14 +482,16 @@ namespace ir {
         ast::Decl *decl;
         std::vector<Use> dims;
         std::vector<int> multipliers;
+        int unpack; //needed for strength reduction
 
-        GetElementPtrInst(Value *_arr, const std::vector<Value*>& _dims, std::vector<int> muls);
+        GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls, int _unpack = 0,
+                          ast::Decl *_decl = nullptr);
 
         void print(std::ostream &os) const;
 
         void print_llvm_type(std::ostream &os, int start_dim) const;
 
-        virtual asm_arm::Operand* codegen(asm_arm::Builder &builder);
+        virtual asm_arm::Operand *codegen(asm_arm::Builder &builder);
 
         std::vector<Value *> uses();
     };

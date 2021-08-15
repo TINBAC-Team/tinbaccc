@@ -25,6 +25,7 @@ namespace ir_passes {
 
                 //check dim size and arr address
                 if (inst->dims.size() != inst_prev->dims.size()) continue;
+                if (inst->decl != inst_prev->decl) continue;
                 if (get_vn(inst->arr.value) != get_vn(inst_prev->arr.value)) continue;
                 //check dim value
                 bool dims_same = true;

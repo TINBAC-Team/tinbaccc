@@ -29,33 +29,32 @@ namespace ir_passes {
 
             ir::PhiInst *phi = nullptr;
             ir::BinaryInst *bin_step_inst;
-            std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::iterator feedback_pair;
+            std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::iterator retreat_pair;
             std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::iterator comming_pair;
             int inc_step;
             //Find PHI
             for (auto i = phis.begin(); i != phis.end(); i++) {
                 if ((*i)->phicont.size() != 2) continue;
-                feedback_pair = std::find_if((*i)->phicont.begin(), (*i)->phicont.end(),
-                                             [this](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
-                                                 return pair.first == body_front ||
-                                                        loop->body.find(pair.first) != loop->body.end();
-                                             });
+                retreat_pair = std::find_if((*i)->phicont.begin(), (*i)->phicont.end(),
+                                            [this](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
+                                                return pair.first == body_front ||
+                                                       loop->body.find(pair.first) != loop->body.end();
+                                            });
                 comming_pair = std::find_if((*i)->phicont.begin(), (*i)->phicont.end(),
                                             [this](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
                                                 return pair.first != body_front &&
                                                        loop->body.find(pair.first) == loop->body.end();
                                             });
-                if (feedback_pair == (*i)->phicont.end() || comming_pair == (*i)->phicont.end()) continue;
+                if (retreat_pair == (*i)->phicont.end() || comming_pair == (*i)->phicont.end()) continue;
                 bool found_inc_step = false;
 
                 for (auto &usage:(*i)->uList) {
                     if (auto addinst = dynamic_cast<ir::BinaryInst *>(usage->user)) {
                         if (addinst->optype != ir::OpType::ADD || addinst->ValueR.value->optype != ir::OpType::CONST ||
-                            addinst->ValueL.value != (*i) || feedback_pair->second->value != addinst)
+                            addinst->ValueL.value != (*i) || retreat_pair->second->value != addinst)
                             continue;
                         found_inc_step = true;
                         bin_step_inst = addinst;
-                        inc_step = (dynamic_cast<ir::ConstValue *>(addinst->ValueR.value))->value;
                         break;
                     }
                 }
@@ -68,8 +67,6 @@ namespace ir_passes {
             if (phi) {
                 //find gep
                 for (auto &bb:loop->body) {
-                    //TODO: if two gep have the same comming value and increase step, they can use the same phi
-                    std::set<std::pair<ir::Value*,ir::Value*>> phi_cache;
                     std::vector<ir::GetElementPtrInst *> geps;
                     geps.reserve(bb->iList.size());
                     for (auto &inst:bb->iList) {
@@ -83,34 +80,38 @@ namespace ir_passes {
                                                       return val.value == phi;
                                                   });
                         if (index == gepinst->dims.end()) continue;
-                        if(gepinst->dims.size()<2) continue;
-                        int index_sub = std::distance(gepinst->dims.begin(),index);
-                        int multiplier =
-                                index_sub == gepinst->dims.size()-1 ? 1 : gepinst->decl->array_multipliers[index_sub + 1];
-                        ir::PhiInst *phi_new = new ir::PhiInst();
-                        phi_new->comment = "created by strength reduction";
-                        phi->bb->InsertBefore(phi_new, phi);
-                        ir::BinaryInst *new_feedback_value = new ir::BinaryInst(ir::OpType::ADD, phi_new,
-                                                                                ir::IRBuilder::getConstant(inc_step *
-                                                                                                           multiplier*4,
-                                                                                                           module));
-                        bin_step_inst->bb->InsertBefore(new_feedback_value, bin_step_inst);
-                        ir::BinaryInst *new_comming_value = new ir::BinaryInst(ir::OpType::MUL,
-                                                                               comming_pair->second->value,
-                                                                               ir::IRBuilder::getConstant(
-                                                                                       multiplier*4,
-                                                                                       module));
-                        phi_new->bb->InsertBefore(new_comming_value, phi_new);
-                        phi_new->InsertElem(feedback_pair->first, new_feedback_value);
-                        phi_new->InsertElem(comming_pair->first, new_comming_value);
-                        //phi_cache.
-                        (*index).removeFromUList();
-                        *index = ir::Use(gepinst, ir::IRBuilder::getConstant(0, module));
-                        ir::BinaryInst *ptr = new ir::BinaryInst(ir::OpType::ADD, gepinst, phi_new);
-                        gepinst->bb->InsertAfter(ptr, gepinst);
-                        gepinst->replaceWith(ptr, true);
-                        ptr->ValueL.use(gepinst, true);
-                        std::cerr<<"Performed Strength RED on a GEP."<<std::endl;
+                        if (gepinst->dims.size() < 2) continue;
+                        int index_sub = std::distance(gepinst->dims.begin(), index);
+                        if (index_sub + 1 == gepinst->dims.size()) continue;
+
+
+                        //split GEP into outer GEP and inner GEP
+                        std::vector<ir::Value *> dims_outer;
+                        for (int i = 0; i <= index_sub; i++) {
+                            dims_outer.push_back(gepinst->dims[i].value);
+                        }
+                        std::vector<int> muls_outer;
+                        for (int i = 0; i <= index_sub; i++) {
+                            muls_outer.push_back(gepinst->multipliers[i]);
+                        }
+                        auto outer_gep = new ir::GetElementPtrInst(gepinst->arr.value, dims_outer, muls_outer,
+                                                                   gepinst->unpack, gepinst->decl);
+                        std::vector<ir::Value *> dims_inner;
+                        for (int i = index_sub + 1; i < gepinst->dims.size(); i++) {
+                            dims_inner.push_back(gepinst->dims[i].value);
+                        }
+                        std::vector<int> muls_inner;
+                        for (int i = index_sub + 1; i < gepinst->dims.size(); i++) {
+                            muls_inner.push_back(gepinst->multipliers[i]);
+                        }
+                        auto inner_gep = new ir::GetElementPtrInst(outer_gep, dims_inner, muls_inner,
+                                                                   index_sub + gepinst->unpack + 1);
+                        gepinst->bb->InsertBefore(inner_gep, gepinst);
+                        inner_gep->bb->InsertBefore(outer_gep, inner_gep);
+                        gepinst->replaceWith(inner_gep);
+                        gepinst->bb->eraseInst(gepinst);
+                        delete gepinst;
+                        std::cerr << "Performed Strength RED on a GEP." << std::endl;
                     }
                 }
             }
@@ -119,9 +120,13 @@ namespace ir_passes {
 
 
     void strength_reduction(ir::Module *module) {
+        int cnt = 0;
         for (auto &i:module->functionList)
             for (auto &loop:i->loops) {
                 StrengthREDPass(loop, i, module).run_pass();
+                cnt++;
+                //return;
+                //if(cnt==2) return;
             }
 
 
