@@ -470,8 +470,12 @@ namespace ir {
                     offs_reg = res->dst;
                 }
             } else if (1 << pow == multipliers[i]) {
-                auto res = builder.createLSL(dim_val, pow);
-                offs_reg = res->dst;
+                if (pow == 0) {
+                    offs_reg = dim_val;
+                } else {
+                    auto res = builder.createLSL(dim_val, pow);
+                    offs_reg = res->dst;
+                }
             } else {
                 auto dim_mul = builder.createLDR(multipliers[i])->dst;
                 auto res = builder.createBinaryInst(asm_arm::Inst::Op::MUL, dim_mul, dim_val);
