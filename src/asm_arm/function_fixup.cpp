@@ -44,7 +44,7 @@ namespace asm_arm {
     }
 
     /**
-     * convert B<cond> L1; B L2; L1: toB<inv_cond> L2; B L1; L1:
+     * isValidNeonOpType B<cond> L1; B L2; L1: toB<inv_cond> L2; B L1; L1:
      * @param module
      */
     void switch_branch_target(asm_arm::Module *module) {

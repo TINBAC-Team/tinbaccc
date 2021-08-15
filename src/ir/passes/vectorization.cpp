@@ -1,5 +1,6 @@
 #include <ir/passes.h>
 #include <ir/vectorization.h>
+#include <algorithm>
 
 const int MAX_MEMORY_ADJACENT = 1 << 6;
 const int FIRST_INST_POS = MAX_MEMORY_ADJACENT / 2;
@@ -35,18 +36,25 @@ static bool checkRange(int index) {
     return true;
 }
 
+static bool valueEquals(ir::Value* lhs, ir::Value *rhs) {
+    if (lhs == rhs) return true;
+    auto x = dynamic_cast<ir::ConstValue*>(lhs);
+    auto y = dynamic_cast<ir::ConstValue*>(rhs);
+    if (x && y && x->value == y->value) return true;
+    return false;
+}
 
 
 class AdjacentMemoryBuilder {
     ast::Decl *decl;
     ir::Value *baseVar;
-    std::vector<ir::Value *> address;
+    std::vector<ir::GetElementPtrInst *> address;
     std::unordered_map<ir::Value *, int> indexes;
     std::vector<ir::GetElementPtrInst *> queue;
     int offset;
 
 public:
-    AdjacentMemoryBuilder(ir::GetElementPtrInst *inst) : address(MAX_MEMORY_ADJACENT){
+    AdjacentMemoryBuilder(ir::GetElementPtrInst *inst) : address(MAX_MEMORY_ADJACENT) {
         int delta;
         ir::Value *base;
         inferDelta(inst, delta, base);
@@ -68,10 +76,10 @@ public:
         return true;
     }
 
-    std::vector<ir::AdjacentMemory*> build() {
-        std::vector<ir::AdjacentMemory*> result;
-        std::vector<ir::Value*> adj;
-        for(auto* ptr : address) {
+    std::vector<ir::AdjacentMemory *> build() {
+        std::vector<ir::AdjacentMemory *> result;
+        std::vector<ir::GetElementPtrInst *> adj;
+        for (auto *ptr : address) {
             if (ptr)
                 adj.push_back(ptr);
             else
@@ -86,7 +94,6 @@ public:
 
 
 };
-
 
 
 struct AdjacentMemoryKey {
@@ -131,10 +138,27 @@ public:
                 }
             }
         }
-        for (auto & pair : builders) {
+        for (auto &pair : builders) {
             memories[pair.first] = pair.second->build();
         }
     };
+
+    void tryVectorize(ir::AutoVectorizationContext *context) {
+        bool changed = true;
+        for (auto &pair : memories) {
+            for (auto *adj : pair.second) context->analyst.insert(adj);
+        }
+        while (changed) {
+            changed = false;
+            for (auto analyst : context->analyst) {
+                if (analyst->analysis(context)) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+    }
+
 
 };
 
@@ -147,4 +171,243 @@ void ir_passes::vectorize(ir::Module *module) {
             Vectorization{bb}.analysisAdjacentMemory();
         }
     }
+}
+
+
+bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
+    bool change = false;
+    auto *front = this->front();
+    for (auto instPtr = front->bb->iList.cbegin(); instPtr != front->bb->iList.cend(); instPtr++) {
+        auto *inst = *instPtr;
+        if (auto *loadInst = dynamic_cast<LoadInst *>(inst)) {
+            int index = this->indexOf(loadInst->ptr.value);
+            if (index < 0) continue;
+            // ok, we must find other loadInst before storeInst
+            auto *vloadInst = new VLoadInst(this);
+            std::set<GetElementPtrInst *> copyAddress;
+            copyAddress.insert(this->address.cbegin(), this->address.cend());
+            copyAddress.erase(this->address[index]);
+
+            auto findOtherLoadInstPtr = instPtr;
+            for (++findOtherLoadInstPtr;
+                 findOtherLoadInstPtr != front->bb->iList.cend() && !copyAddress.empty(); findOtherLoadInstPtr++) {
+                auto *maybeLoadInst = *findOtherLoadInstPtr;
+                auto *findLoadInst = dynamic_cast<LoadInst *>(maybeLoadInst);
+                if (findLoadInst) {
+                    if (copyAddress.erase(dynamic_cast<GetElementPtrInst *>(findLoadInst->ptr.value))) {
+                        // fine, found one
+                        vloadInst->associated[indexOf(findLoadInst->ptr.value)] = findLoadInst;
+                    }
+                    continue;
+                }
+                auto *findStoreInst = dynamic_cast<StoreInst *>(maybeLoadInst);
+                if (findStoreInst && copyAddress.find(dynamic_cast<GetElementPtrInst *>(findStoreInst->ptr.value)) !=
+                                     copyAddress.cend()) {
+                    // RW
+                    break;
+                }
+            }
+            // now we check if loadInst is complete
+            if (copyAddress.empty()) {
+                // analysis success
+                instPtr = front->bb->iList.insert(instPtr, vloadInst);
+                instPtr++;
+                change = true;
+                context->analyst.insert(vloadInst);
+                for (int i = 0; i < vloadInst->associated.size(); i++) {
+                    context->associatedVInst[vloadInst->associated[i]] = {vloadInst, i};
+                }
+            } else {
+                // fail
+                delete vloadInst;
+            }
+        }
+    }
+    context->analyst.erase(this);
+    return change;
+}
+
+
+
+
+struct VectorizeResult {
+    bool satisfyVector = false;
+    bool satisfyScalar = false;
+    ir::Value* vector = nullptr;
+};
+
+
+bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, ir::Value* base, VectorizeResult &result) {
+    if(auto *binaryInst = dynamic_cast<ir::BinaryInst *>(base)) {
+        std::vector<ir::BinaryInst *> associatedBinaryInst;
+        if (!ir::isValidNeonOpType(binaryInst)) return false;
+        // assume:  Vector OP unknown, this value indicates whether to flip
+
+
+        bool isLeftKnownVector;
+        if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueR.value) {
+            isLeftKnownVector = true;
+        } else if (knownVectorL->getAssociatedComponent(0) == binaryInst->ValueL.value) {
+            isLeftKnownVector = false;
+        } else {
+            return false;
+        }
+
+        ir::VInst *mightSameVectorR = nullptr;
+        auto findMightSameVectorR = context->associatedVInst.find(ir::getValue(binaryInst, !isLeftKnownVector).value);
+        if (result.satisfyVector  // check whether to find vector
+            && findMightSameVectorR != context->associatedVInst.cend()  // find a result
+            && findMightSameVectorR->second.second == 0              // the same index
+        ) {
+            result.satisfyVector = true;
+            mightSameVectorR = findMightSameVectorR->second.first;
+        } else {
+            result.satisfyVector = false;
+        }
+
+        // try to determine shared scalar, first we need to find out my scalarR
+        ir::Value *mightSameScalar = nullptr;
+        if (result.satisfyScalar) {
+            mightSameScalar = ir::getValue(binaryInst, !isLeftKnownVector).value;
+        }
+
+        if (!result.satisfyVector || !result.satisfyScalar) return false;
+
+
+        associatedBinaryInst[0] = binaryInst;
+
+        for (int i = 1; i < knownVectorL->getSize(); i++) {
+            // only consider the first one that satisfy the requirement
+            bool findVector = false;
+            bool findScalar = false;
+            for (auto *useOther : knownVectorL->getAssociatedComponent(i)->uList) {
+                auto *otherBinaryInst = dynamic_cast<ir::BinaryInst *>(useOther->user);
+                if (!otherBinaryInst) continue;
+                if (binaryInst->optype != otherBinaryInst->optype) continue;
+                // check lhs
+                if (knownVectorL->getAssociatedComponent(i) != ir::getValue(binaryInst, isLeftKnownVector).value)
+                    continue;
+
+                auto &unknownValueR = ir::getValue(otherBinaryInst, isLeftKnownVector);
+                if (result.satisfyScalar && valueEquals(mightSameScalar, unknownValueR.value)) {
+                    // ok, scalarR
+                    associatedBinaryInst[i] = otherBinaryInst;
+                    findScalar = true;
+                    break;
+                } else if (result.satisfyVector && knownVectorL->getAssociatedComponent(i) == unknownValueR.value) {
+                    // ok, vector
+                    associatedBinaryInst[i] = otherBinaryInst;
+                    findVector = true;
+                    break;
+                }
+            }
+            result.satisfyVector &= findVector;
+            result.satisfyScalar &= findScalar;
+
+            if (!result.satisfyVector && !result.satisfyScalar) {
+                // this associated binaryinst satisfy none of them, don't need to check next.
+                break;
+            }
+        }
+
+
+        if (!result.satisfyScalar && !result.satisfyVector)
+            return false;
+        if (result.satisfyScalar) {
+            auto *dup = new ir::VDupInst(ir::getValue(binaryInst, !isLeftKnownVector).value, knownVectorL->getSize());
+            result.vector = dup;
+        } else if (result.satisfyVector){
+            auto *valueL = knownVectorL;
+            auto *valueR = mightSameVectorR;
+            if (!isLeftKnownVector) std::swap(valueL, valueR);
+            auto * vbinaryInst = new ir::VBinaryInst(binaryInst->optype, valueL, valueR, associatedBinaryInst);
+            result.vector = vbinaryInst;
+        }
+        return true;
+    } else if (auto storeInst = dynamic_cast<ir::StoreInst*>(base)) {
+        if (!result.satisfyVector) return false;
+        bool isLeftKnownVector;
+        auto * adj = dynamic_cast<AdjacentMemoryKey*>(knownVectorL);
+        if (knownVectorL->getAssociatedComponent(0) == storeInst->ptr.value && adj) {
+            isLeftKnownVector = true;
+        } else if (knownVectorL->getAssociatedComponent(0) == storeInst->val.value && !adj) {
+            isLeftKnownVector = false;
+        } else {
+            return false;
+        }
+
+        std::vector<ir::StoreInst *> associatedStoreInst;
+
+        if (storeInst->ptr.value != knownVectorL->getAssociatedComponent(0)) return false;
+
+
+        ir::VInst *mightSameVectorR = nullptr;
+        auto findSameVectorR = context->associatedVInst.find(ir::getValue(storeInst, isLeftKnownVector).value);
+        if (result.satisfyVector  // check whether to find vector
+            && findSameVectorR != context->associatedVInst.cend()  // find a result
+            && findSameVectorR->second.second == 0              // the same index
+        ) {
+            mightSameVectorR = findSameVectorR->second.first;
+        } else {
+            return false;
+        }
+
+        auto * ptrVector = knownVectorL;
+        auto * valVector = mightSameVectorR;
+        if (!isLeftKnownVector) std::swap(ptrVector, valVector);
+
+        for (int i = 1; i < knownVectorL->getSize()-1; i++) {
+            // only consider the first one that satisfy the requirement
+            bool findVector = false;
+            for (auto *useOther : knownVectorL->getAssociatedComponent(i)->uList) {
+                auto * otherStoreInst = dynamic_cast<ir::StoreInst*>(useOther->user);
+                if (otherStoreInst) continue;
+                if (otherStoreInst->ptr.value != ptrVector->getAssociatedComponent(i)) continue;
+                if (otherStoreInst->val.value != valVector->getAssociatedComponent(i)) continue;
+                findVector = true;
+                break;
+            }
+            result.satisfyVector &= findVector;
+            if (!result.satisfyVector) break;
+        }
+
+        if (result.satisfyVector) {
+            auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), mightSameVectorR);
+            result.vector = vstoreInst;
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool ir::VLoadInst::analysis(ir::AutoVectorizationContext *context) {
+    return analysis_(context);
+}
+
+bool ir::VStoreInst::analysis(ir::AutoVectorizationContext *context) {
+    return analysis_(context);
+}
+
+bool ir::VDupInst::analysis(AutoVectorizationContext *context) {
+    return analysis_(context);
+}
+
+
+
+bool ir::VInst::analysis_(ir::AutoVectorizationContext *context) {
+    bool changed = false;
+    auto head = getAssociatedComponent(0);
+    for (auto & base : head->uses()) {
+        VectorizeResult result{true, false};
+        if (tryCombine(context, this, base, result)) {
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+
+bool ir::VBinaryInst::analysis(ir::AutoVectorizationContext *context) {
+    return analysis_(context);
 }
