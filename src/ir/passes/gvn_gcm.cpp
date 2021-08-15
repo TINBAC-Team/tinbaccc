@@ -501,19 +501,19 @@ namespace ir_passes {
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
             }
-            /*if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::SUB) {
+            if (inst->optype == ir::OpType::ADD && usage->optype == ir::OpType::SUB) {
                 usage->ValueL.use(inst->ValueL.value);
-                int val = constL - constR;
+                int val = constR - constL;
                 if (val < 0) {
                     val = -val;
-                    usage->optype = ir::OpType::SUB;
+                    usage->optype = ir::OpType::ADD;
                 }
                 usage->ValueR.use(ir::IRBuilder::getConstant(val, module));
                 return true;
-            }*/
-            /*if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::ADD) {
+            }
+            if (inst->optype == ir::OpType::SUB && usage->optype == ir::OpType::ADD) {
                 usage->ValueL.use(inst->ValueL.value);
-                int val = -constL + constR;
+                int val = constR - constL;
                 if (val < 0) {
                     val = -val;
                     usage->optype = ir::OpType::SUB;
@@ -525,7 +525,7 @@ namespace ir_passes {
                 usage->ValueL.use(inst->ValueL.value);
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
-            }*/
+            }
             return false;
         }
 
