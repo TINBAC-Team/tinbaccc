@@ -9,11 +9,10 @@ namespace ast {
         ofd << "digraph g{\n";
         int count_compunit = count;
         ofd << "\tnode" << count_compunit << "[label=\"CompUnit\"];\n";
-        Decl* enn = nullptr;
-        Function* enn_ = nullptr;
+        Decl *enn = nullptr;
+        Function *enn_ = nullptr;
         for (auto en = entries.begin(); en != entries.end(); en++) {
-            enn = dynamic_cast<Decl*>(*en);
-            if (enn) {
+            if (enn = dynamic_cast<Decl*>(*en)) {
                 ofd << "\tnode" << ++count << "[label=\"Decl\"];\n";
                 ofd << "\tnode" << count_compunit << "->node" << count << ";\n";
                 enn->print(ofd);
@@ -205,10 +204,13 @@ namespace ast {
         ofd << "\tnode" << count_func << "->node" << count << ";\n";
         ofd << "\tnode" << ++count << "[label=\"" << name << "\"];\n";
         ofd << "\tnode" << count_func << "->node" << count << ";\n";
+        int count_params = ++count;
+        ofd << "\tnode" << count_params << "[label=\"FuncFParams\"];\n";
+        ofd << "\tnode" << count_func << "->node" << count_params << ";\n";
         if (!params.empty()) {
             for (auto it = params.cbegin(); it != params.cend(); it++) {
                 ofd << "\tnode" << ++count << "[label=\"FuncFParam\"];\n";
-                ofd << "\tnode" << count_func << "->node" << count << ";\n";
+                ofd << "\tnode" << count_params << "->node" << count << ";\n";
                 (*it)->print(ofd);
             }
         }
@@ -223,15 +225,14 @@ namespace ast {
         Decl* enn = nullptr;
         Stmt* enn_ = nullptr;
         for (auto en = entries.begin(); en != entries.end(); en++) {
-            enn = dynamic_cast<Decl*>(*en);
-            if (enn) {
+            if (enn = dynamic_cast<Decl*>(*en)) {
                 ofd << "\tnode" << ++count << "[label=\"Decl\"];\n";
                 ofd << "\tnode" << count_block << "->node" << count << ";\n";
                 enn->print(ofd);
             }
             else {
                 enn_ = dynamic_cast<Stmt*>(*en);
-                ofd << "\tnode" << ++count << "[label=\"Stmt\"];\n";
+                ofd << "\tnode" << ++count << "[label=\"Stmt "<< enn_->loop_deep << "\"];\n";
                 ofd << "\tnode" << count_block << "->node" << count << ";\n";
                 enn_->print(ofd);
             }
@@ -253,7 +254,7 @@ namespace ast {
 
     void EvalStmt::print(std::ofstream &ofd) {
         if (exp) {
-            ofd << "\tnode" << ++count << "[label=\"Stmt " << loop_deep << "\"];\n";
+            ofd << "\tnode" << count << "[label=\"Stmt " << loop_deep << "\"];\n";
             ofd << "\tnode" << ++count << "[label=\"Exp\"];\n";
             ofd << "\tnode" << count - 1 << "->node" << count << ";\n";
             exp->print(ofd);
@@ -268,13 +269,13 @@ namespace ast {
         ofd << "\tnode" << ++count << "[label=\"Cond\"];\n";
         ofd << "\tnode" << count_if << "->node" << count << ";\n";
         cond->print(ofd);
-        ofd << "\tnode" << ++count << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << ++count << "[label=\"Stmt " << loop_deep << "\"];\n";
         ofd << "\tnode" << count_if << "->node" << count << ";\n";
         true_block->print(ofd);
         if (false_block) {
             ofd << "\tnode" << ++count << "[label=\"else\"];\n";
             ofd << "\tnode" << count_if << "->node" << count << ";\n";
-            ofd << "\tnode" << ++count << "[label=\"Stmt\"];\n";
+            ofd << "\tnode" << ++count << "[label=\"Stmt " << loop_deep << "\"];\n";
             ofd << "\tnode" << count_if << "->node" << count << ";\n";
             false_block->print(ofd);
         }
@@ -288,7 +289,7 @@ namespace ast {
         ofd << "\tnode" << ++count << "[label=\"Cond\"];\n";
         ofd << "\tnode" << count_while << "->node" << count << ";\n";
         cond->print(ofd);
-        ofd << "\tnode" << ++count << "[label=\"Stmt\"];\n";
+        ofd << "\tnode" << ++count << "[label=\"Block\"];\n";
         ofd << "\tnode" << count_while << "->node" << count << ";\n";
         block->print(ofd);
     }
