@@ -11,7 +11,7 @@
 
 
 namespace asm_arm {
-    const int K = 13;
+    const int K = 14;
     typedef std::pair<Operand *, Operand *> Edge;
     typedef std::vector<Operand *> OperandArrayList;
     typedef std::set<Operand *> OperandSet;

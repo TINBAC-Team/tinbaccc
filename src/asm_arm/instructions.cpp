@@ -60,8 +60,9 @@ namespace asm_arm {
     void Operand::assignReg(int assigned_reg) {
         if (type != Type::VReg)
             throw std::runtime_error("Assining already-assigned vreg.");
-        // FIXME: LR can be assigned.
-        if (assigned_reg > 12)
+        if(assigned_reg == 13)
+            assigned_reg = 14;
+        else if (assigned_reg > 12)
             throw std::runtime_error("invalid assignment.");
         type = Type::Reg;
         reg = static_cast<Reg>(assigned_reg);

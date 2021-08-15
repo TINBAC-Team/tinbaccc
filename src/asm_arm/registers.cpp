@@ -290,9 +290,12 @@ void asm_arm::RegisterAllocator::assignColors() {
         for (const auto w : adjList[n]) {
             // tmp := coloredNodes ∪ precolored
             auto tmp = getAlias(w);
-            // FIXME: lr can't be casted to int
-            if (tmp->type == Operand::Type::Reg)
-                okColors.erase(static_cast<int>(tmp->reg));
+            if (tmp->type == Operand::Type::Reg) {
+                if(tmp->reg == Reg::lr)
+                    okColors.erase(13);
+                else if(tmp->reg != Reg::sp)
+                    okColors.erase(static_cast<int>(tmp->reg));
+            }
             else if (coloredNodes.find(tmp) != coloredNodes.end())
                 okColors.erase(color[getAlias(w)]);
         }
