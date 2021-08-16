@@ -12,7 +12,7 @@ namespace ir {
     }
 
     std::vector<Value *> VDupInst::uses() {
-        return {};
+        return {scalar.value};
     }
 
     std::vector<Value *> VBinaryInst::uses() {
