@@ -207,10 +207,10 @@ namespace ir {
         return 0;
     }
 
-    int BasicBlock::InsertBefore(Value *value, std::_List_const_iterator<Value *> it) {
-        iList.insert(it, value);
+    std::_List_const_iterator<Value *> BasicBlock::InsertBefore(Value *value, std::_List_const_iterator<Value *> it) {
+        auto ret = iList.insert(it, value);
         value->bb = this;
-        return 0;
+        return ret;
     }
 
     int BasicBlock::InsertBefore(Value *value, Value *target) {

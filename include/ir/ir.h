@@ -267,7 +267,7 @@ namespace ir {
 
         int InsertAtEnd(Value *value);
 
-        int InsertBefore(Value *value, std::_List_const_iterator<Value *> it);
+        std::_List_const_iterator<Value *> InsertBefore(Value *value, std::_List_const_iterator<Value *> it);
 
         int InsertBefore(Value *value, Value* target); //insert before the target instruction
 

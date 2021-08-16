@@ -512,12 +512,11 @@ bool ir::VInst::analysis_(ir::AutoVectorizationContext *context, bool satisfyVec
             if (auto * analyst = dynamic_cast<IterationAnalyst*>(result.vector)) {
                 context->analyst.insert(analyst);
             }
-            auto iter = std::find(context->bb->iList.begin(), context->bb->iList.end(), result.vector->getAssociatedComponent(0));
-            iter = context->bb->iList.insert(iter, result.vector);
+            std::_List_const_iterator<Value *> iter = std::find(context->bb->iList.begin(), context->bb->iList.end(),
+                                                                result.vector->getAssociatedComponent(0));
+            iter = context->bb->InsertBefore(result.vector, iter);
             if (result.pre) {
-                result.pre->bb = context->bb;
-                context->bb->iList.insert(iter, result.pre);
-
+                context->bb->InsertBefore(result.pre, iter);
             }
             changed = true;
         }
