@@ -5,7 +5,7 @@
 #include <asm_arm/optimization.h>
 
 void asm_arm::architecture_optimize(asm_arm::Module *module) {
-    for(auto *func : module->functionList) {
+    for (auto *func : module->functionList) {
         livenessAnalysis(func);
         for (auto *bb : func->bList) {
             ArchitectureOptimizer(bb).process();
@@ -20,28 +20,31 @@ asm_arm::InstSet *asm_arm::ArchitectureOptimizer::getUse(Operand *key) {
     auto iter = use.find(key);
     if (iter != use.cend() && !iter->second.empty()) {
         return &iter->second;
-    } return nullptr;
+    }
+    return nullptr;
 }
 
 void asm_arm::ArchitectureOptimizer::build() {
     use.clear();
-    for (auto iter=bb->insts.begin(); iter !=bb->insts.end(); iter++) {
+    for (auto iter = bb->insts.begin(); iter != bb->insts.end(); iter++) {
         auto &inst = *iter;
         for (auto *n : inst->use) {
             use[n].insert(inst);
         }
         if (inst->op == Inst::Op::MUL || inst->op == Inst::Op::ADD)
-            def[dynamic_cast<BinaryInst*>(inst)->dst] = iter;
+            def[dynamic_cast<BinaryInst *>(inst)->dst] = iter;
     }
 }
 
 void asm_arm::ArchitectureOptimizer::process() {
     build();
-    for(auto iter = bb->insts.begin();iter != bb->insts.cend();iter++) {
+    for (auto iter = bb->insts.begin(); iter != bb->insts.cend(); iter++) {
         if ((*iter)->nop())
             continue;
         tryCombineMLA(iter);
     }
+    tryCombineVMLA();
+
 }
 
 void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iterator &iter) {
@@ -62,26 +65,28 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
     }
     if (inst->nop()) return;
 
-    auto validMUL = [this](Operand* node) -> BinaryInst* {
+    auto validMUL = [this](Operand *node) -> BinaryInst * {
         auto maybeMULIter = getDef(node);
         // check if the operand is generated from a InstMUL
         if (maybeMULIter == bb->insts.cend() || maybeMULIter.operator*()->op != Inst::Op::MUL) return nullptr;
-        auto * instMUL = dynamic_cast<BinaryInst*>(*maybeMULIter);
+        auto *instMUL = dynamic_cast<BinaryInst *>(*maybeMULIter);
         // check if the operand is only use in InstAdd
-        if(bb->liveOut.find(instMUL->dst)!=bb->liveOut.end())
+        if (bb->liveOut.find(instMUL->dst) != bb->liveOut.end())
             return nullptr;
-        auto * dep = getUse(instMUL->dst);
-        if (!dep) throw std::runtime_error("Use indicates the inst is dead but it actually used in ADD inst.");
-        if (dep->size() != 1) return nullptr;
+        auto *useList = getUse(instMUL->dst);
+        if (!useList)
+            throw std::runtime_error(
+                    "Broken useList-def, this operand is used in ADD/SUB/RSB but can't be found in useList.");
+        if (useList->size() != 1) return nullptr;
         return instMUL;
     };
-    auto *instADD = dynamic_cast<BinaryInst*>(inst);
+    auto *instADD = dynamic_cast<BinaryInst *>(inst);
     BinaryInst *instMUL, *instMUL2;
     if ((instMUL = validMUL(instADD->lhs)) && (inst->op == Inst::Op::ADD || inst->op == Inst::Op::RSB)) {
-        Operand* Rn;
+        Operand *Rn;
         if (instADD->rhs->type == Operand::Type::Imm) {
             Rn = Operand::newVReg();
-            auto * instMOV = new MOVInst(Rn, instADD->rhs);
+            auto *instMOV = new MOVInst(Rn, instADD->rhs);
             instMOV->bb = this->bb;
             iter = bb->insts.insert(iter, instMOV);
             iter++;
@@ -89,16 +94,63 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
         instMUL->mark_nop();
         // replace
         *iter = new TernaryInst(opType, instADD->dst, instMUL->lhs, instMUL->rhs, Rn);
-        iter.operator*()->bb = this-> bb;
+        iter.operator*()->bb = this->bb;
     } else if ((instMUL2 = validMUL(instADD->rhs)) && (inst->op == Inst::Op::ADD || inst->op == Inst::Op::SUB)) {
         instMUL2->mark_nop();
         // replace
         *iter = new TernaryInst(opType, instADD->dst, instMUL2->lhs, instMUL2->rhs, instADD->lhs);
-        iter.operator*()->bb = this-> bb;
+        iter.operator*()->bb = this->bb;
     }
 }
 
+void asm_arm::ArchitectureOptimizer::tryCombineVMLA() {
+    auto findMul = [this](const asm_arm::InstLinkedList::iterator &iter, SIMDQReg dst) {
+        for(auto find=this->bb->insts.begin();find !=iter;find++) {
+            if (auto *binaryInst = dynamic_cast<VBinaryInst *>(*find)) {
+                if (binaryInst->op == Inst::Op::VMUL && binaryInst->dst == dst) return binaryInst;
+            }
+        }
+        return (VBinaryInst *) nullptr;
+        //throw std::runtime_error("CANNOT find inst with that operator.");
+    };
 
+    auto findUse = [this](SIMDQReg n) {
+        std::vector<Inst *> uList;
+        for (auto *inst : this->bb->insts) {
+            if (auto x = dynamic_cast<VBinaryInst *>(inst)) {
+                if (x->lhs == n || x->rhs == n) uList.push_back(x);
+            } else if (auto x = dynamic_cast<VSTRInst *>(inst)) {
+                if (x->src == n) uList.push_back(x);
+            }
+        }
+        return uList;
+    };
+
+    for (auto iter = this->bb->insts.begin(); iter != bb->insts.cend(); iter++) {
+        auto *inst = *iter;
+        if (!inst->nop() && (inst->op == Inst::Op::VADD || inst->op == Inst::Op::VSUB)) {
+            auto *binaryInst = dynamic_cast<VBinaryInst *>(inst);
+            if (inst->op == Inst::Op::VADD) {
+                auto *mulL = findMul(iter, binaryInst->lhs);
+                auto *mulR = findMul(iter, binaryInst->rhs);
+                if (mulL && findUse(binaryInst->lhs).size() == 1) {
+                    binaryInst->op = Inst::Op::VMLA;
+                    std::swap(binaryInst->lhs, binaryInst->rhs);
+                    mulL->mark_nop(true);
+                } else if (mulR && findUse(binaryInst->rhs).size() == 1) {
+                    binaryInst->op = Inst::Op::VMLA;
+                    mulR->mark_nop(true);
+                } else continue;
+            } else if (inst->op == Inst::Op::VSUB) {
+                auto *mulR = findMul(iter, binaryInst->rhs);
+                if (mulR && findUse(binaryInst->rhs).size() == 1) {
+                    binaryInst->op = Inst::Op::VMLS;
+                    mulR->mark_nop(true);
+                } else continue;
+            } else continue;
+        }
+    }
+}
 
 
 void asm_arm::livenessAnalysis(Function *function) {

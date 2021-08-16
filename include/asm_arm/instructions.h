@@ -128,6 +128,7 @@ namespace asm_arm {
             VSUB,
             VMUL,
             VMLA,
+            VMLS,
             VLD1,
             VST1
         } op;

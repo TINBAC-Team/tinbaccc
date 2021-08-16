@@ -186,6 +186,9 @@ namespace asm_arm {
             case Op::VMLA:
                 ret_s = "VMLA.I32";
                 break;
+            case Op::VMLS:
+                ret_s = "VMLS.I32";
+                break;
             case Op::VLD1:
                 ret_s = "VLD1.32";
                 break;

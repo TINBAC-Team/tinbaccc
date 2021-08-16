@@ -34,6 +34,8 @@ namespace asm_arm {
 
         void tryCombineMLA(InstLinkedList::iterator &iter);
 
+        void tryCombineVMLA();
+
         InstLinkedList::iterator getDef(Operand *n) {
             auto iter = def.find(n);
             if (iter != def.cend())
@@ -41,6 +43,7 @@ namespace asm_arm {
             else
                 return bb->insts.end();
         }
+
 
 
     };

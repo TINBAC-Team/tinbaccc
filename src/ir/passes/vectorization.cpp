@@ -152,7 +152,7 @@ public:
             for(auto & adj : v) {
                 adj->insertToBB(context);
             }
-            memories[pair.first] = std::move((v));
+            if (!v.empty()) memories[pair.first] = std::move((v));
         }
         int debug = 1;
     };
