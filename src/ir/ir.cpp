@@ -120,8 +120,7 @@ namespace ir {
             case ir::OpType::VSTORE:
                 return true;
             case ir::OpType::CALL:
-                // TODO: determine its side-effect from callee
-                return true;
+                return dynamic_cast<const CallInst*>(this)->function->has_side_effect;
             default:
                 return false;
         }
