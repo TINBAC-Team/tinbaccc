@@ -75,7 +75,7 @@ namespace ir {
 
         bool analysis(AutoVectorizationContext *context);
 
-        void insertToBB();
+        void insertToBB(ir::AutoVectorizationContext* context);
 
     };
 
@@ -173,8 +173,8 @@ namespace ir {
             return associated.size();
         }
 
-        VStoreInst(AdjacentMemory *ptr, VInst *val) : VInst(OpType::STORE), ptr(this, ptr),
-                                                      val(this, val) {
+        VStoreInst(AdjacentMemory *ptr, VInst *val, std::vector<StoreInst *> associated) : VInst(OpType::STORE), ptr(this, ptr),
+                                                      val(this, val), associated(std::move(associated)) {
             this->bb = this->associated[0]->bb;
             std::cout << "VStoreInst Create" << std::endl;
         }

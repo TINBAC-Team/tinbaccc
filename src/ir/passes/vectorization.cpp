@@ -128,7 +128,7 @@ class Vectorization {
 public:
     Vectorization(ir::BasicBlock *bb) : bb(bb) {}
 
-    void analysisAdjacentMemory() {
+    void analysisAdjacentMemory(ir::AutoVectorizationContext *context) {
         for (auto *inst : bb->iList) {
             if (auto *x = dynamic_cast<ir::GetElementPtrInst *>(inst)) {
                 int delta;
@@ -146,7 +146,7 @@ public:
         for (auto &pair : builders) {
             auto v = pair.second->build();
             for(auto & adj : v) {
-                adj->insertToBB();
+                adj->insertToBB(context);
             }
             memories[pair.first] = std::move((v));
         }
@@ -179,8 +179,8 @@ void ir_passes::vectorize(ir::Module *module) {
         if (func->bList.empty()) continue;
         for (auto *bb : func->bList) {
             Vectorization v{bb};
-            v.analysisAdjacentMemory();
             auto * context = new ir::AutoVectorizationContext();
+            v.analysisAdjacentMemory(context);
             v.tryVectorize(context);
             delete context;
         }
@@ -244,9 +244,12 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
     return change;
 }
 
-void ir::AdjacentMemory::insertToBB() {
+void ir::AdjacentMemory::insertToBB(ir::AutoVectorizationContext *context) {
     auto iter = std::find(bb->iList.begin(), bb->iList.end(), address[0]);
     bb->iList.insert(iter , this);
+    for(int i=0;i<address.size();i++) {
+        context->associatedVInst[address[i]] = {this, i};
+    }
 }
 
 
@@ -350,8 +353,9 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         return true;
     } else if (auto storeInst = dynamic_cast<ir::StoreInst*>(base)) {
         if (!result.satisfyVector) return false;
-        bool isLeftKnownVector;
+        // determine whether knownVector is adjacentMemory
         auto * adj = dynamic_cast<AdjacentMemoryKey*>(knownVectorL);
+        bool isLeftKnownVector;
         if (knownVectorL->getAssociatedComponent(0) == storeInst->ptr.value && adj) {
             isLeftKnownVector = true;
         } else if (knownVectorL->getAssociatedComponent(0) == storeInst->val.value && !adj) {
@@ -362,11 +366,8 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
 
         std::vector<ir::StoreInst *> associatedStoreInst{(unsigned)knownVectorL->getSize()};
 
-        if (storeInst->ptr.value != knownVectorL->getAssociatedComponent(0)) return false;
-
-
         ir::VInst *mightSameVectorR = nullptr;
-        auto findSameVectorR = context->associatedVInst.find(ir::getValue(storeInst, isLeftKnownVector).value);
+        auto findSameVectorR = context->associatedVInst.find(ir::getValue(storeInst, !isLeftKnownVector).value);
         if (result.satisfyVector  // check whether to find vector
             && findSameVectorR != context->associatedVInst.cend()  // find a result
             && findSameVectorR->second.second == 0              // the same index
@@ -387,7 +388,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             bool findVector = false;
             for (auto *useOther : knownVectorL->getAssociatedComponent(i)->uList) {
                 auto * otherStoreInst = dynamic_cast<ir::StoreInst*>(useOther->user);
-                if (otherStoreInst) continue;
+                if (!otherStoreInst) continue;
                 if (otherStoreInst->ptr.value != ptrVector->getAssociatedComponent(i)) continue;
                 if (otherStoreInst->val.value != valVector->getAssociatedComponent(i)) continue;
                 associatedStoreInst[i] = otherStoreInst;
@@ -399,7 +400,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         }
 
         if (result.satisfyVector) {
-            auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), mightSameVectorR);
+            auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), mightSameVectorR, associatedStoreInst);
             result.vector = vstoreInst;
             for (int i = 0; i < vstoreInst->getSize(); i++) {
                 context->associatedVInst[vstoreInst->getAssociatedComponent(i)] = {vstoreInst, i};
