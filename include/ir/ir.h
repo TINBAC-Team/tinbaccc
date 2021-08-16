@@ -212,10 +212,12 @@ namespace ir {
         BlockList bList;
         BlockList rpoBList;
         std::vector<FuncParam *> params;
-        std::set<Loop*> loops;
-        std::vector<Loop*> deepestLoop;
+        std::set<Loop *> loops;
+        std::vector<Loop *> deepestLoop;
+        bool has_side_effect;
+        bool visit;
 
-        explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret) {}
+        explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret), has_side_effect(false) {}
 
         /**
          * create a new block, add it to current function and return it.

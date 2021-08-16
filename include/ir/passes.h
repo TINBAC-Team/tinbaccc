@@ -18,5 +18,6 @@ namespace ir_passes {
     void gcm(ir::Module *module,bool sche_late = true);
     void strength_reduction(ir::Module *module);
     void vectorize(ir::Module *module);
+    void side_effect_compute(ir::Module *module);
 }
 #endif //TINBACCC_PASSES_H

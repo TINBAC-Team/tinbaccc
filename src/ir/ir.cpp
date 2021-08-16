@@ -114,8 +114,8 @@ namespace ir {
     bool Value::sideEffect() const {
         switch (optype) {
             case ir::OpType::RETURN:
-            case ir::OpType::BRANCH:
             case ir::OpType::JUMP:
+            case ir::OpType::BRANCH:
             case ir::OpType::STORE:
             case ir::OpType::VSTORE:
                 return true;

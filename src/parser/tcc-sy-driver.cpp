@@ -69,6 +69,7 @@ void tcc_sy_driver::print_ir(const char *path) {
 }
 
 void tcc_sy_driver::process_ir() {
+    ir_passes::side_effect_compute(module);
     ir_passes::remove_decl_uses(module);
     ir_passes::function_process(module);
     ir_passes::simplify_cfg(module, false);

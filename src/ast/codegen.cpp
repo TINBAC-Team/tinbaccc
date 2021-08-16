@@ -118,8 +118,9 @@ namespace ast {
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
         ir::Function *irFunc = builder.CreateFunction(name, type == Type::INT);
         irFunc->setupParams(params);
-
         // TODO: external functions?
+        if(is_extern) irFunc->has_side_effect = true;
+
         if(!block)
             return nullptr;
         // LLVM requires that the first block must have no predecessors. Create it here.

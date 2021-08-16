@@ -136,6 +136,7 @@ namespace ast {
 
     Function *Function::create_extern(Type t, std::string n, std::vector<Decl *> p) {
         Function *ret = new Function(t, n, nullptr);
+        ret->is_extern = true;
         ret->params = std::move(p);
         return ret;
     }
