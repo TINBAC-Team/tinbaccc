@@ -1,7 +1,7 @@
 #ifndef TINBACCC_LOOP_H
 #define TINBACCC_LOOP_H
 
-#include "ir.h"
+#include <ir/ir.h>
 
 const int K = 4;
 const int DELTA_LIMIT = 64;
@@ -51,13 +51,13 @@ namespace ir {
         virtual ~LoopIR();
     };
 
-    static bool tryInferLoopVarDelta(ir::LoopVariable *loopVar, ir::BasicBlock *scope, int &delta);
+    bool tryInferLoopVarDelta(ir::LoopVariable *loopVar, ir::BasicBlock *scope, int &delta);
 
     // loopVar OP cond
-    static bool tryInferLoopCount(ir::OpType opType, int init, int cond, long delta, int &cnt);
+    bool tryInferLoopCount(ir::OpType opType, int init, int cond, long delta, int &cnt);
 
-    static bool constLoopCondAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
+    bool constLoopCondAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
 
-    static bool flexibleLoopAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
+    bool flexibleLoopAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
 }
 #endif //TINBACCC_LOOP_H

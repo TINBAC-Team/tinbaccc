@@ -655,7 +655,7 @@ namespace ir {
                 bb->loop_depth = this->depth;
     }
 
-    OpType ir::flipOperator(OpType opType) {
+    OpType flipOperator(OpType opType) {
         switch (opType) {
             case OpType::SLT:
                 return ir::OpType::SGT;

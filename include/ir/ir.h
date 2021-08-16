@@ -515,11 +515,11 @@ namespace ir {
     };
 
 
-    static OpType flipOperator(ir::OpType opType);
+    OpType flipOperator(OpType opType);
 
-    static Use &getValue(BinaryInst *binaryInst, bool isLeft);
+    Use &getValue(BinaryInst *binaryInst, bool isLeft);
 
-    static Use &getValue(StoreInst *storeInst, bool isLeft);
+    Use &getValue(StoreInst *storeInst, bool isLeft);
 
 }
 #pragma clang diagnostic pop
