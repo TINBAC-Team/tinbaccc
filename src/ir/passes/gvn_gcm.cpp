@@ -10,6 +10,7 @@ namespace ir_passes {
     class GVNPass {
     public:
         std::vector<std::pair<ir::Value *, ir::Value *> > vn;
+        std::unordered_map<ir::Value *, int> index_in_vn;
         ir::Function *func;
         ir::Module *module;
 
@@ -80,8 +81,12 @@ namespace ir_passes {
         }
 
         ir::Value *get_vn(ir::Value *value) {
-            auto it = std::find_if(vn.begin(), vn.end(),
-                                   [value](std::pair<ir::Value *, ir::Value *> _vn) { return _vn.first == value; });
+            if (index_in_vn.find(value) != index_in_vn.end()) {
+                int index = index_in_vn[value];
+                if (vn[index].first != vn[index].second) {
+                    return vn[index].second = get_vn(vn[index].second);
+                } else return vn[index].first;
+            }
             // path compression trick
             //.. if A,B,C are three identical instructions, vn[A]=A, vn[B]=A, vn[C]=B,
             //.. then vn[C] would be updated to A after path compression.
@@ -89,19 +94,15 @@ namespace ir_passes {
             //.. if no path compression, the two instructions are different, but now they can be treated as the same.
             //.. I haven't seen any other implementation uses this trick, but it seems no counterexamples doing this.
             //..**REMOVE** it if encountered any problems.
-            if (it != vn.end()) {
-                if (it->first != it->second) {
-                    return it->second = get_vn(it->second);
-                } else return it->first;
-            }
 
             vn.emplace_back(value, value);
+            index_in_vn[value] = vn.size() - 1;
             size_t cur = vn.size() - 1;
             if (auto gepinst = dynamic_cast<ir::GetElementPtrInst *>(vn[cur].first)) {
                 vn[cur].second = find_eq(gepinst);
             }
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(vn[cur].first)) {
-                if(!bininst->is_icmp())
+                if (!bininst->is_icmp())
                     vn[cur].second = find_eq(bininst);
             }
             return vn[cur].second;
@@ -115,16 +116,21 @@ namespace ir_passes {
 
             for (auto &bb:func->bList) {
                 auto inst = bb->iList.begin();
+                int cnt = 0;
                 while (inst != bb->iList.end()) {
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
                         erase_count++;
                         (*inst)->replaceWith(inst_v);
                         delete *inst;
-                        vn.erase(std::find_if(vn.begin(), vn.end(),
-                                              [inst](std::vector<std::pair<ir::Value *, ir::Value *> >::value_type &pair) {
-                                                  return pair.first == *inst;
-                                              }));
+                        auto it = std::find_if(vn.begin(), vn.end(),
+                                               [inst](std::vector<std::pair<ir::Value *, ir::Value *> >::value_type &pair) {
+                                                   return pair.first == *inst;
+                                               });
+                        index_in_vn.erase((*it).first);
+                        std::swap(*it, vn.back());
+                        vn.pop_back();
+
                         inst = bb->iList.erase(inst);
                         continue;
                     }
@@ -312,14 +318,26 @@ namespace ir_passes {
                 auto call_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
                     return dynamic_cast<ir::CallInst *>(i) != nullptr;
                 });
-                if ((store_inst != target_iter || call_inst != target_iter)&& dynamic_cast<ir::LoadInst *>(inst)) {
+                if ((store_inst != target_iter || call_inst != target_iter) && dynamic_cast<ir::LoadInst *>(inst)) {
                     //NO ALLOW LoadInst free move!
                     return;
                 }
             }
-            if (first_user)
+            if (first_user) {
+                // Trick. If an instruction A immediately precedes the [first user],
+                // and A's uList has only one usage by [first user], then we move up...
+                /*auto bef_first_user = --std::find(inst->bb->iList.rbegin(),inst->bb->iList.rend(),first_user);
+                if(bef_first_user!=inst->bb->iList.rend())
+                {
+                    if((*bef_first_user)->uList.size()==1 && (*(*bef_first_user)->uList.begin())->user==first_user)
+                    {
+                        move_inst(inst, inst->bb, MoveBehavior::MOVE_BEFORE,(*bef_first_user));
+                        printf("TRICKED\n");
+                        return;
+                    }
+                }*/
                 move_inst(inst, inst->bb, MoveBehavior::MOVE_BEFORE, first_user);
-            else move_inst(inst, inst->bb, MoveBehavior::MOVE_END);
+            } else move_inst(inst, inst->bb, MoveBehavior::MOVE_END);
         }
 
         void reschedule_inst_order(ir::BasicBlock *bb) {
