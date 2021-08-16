@@ -363,7 +363,7 @@ namespace asm_arm {
     static std::string get_dreg_group(SIMDQReg r) {
         std::ostringstream os;
         int qval = static_cast<int>(r);
-        os << "{d" << qval * 2 << ", " << qval * 2 + 1 << "}";
+        os << "{d" << qval * 2 << ", d" << qval * 2 + 1 << "}";
         return os.str();
     }
 
