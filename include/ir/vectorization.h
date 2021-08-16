@@ -75,6 +75,7 @@ namespace ir {
 
         bool analysis(AutoVectorizationContext *context);
 
+        asm_arm::Operand *codegen(asm_arm::Builder &builder);
         void insertToBB(ir::AutoVectorizationContext* context);
 
     };

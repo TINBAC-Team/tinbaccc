@@ -4,6 +4,12 @@
 #include <ir/vectorization.h>
 
 namespace ir {
+    asm_arm::Operand *AdjacentMemory::codegen(asm_arm::Builder &builder) {
+        auto op = builder.getOrCreateOperandOfValue(front());
+        builder.setOperandOfValue(this, op);
+        return op;
+    }
+
     asm_arm::Operand *VDupInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Inst *inst = nullptr;
         asm_arm::SIMDQReg dst = builder.getSIMDReg();
