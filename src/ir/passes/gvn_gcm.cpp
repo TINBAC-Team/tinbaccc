@@ -234,7 +234,7 @@ namespace ir_passes {
 
         void schedule_inner_early(ir::Value *_inst) {
             auto inst = dynamic_cast<ir::Inst *> (_inst);
-            if (inst->vis) return;
+            if (!inst || inst->vis) return;
             inst->vis = true;
             std::vector<ir::Value *> uses;
             uses.reserve(inst->uses().size());
@@ -285,7 +285,7 @@ namespace ir_passes {
 
         void schedule_inner_late(ir::Value *_inst) {
             auto inst = dynamic_cast<ir::Inst *> (_inst);
-            if (inst->vis) return;
+            if (!inst || inst->vis) return;
             inst->vis = true;
             int dis = std::distance(inst->bb->iList.begin(), inst->bb->iList.end()) + 1;
             ir::Value *first_user = nullptr;
