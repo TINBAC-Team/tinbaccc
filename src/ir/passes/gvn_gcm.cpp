@@ -187,6 +187,35 @@ namespace ir_passes {
                    inst->optype == ir::OpType::VSTORE;
         }
 
+        bool can_move_to_target(ir::Value* inst, ir::Value* target){
+            if(inst->optype!=ir::OpType::LOAD) return true;
+            if (!target) return false;
+            auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
+            auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), target);
+            auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
+            auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), target);
+            int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
+            int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
+            if (inst_pos < target_pos)
+                {
+                auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
+                    return is_alter_mem_inst(i);
+                });
+                if (mem_inst != target_iter) {
+                    return false;
+                }
+                } else { //we are climbing...
+                auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
+                                             [&](std::list<ir::Value *>::value_type i) {
+                    return is_alter_mem_inst(i);
+                });
+                if (mem_inst != target_iter_rev) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         void move_icmp_back(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
@@ -260,35 +289,7 @@ namespace ir_passes {
                     last_input = usage;
                 }
             }
-
-            if (dynamic_cast<ir::LoadInst *>(inst)) {
-                if (!last_input) return;
-                auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
-                auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), last_input);
-                auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
-                auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), last_input);
-                int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
-                int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
-                if (inst_pos < target_pos) //we are descending...
-                {
-                    auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
-                        return is_alter_mem_inst(i);
-                    });
-                    if (mem_inst != target_iter) {
-                        // DANGER! NOT ALLOW LoadInst to move!
-                        return;
-                    }
-                } else { //we are climbing...
-                    auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
-                                                 [&](std::list<ir::Value *>::value_type i) {
-                                                     return is_alter_mem_inst(i);
-                                                 });
-                    if (mem_inst != target_iter_rev) {
-                        // DANGER! NOT ALLOW LoadInst to move!
-                        return;
-                    }
-                }
-            }
+            if(!can_move_to_target(inst,last_input)) return;
             if (last_input)
                 move_inst(inst, inst->bb, MoveBehavior::MOVE_AFTER, last_input);
             else move_inst(inst, inst->bb, MoveBehavior::MOVE_FRONT);
@@ -318,34 +319,7 @@ namespace ir_passes {
                     first_user = use->user;
                 }
             }
-            if (dynamic_cast<ir::LoadInst *>(inst)) {
-                if (!first_user) return;
-                auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
-                auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), first_user);
-                auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
-                auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), first_user);
-                int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
-                int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
-                if (inst_pos < target_pos) //we are descending...
-                {
-                    auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
-                        return is_alter_mem_inst(i);
-                    });
-                    if (mem_inst != target_iter) {
-                        // DANGER! NOT ALLOW LoadInst to move!
-                        return;
-                    }
-                } else { //we are climbing...
-                    auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
-                                                 [&](std::list<ir::Value *>::value_type i) {
-                        return is_alter_mem_inst(i);
-                                                 });
-                    if (mem_inst != target_iter_rev) {
-                        // DANGER! NOT ALLOW LoadInst to move!
-                        return;
-                    }
-                }
-            }
+            if(!can_move_to_target(inst,first_user)) return;
             if (first_user) {
                 // Trick. If an instruction A immediately precedes the [first user],
                 // and A's uList has only one usage by [first user], then we move up...
@@ -437,6 +411,8 @@ namespace ir_passes {
             }
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
+
+
 
 
         void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END,
