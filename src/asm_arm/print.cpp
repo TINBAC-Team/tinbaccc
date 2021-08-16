@@ -259,7 +259,7 @@ namespace asm_arm {
                 os << "\tMOVW" << OpCond_to_string() << " " << dst->getOperandName()
                    << ", #" << (value & 0xffff) << std::endl;
                 os << "\tMOVT" << OpCond_to_string() << " " << dst->getOperandName()
-                   << ", #" << (value >> 16);
+                   << ", #" << ((uint32_t)value >> 16);
             }
             if (!comment.str().empty())
                 os << "  @" << comment.str();
