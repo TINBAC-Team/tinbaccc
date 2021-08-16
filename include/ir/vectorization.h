@@ -82,17 +82,20 @@ namespace ir {
         void insertToBB(ir::AutoVectorizationContext* context);
 
         std::vector<Value *> uses() override;
+
+        void print(std::ostream &os) const;
     };
 
     class VDupInst : public VInst, public IterationAnalyst {
     private:
-        std::vector<ConstValue *> associated;
+        Use scalar;
+        std::vector<Value *> associated;
     public:
-        explicit VDupInst(std::vector<ConstValue *> associated) : VInst(OpType::DUP), associated(std::move(associated)) {}
+        explicit VDupInst(ir::Value* scalar, std::vector<Value *> associated) : VInst(OpType::DUP), scalar(this, scalar), associated(std::move(associated)) {}
 
         bool analysis(AutoVectorizationContext *context) override;
 
-        ir::ConstValue *getAssociatedComponent(int index) override {
+        ir::Value *getAssociatedComponent(int index) override {
             return associated[index];
         }
 

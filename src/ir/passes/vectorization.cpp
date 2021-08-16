@@ -315,7 +315,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
     if (context->associatedVInst.find(base) != context->associatedVInst.cend()) return false;
     if(auto *binaryInst = dynamic_cast<ir::BinaryInst *>(base)) {
         std::vector<ir::BinaryInst *> associatedBinaryInst{(unsigned)knownVectorL->getSize()};
-        std::vector<ir::ConstValue *> associatedConstInst{(unsigned)knownVectorL->getSize()};
+        std::vector<ir::Value *> associatedScalarInst{(unsigned)knownVectorL->getSize()};
         if (!ir::isValidNeonOpType(binaryInst)) return false;
         // assume:  Vector OP unknown, this value indicates whether to flip
 
@@ -368,7 +368,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
                 if (result.satisfyScalar && valueEquals(mightSameScalar, unknownValueR.value)) {
                     // ok, scalarR
                     associatedBinaryInst[i] = otherBinaryInst;
-                    associatedConstInst[i] = dynamic_cast<ir::ConstValue *>(unknownValueR.value);
+                    associatedScalarInst[i] = unknownValueR.value;
                     findScalar = true;
                     break;
                 } else if (result.satisfyVector && knownVectorL->getAssociatedComponent(i) == unknownValueR.value) {
@@ -391,7 +391,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         if (!result.satisfyScalar && !result.satisfyVector)
             return false;
         if (result.satisfyScalar) {
-            auto *dup = new ir::VDupInst(associatedConstInst);
+            auto *dup = new ir::VDupInst(mightSameScalar, associatedScalarInst);
             result.pre = dup;
             for (int i = 0; i < result.pre->getSize(); i++) {
                 context->associatedVInst[result.pre->getAssociatedComponent(i)] = {result.pre, i};
