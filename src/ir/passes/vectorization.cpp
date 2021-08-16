@@ -222,7 +222,6 @@ void ir_passes::vectorize(ir::Module *module) {
             ir::AutoVectorizationContext context{bb};
             v.analysisAdjacentMemory(&context);
             v.tryVectorize(&context);
-            int debug=2;
             if (v.cleanupInst(&context, false)) {
                 std::cout << "Successfully Vectorize!" << std::endl;
                 v.cleanupInst(&context, true);
@@ -230,6 +229,7 @@ void ir_passes::vectorize(ir::Module *module) {
                 std::cout << "Fail to Vectorize!" << std::endl;
                 v.cleanVInst(&context);
             }
+            int debug = 3;
         }
     }
 }
@@ -448,7 +448,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         }
 
         if (result.satisfyVector) {
-            auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), mightSameVectorR, associatedStoreInst);
+            auto * vstoreInst = new ir::VStoreInst(dynamic_cast<ir::AdjacentMemory*>(ptrVector), valVector, associatedStoreInst);
             result.vector = vstoreInst;
             for (int i = 0; i < vstoreInst->getSize(); i++) {
                 context->associatedVInst[vstoreInst->getAssociatedComponent(i)] = {vstoreInst, i};
