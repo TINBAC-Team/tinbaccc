@@ -80,6 +80,7 @@ void asm_arm::ArchitectureOptimizer::tryCombineMLA(asm_arm::InstLinkedList::iter
         if (useList->size() != 1) return nullptr;
         return instMUL;
     };
+
     auto *instADD = dynamic_cast<BinaryInst *>(inst);
     BinaryInst *instMUL, *instMUL2;
     if ((instMUL = validMUL(instADD->lhs)) && (inst->op == Inst::Op::ADD || inst->op == Inst::Op::RSB)) {
@@ -126,6 +127,20 @@ void asm_arm::ArchitectureOptimizer::tryCombineVMLA() {
         return uList;
     };
 
+    auto replace = [this](const asm_arm::InstLinkedList::iterator &iter, SIMDQReg o, SIMDQReg n) {
+        auto find=iter;
+        find++;
+        for(;find != bb->insts.cend();find++) {
+            auto * inst = *find;
+            if (auto x = dynamic_cast<VBinaryInst*>(inst)) {
+                if (x->lhs == o) x->lhs = n;
+                if (x->rhs == o) x->rhs = n;
+            } else if (auto x = dynamic_cast<VSTRInst*>(inst)) {
+                if (x->src == o) x->src = n;
+            }
+        }
+    };
+
     for (auto iter = this->bb->insts.begin(); iter != bb->insts.cend(); iter++) {
         auto *inst = *iter;
         if (!inst->nop() && (inst->op == Inst::Op::VADD || inst->op == Inst::Op::VSUB)) {
@@ -133,18 +148,32 @@ void asm_arm::ArchitectureOptimizer::tryCombineVMLA() {
             if (inst->op == Inst::Op::VADD) {
                 auto *mulL = findMul(iter, binaryInst->lhs);
                 auto *mulR = findMul(iter, binaryInst->rhs);
-                if (mulL && findUse(binaryInst->lhs).size() == 1) {
+                if (mulL && findUse(binaryInst->lhs).size() == 1 && findUse(mulL->dst).size() == 1) {
+                    auto dst = binaryInst->dst;
+                    binaryInst->dst = binaryInst->rhs;
+                    binaryInst->lhs = mulL->lhs;
+                    binaryInst->rhs = mulL->rhs;
                     binaryInst->op = Inst::Op::VMLA;
-                    std::swap(binaryInst->lhs, binaryInst->rhs);
+                    replace(iter, dst, binaryInst->dst);
                     mulL->mark_nop(true);
-                } else if (mulR && findUse(binaryInst->rhs).size() == 1) {
+                } else if (mulR && findUse(binaryInst->rhs).size() == 1 && findUse(mulR->dst).size() == 1) {
+                    auto dst = binaryInst->dst;
+                    binaryInst->dst = binaryInst->lhs;
+                    binaryInst->lhs = mulR->lhs;
+                    binaryInst->rhs = mulR->rhs;
                     binaryInst->op = Inst::Op::VMLA;
+                    replace(iter, dst, binaryInst->dst);
                     mulR->mark_nop(true);
                 } else continue;
             } else if (inst->op == Inst::Op::VSUB) {
                 auto *mulR = findMul(iter, binaryInst->rhs);
-                if (mulR && findUse(binaryInst->rhs).size() == 1) {
+                if (mulR && findUse(binaryInst->rhs).size() == 1 && findUse(mulR->dst).size() == 1) {
+                    auto dst = binaryInst->dst;
+                    binaryInst->dst = binaryInst->rhs;
+                    binaryInst->lhs = mulR->lhs;
+                    binaryInst->rhs = mulR->rhs;
                     binaryInst->op = Inst::Op::VMLS;
+                    replace(iter, dst, binaryInst->dst);
                     mulR->mark_nop(true);
                 } else continue;
             } else continue;
