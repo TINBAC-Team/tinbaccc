@@ -183,8 +183,10 @@ namespace ir_passes {
         }
 
         bool is_alter_mem_inst(ir::Value *inst) {
-            return inst->optype == ir::OpType::CALL || inst->optype == ir::OpType::STORE ||
-                   inst->optype == ir::OpType::VSTORE;
+            return inst->optype == ir::OpType::CALL || inst->optype == ir::OpType::STORE;
+            // FIXME: load can not move across VStore, so the frontend may produce wrong code.
+            //  ADD a VSTORE here if vector instuctions are carefully inserted in the first place,
+            //  to guarantee its correctness.
         }
 
         bool can_move_to_target(ir::Value* inst, ir::Value* target){
@@ -321,7 +323,7 @@ namespace ir_passes {
             }
             if(!can_move_to_target(inst,first_user)) return;
             if (first_user) {
-                // Trick. If an instruction A immediately precedes the [first user],
+                // If an instruction A immediately precedes the [first user],
                 // and A's uList has only one usage by [first user], then we move up...
                 /*auto bef_first_user = --std::find(inst->bb->iList.rbegin(),inst->bb->iList.rend(),first_user);
                 if(bef_first_user!=inst->bb->iList.rend())
@@ -329,7 +331,6 @@ namespace ir_passes {
                     if((*bef_first_user)->uList.size()==1 && (*(*bef_first_user)->uList.begin())->user==first_user)
                     {
                         move_inst(inst, inst->bb, MoveBehavior::MOVE_BEFORE,(*bef_first_user));
-                        printf("TRICKED\n");
                         return;
                     }
                 }*/
