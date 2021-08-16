@@ -43,9 +43,14 @@ static bool checkRange(int index) {
 
 static bool valueEquals(ir::Value* lhs, ir::Value *rhs) {
     if (lhs == rhs) return true;
-    auto x = dynamic_cast<ir::ConstValue*>(lhs);
-    auto y = dynamic_cast<ir::ConstValue*>(rhs);
-    if (x && y && x->value == y->value) return true;
+    auto * constX = dynamic_cast<ir::ConstValue*>(lhs);
+    auto * constY = dynamic_cast<ir::ConstValue*>(rhs);
+    if (constX && constY && constX->value == constY->value) return true;
+    auto * loadX = dynamic_cast<ir::LoadInst*>(lhs);
+    auto * loadY = dynamic_cast<ir::LoadInst*>(rhs);
+    if (loadX && loadY) {
+        if (loadX->ptr.value == loadY->ptr.value) return true;
+    }
     return false;
 }
 
@@ -384,7 +389,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
                     associatedScalarInst[i] = unknownValueR.value;
                     findScalar = true;
                     break;
-                } else if (result.satisfyVector && knownVectorL->getAssociatedComponent(i) == unknownValueR.value) {
+                } else if (result.satisfyVector && mightSameVectorR->getAssociatedComponent(i) == unknownValueR.value) {
                     // ok, vector
                     associatedBinaryInst[i] = otherBinaryInst;
                     findVector = true;
