@@ -514,10 +514,10 @@ namespace ir {
 
     void VDupInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
-        os<<"insertelement"<<" <"<<size<<" x "<<"i32> ";
-        for(int i=0;i<size;i++){
-            os<<"i32 "<<get_name_of_value(value.value);
-            if(i!=size-1) os<<", ";
+        os<<"insertelement"<<" <"<<getSize()<<" x "<<"i32> ";
+        for(int i=0;i<associated.size();i++){
+            os<<"i32 "<<get_name_of_value(scalar.value);
+            if(i!=getSize()-1) os<<", ";
         }
 
         VInst::print(os);
