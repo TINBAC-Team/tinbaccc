@@ -74,6 +74,11 @@ namespace ir {
             int val_int = dynamic_cast<ConstValue *>(scalar.value)->value;
             if (asm_arm::VMOVInst::vmov_operand(val_int))
                 inst = new asm_arm::VMOVInst(dst, val_int);
+        } else if (scalar.value->optype == OpType::LOAD) {
+            auto load_addr = dynamic_cast<LoadInst *>(scalar.value)->ptr.value;
+            auto load_inst = new asm_arm::VLDRInst(dst, builder.getOrCreateOperandOfValue(load_addr));
+            inst = load_inst;
+            load_inst->one_to_all = true;
         }
         if (!inst)
             inst = new asm_arm::VDUPInst(dst, builder.getOrCreateOperandOfValue(scalar.value));

@@ -424,6 +424,7 @@ namespace asm_arm {
         std::string label;
         SIMDQReg dst;
         Operand *src;
+        bool one_to_all = false;
 
         VLDRInst(SIMDQReg d, Operand *s);
 
