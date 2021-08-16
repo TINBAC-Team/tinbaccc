@@ -382,6 +382,9 @@ namespace ir {
     }
 
     asm_arm::Operand * LoadInst::codegen(asm_arm::Builder &builder) {
+        // ldr+vdup will be generated at vdup
+        if (uList.size() == 1 && (*uList.begin())->user->optype == OpType::DUP)
+            return nullptr;
         asm_arm::LDRInst *inst;
         auto ro = builder.getRegOffsOfValue(ptr.value);
         if (ro) {
