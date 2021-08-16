@@ -91,7 +91,10 @@ namespace ir {
         Use scalar;
         std::vector<Value *> associated;
     public:
-        explicit VDupInst(ir::Value* scalar, std::vector<Value *> associated) : VInst(OpType::DUP), scalar(this, scalar), associated(std::move(associated)) {}
+        explicit VDupInst(ir::Value* scalar, std::vector<Value *> associated) : VInst(OpType::DUP), scalar(this, scalar), associated(std::move(associated)) {
+            this->bb = this->associated[0]->bb;
+            std::cout << "VDupInst Create!" << std::endl;
+        }
 
         bool analysis(AutoVectorizationContext *context) override;
 

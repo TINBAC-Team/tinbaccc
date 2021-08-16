@@ -182,13 +182,25 @@ public:
             std::vector<ir::Use*> uListCopy;
             uListCopy.assign(inst->uList.cbegin(),  inst->uList.cend());
             for(auto & use : uListCopy) {
-                if (context->associatedVInst.find(use->user) != context->associatedVInst.cend()) {
+                if (context->associatedVInst.find(use->user) != context->associatedVInst.cend() || ir::isVector(use->user)) {
                     // user is associated with a vInst, ok
                 } else {
                     return false;
                 }
             }
-            if (clean) {
+            bool shouldCleanThis = clean;
+            if(shouldCleanThis) {
+                for(auto * use : inst->uList) {
+                    if (dynamic_cast<ir::VDupInst*>(use->user)) {
+                        shouldCleanThis = false;
+                        break;
+                    } else if (dynamic_cast<ir::GetElementPtrInst*>(use->value)) {
+                        shouldCleanThis = false;
+                        break;
+                    }
+                }
+            }
+            if (shouldCleanThis) {
                 iter = context->bb->iList.erase(iter);
                 delete inst;
             } else {
@@ -345,6 +357,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         ir::Value *mightSameScalar = nullptr;
         if (result.satisfyScalar) {
             mightSameScalar = ir::getValue(binaryInst, !isLeftKnownVector).value;
+            associatedScalarInst[0] = mightSameScalar;
         }
 
         if (!result.satisfyVector && !result.satisfyScalar) return false;
