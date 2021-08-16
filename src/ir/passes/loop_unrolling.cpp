@@ -51,7 +51,8 @@ struct LoopIR {
 
     std::vector<ir::PhiInst *> phiInst;
     std::unordered_map<ir::Value *, LoopVariable *> loopVarsByDefine;
-    std::unordered_map<ir::Value *, LoopVariable *> loopVarsByEnter;
+    // a loopVarEnter may correspond to multiple variables (it may be use in one more phiInst)
+    std::unordered_map<ir::Value *, std::vector<LoopVariable *>> loopVarsByEnter;
 
     ir::PhiInst *getCorrespondingPhiInst(const LoopIR *loopIR, const ir::PhiInst *phiInst) {
         auto iter = std::find(loopIR->phiInst.begin(), loopIR->phiInst.end(), phiInst);
@@ -67,7 +68,7 @@ struct LoopIR {
                 auto *loopVar = new LoopVariable();
                 loopVar->init(loop, branchInst, x);
                 loopVarsByDefine[x] = loopVar;
-                loopVarsByEnter[x->GetRelatedValue(branchInst->true_block)] = loopVar;
+                loopVarsByEnter[x->GetRelatedValue(branchInst->true_block)].push_back(loopVar);
             }
         }
     }
@@ -293,19 +294,22 @@ public:
             // modify the phiNode of loopVar
             if (originLoopIR->loopVarsByEnter.find(inst) != originLoopIR->loopVarsByEnter.cend()) {
                 if (loopIR == originLoopIR) {
-                    LoopVariable *loopVar = loopIR->loopVarsByEnter[inst];
-                    // replace
-                    loopVar->loopVarDefine->InsertElem(loopIR->branchInst->true_block, loopIR->body->iList.back());
+                    for (auto *loopVar : loopIR->loopVarsByEnter[inst]) {
+                        // replace
+                        loopVar->loopVarDefine->InsertElem(loopIR->branchInst->true_block, loopIR->body->iList.back());
+                    }
                 } else {
-                    LoopVariable *loopVar = new LoopVariable();
-                    loopVar->loop = loopIR->loop;
-                    auto *originLoopVar = originLoopIR->loopVarsByEnter.find(inst)->second;
-                    loopVar->loopVarInit = originLoopVar->loopVarDefine;
-                    loopVar->loopVarDefine = loopIR->getCorrespondingPhiInst(originLoopIR,
-                                                                             originLoopVar->loopVarDefine);
-                    loopVar->loopVarBody = loopIR->body->iList.back();
-                    loopIR->loopVarsByDefine[loopVar->loopVarDefine] = loopVar;
-                    loopIR->loopVarsByEnter[loopIR->body->iList.back()] = loopVar;
+                    for(auto *originLoopVar : originLoopIR->loopVarsByEnter.find(inst)->second) {
+                        auto *loopVar = new LoopVariable();
+                        loopVar->loop = loopIR->loop;
+                        loopVar->loopVarInit = originLoopVar->loopVarDefine;
+                        loopVar->loopVarDefine = loopIR->getCorrespondingPhiInst(originLoopIR,
+                                                                                 originLoopVar->loopVarDefine);
+                        loopVar->loopVarBody = loopIR->body->iList.back();
+                        loopIR->loopVarsByDefine[loopVar->loopVarDefine] = loopVar;
+                        loopIR->loopVarsByEnter[loopIR->body->iList.back()].push_back(loopVar);
+                    }
+
                 }
             }
 
@@ -364,13 +368,19 @@ public:
         resetLoopIR->cond = new ir::BasicBlock("while_unrolling.entry");
         resetLoopIR->body = new ir::BasicBlock("while_unrolling.true");
 
-        // Step3 prepare phi instructions
+        // Step3 prepare phi instructions, fill init value
         for (auto &originPhiInst : originLoopIR->phiInst) {
             auto *phiInst = new ir::PhiInst();
             phiInst->InsertElem(originLoopIR->cond, originPhiInst);
             resetLoopIR->phiInst.push_back(phiInst);
             resetLoopIR->cond->InsertAtEnd(phiInst);
+            auto * originPhiFromTrueBlock = originPhiInst->GetRelatedValue(originLoopIR->body);
+            auto findDefineInCond = originLoopIR->loopVarsByDefine.find(originPhiFromTrueBlock);
+            if (findDefineInCond != originLoopIR->loopVarsByDefine.cend()) {
+                phiInst->InsertElem(resetLoopIR->body, resetLoopIR->getCorrespondingPhiInst(originLoopIR, findDefineInCond->second->loopVarDefine));
+            }
         }
+
 
         // Step4 insert the basic blocks
         auto iter = std::find(function->bList.begin(), function->bList.end(), originLoopIR->body);
@@ -404,9 +414,10 @@ public:
 
         // Step6 fill phi instruction
         for (auto &pair : resetLoopIR->loopVarsByEnter) {
-            auto *loopVar = pair.second;
-            auto *enterVar = pair.first;
-            loopVar->loopVarDefine->InsertElem(resetLoopIR->branchInst->true_block, enterVar);
+            for(auto *loopVar : pair.second) {
+                auto *enterVar = pair.first;
+                loopVar->loopVarDefine->InsertElem(resetLoopIR->branchInst->true_block, enterVar);
+            }
         }
 
         // Step7 modify origin loop jumpInst
@@ -430,9 +441,11 @@ public:
             std::vector<ir::Use *> usesCopy;
             usesCopy.assign(phiInst->uList.cbegin(), phiInst->uList.cend());
             for (auto &use : usesCopy) {
-                if (ignore.find(use->user->bb) != ignore.cend()) continue;
+                if (ignore.find(use->user->bb) != ignore.cend()) continue; // ignore those two loop
+                auto * resetPhi = *resetIter;
+                if (!resetPhi->GetRelatedValue(resetLoopIR->branchInst->true_block)) continue;
                 std::cout << "rep" << std::endl;
-                use->use(*resetIter, true);
+                use->use(resetPhi, true);
             }
             resetIter++;
         }
