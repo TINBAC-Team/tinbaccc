@@ -70,13 +70,13 @@ namespace ir {
     asm_arm::Operand *VDupInst::codegen(asm_arm::Builder &builder) {
         asm_arm::Inst *inst = nullptr;
         asm_arm::SIMDQReg dst = builder.getSIMDReg();
-        if (value->optype == OpType::CONST) {
-            int val_int = dynamic_cast<ConstValue *>(value)->value;
+        if (associated[0]->optype == OpType::CONST) {
+            int val_int = associated[0]->value;
             if (asm_arm::VMOVInst::vmov_operand(val_int))
                 inst = new asm_arm::VMOVInst(dst, val_int);
         }
         if (!inst)
-            inst = new asm_arm::VDUPInst(dst, builder.getOrCreateOperandOfValue(value));
+            inst = new asm_arm::VDUPInst(dst, builder.getOrCreateOperandOfValue(associated[0]));
         builder.insertInst(inst);
         builder.setSIMDRegOfValue(this, dst);
         return nullptr;

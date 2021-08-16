@@ -22,7 +22,7 @@ namespace ir {
 
     class VInst : public Value {
     protected:
-        bool analysis_(AutoVectorizationContext *context);
+        bool analysis_(AutoVectorizationContext *context, bool satisfyVector=true, bool satisfyScalar=true);
 
     public:
         explicit VInst(OpType optype) : Value(optype) {};
@@ -85,19 +85,18 @@ namespace ir {
 
     class VDupInst : public VInst, public IterationAnalyst {
     private:
-        int size;
-        Value *value;
+        std::vector<ConstValue *> associated;
     public:
-        explicit VDupInst(Value *value, int size) : VInst(OpType::DUP), size(size), value(value) {}
+        explicit VDupInst(std::vector<ConstValue *> associated) : VInst(OpType::DUP), associated(std::move(associated)) {}
 
         bool analysis(AutoVectorizationContext *context);
 
-        ir::Value *getAssociatedComponent(int index) override {
-            return value;
+        ir::ConstValue *getAssociatedComponent(int index) override {
+            return associated[index];
         }
 
         int getSize() const override {
-            return size;
+            return associated.size();
         }
 
         asm_arm::Operand *codegen(asm_arm::Builder &builder);

@@ -303,6 +303,7 @@ void ir::AdjacentMemory::insertToBB(ir::AutoVectorizationContext *context) {
 struct VectorizeResult {
     bool satisfyVector = false;
     bool satisfyScalar = false;
+    ir::VInst* pre = nullptr;
     ir::VInst* vector = nullptr;
 };
 
@@ -311,6 +312,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
     if (context->associatedVInst.find(base) != context->associatedVInst.cend()) return false;
     if(auto *binaryInst = dynamic_cast<ir::BinaryInst *>(base)) {
         std::vector<ir::BinaryInst *> associatedBinaryInst{(unsigned)knownVectorL->getSize()};
+        std::vector<ir::ConstValue *> associatedConstInst{(unsigned)knownVectorL->getSize()};
         if (!ir::isValidNeonOpType(binaryInst)) return false;
         // assume:  Vector OP unknown, this value indicates whether to flip
 
@@ -359,10 +361,11 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
                 if (knownVectorL->getAssociatedComponent(i) != ir::getValue(otherBinaryInst, isLeftKnownVector).value)
                     continue;
 
-                auto &unknownValueR = ir::getValue(otherBinaryInst, isLeftKnownVector);
+                auto &unknownValueR = ir::getValue(otherBinaryInst, !isLeftKnownVector);
                 if (result.satisfyScalar && valueEquals(mightSameScalar, unknownValueR.value)) {
                     // ok, scalarR
                     associatedBinaryInst[i] = otherBinaryInst;
+                    associatedConstInst[i] = dynamic_cast<ir::ConstValue *>(unknownValueR.value);
                     findScalar = true;
                     break;
                 } else if (result.satisfyVector && knownVectorL->getAssociatedComponent(i) == unknownValueR.value) {
@@ -385,15 +388,19 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         if (!result.satisfyScalar && !result.satisfyVector)
             return false;
         if (result.satisfyScalar) {
-            auto *dup = new ir::VDupInst(ir::getValue(binaryInst, !isLeftKnownVector).value, knownVectorL->getSize());
-            result.vector = dup;
-        } else if (result.satisfyVector){
-            auto *valueL = knownVectorL;
-            auto *valueR = mightSameVectorR;
-            if (!isLeftKnownVector) std::swap(valueL, valueR);
-            auto * vbinaryInst = new ir::VBinaryInst(binaryInst->optype, valueL, valueR, associatedBinaryInst);
-            result.vector = vbinaryInst;
+            auto *dup = new ir::VDupInst(associatedConstInst);
+            result.pre = dup;
+            for (int i = 0; i < result.pre->getSize(); i++) {
+                context->associatedVInst[result.pre->getAssociatedComponent(i)] = {result.pre, i};
+            }
         }
+
+        auto *valueL = knownVectorL;
+        auto *valueR = mightSameVectorR;
+        if (!isLeftKnownVector) std::swap(valueL, valueR);
+        auto * vbinaryInst = new ir::VBinaryInst(binaryInst->optype, valueL, valueR, associatedBinaryInst);
+        result.vector = vbinaryInst;
+
         for (int i = 0; i < result.vector->getSize(); i++) {
             context->associatedVInst[result.vector->getAssociatedComponent(i)] = {result.vector, i};
         }
@@ -465,7 +472,7 @@ bool ir::VLoadInst::analysis(ir::AutoVectorizationContext *context) {
 }
 
 bool ir::VStoreInst::analysis(ir::AutoVectorizationContext *context) {
-    return analysis_(context);
+    return analysis_(context, true, false);
 }
 
 bool ir::VDupInst::analysis(AutoVectorizationContext *context) {
@@ -474,17 +481,20 @@ bool ir::VDupInst::analysis(AutoVectorizationContext *context) {
 
 
 
-bool ir::VInst::analysis_(ir::AutoVectorizationContext *context) {
+bool ir::VInst::analysis_(ir::AutoVectorizationContext *context, bool satisfyVector, bool satisfyScalar) {
     bool changed = false;
     auto head = getAssociatedComponent(0);
     for (auto & base : head->uList) {
-        VectorizeResult result{true, false};
+        VectorizeResult result{satisfyVector, satisfyScalar};
         if (tryCombine(context, this, base->user, result)) {
             if (auto * analyst = dynamic_cast<IterationAnalyst*>(result.vector)) {
                 context->analyst.insert(analyst);
             }
             auto iter = std::find(context->bb->iList.begin(), context->bb->iList.end(), result.vector->getAssociatedComponent(0));
-            context->bb->iList.insert(iter, result.vector);
+            iter = context->bb->iList.insert(iter, result.vector);
+            if (result.pre) {
+                context->bb->iList.insert(iter, result.pre);
+            }
             changed = true;
         }
     }
