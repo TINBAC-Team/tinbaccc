@@ -206,19 +206,7 @@ namespace ir {
         return dynamic_cast<VInst *>(value);
     }
 
-    static Use &getValue(BinaryInst *binaryInst, bool isLeft) {
-        if (isLeft)
-            return binaryInst->ValueL;
-        else
-            return binaryInst->ValueR;
-    }
 
-    static Use &getValue(StoreInst *storeInst, bool isLeft) {
-        if (isLeft)
-            return storeInst->ptr;
-        else
-            return storeInst->val;
-    }
 
     static bool isValidNeonOpType(BinaryInst *inst) {
         switch (inst->optype) {

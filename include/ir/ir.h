@@ -513,6 +513,14 @@ namespace ir {
         ~ConstValue() override;
 
     };
+
+
+    static OpType flipOperator(ir::OpType opType);
+
+    static Use &getValue(BinaryInst *binaryInst, bool isLeft);
+
+    static Use &getValue(StoreInst *storeInst, bool isLeft);
+
 }
 #pragma clang diagnostic pop
 #endif //TINBACCC_IR_H

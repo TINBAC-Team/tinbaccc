@@ -6,7 +6,7 @@
 
 namespace ir {
 
-    std::unordered_map<std::string,int> BasicBlock::namePool;
+    std::unordered_map<std::string, int> BasicBlock::namePool;
 
     GlobalVar::GlobalVar(ast::Decl *d) :
             Value(OpType::GLOBAL), decl(d), name(decl->name), is_const(decl->is_const) {
@@ -70,7 +70,7 @@ namespace ir {
         return var;
     }
 
-    BasicBlock *Function::CreateBlock(std::string name="bb") {
+    BasicBlock *Function::CreateBlock(std::string name = "bb") {
         auto *BasicBlockp = new BasicBlock(name);
         appendBlock(BasicBlockp);
         return BasicBlockp;
@@ -164,7 +164,7 @@ namespace ir {
     BasicBlock::BasicBlock(std::string _name) : sealed(true), idom(nullptr), dom_tree_depth(-1) {
         if (namePool.find(_name) == namePool.end()) namePool[_name] = 0;
         else namePool[_name]++;
-        name =  "_" + _name + (namePool[_name] ? std::to_string(namePool[_name]) : "");
+        name = "_" + _name + (namePool[_name] ? std::to_string(namePool[_name]) : "");
     }
 
     BranchInst::~BranchInst() {
@@ -222,10 +222,11 @@ namespace ir {
         value->bb = this;
         return 0;
     }
+
     int BasicBlock::InsertAfter(Value *value, Value *target) {
         auto it = std::find(iList.begin(), iList.end(), target);
         it++;
-        InsertBefore(value,it);
+        InsertBefore(value, it);
         return 0;
     }
 
@@ -518,9 +519,9 @@ namespace ir {
     }
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls,
-                                         int _unpack,ast::Decl* _decl) :
+                                         int _unpack, ast::Decl *_decl) :
             AccessInst(OpType::GETELEMPTR), arr(this, _arr), unpack(_unpack) {
-        if(_decl)
+        if (_decl)
             decl = _decl;
         else if (auto arr_val = dynamic_cast<AllocaInst *>(arr.value))
             decl = arr_val->decl;
@@ -652,6 +653,35 @@ namespace ir {
         for (auto *bb : body)
             if (bb->loop_depth < this->depth)
                 bb->loop_depth = this->depth;
+    }
+
+    OpType ir::flipOperator(OpType opType) {
+        switch (opType) {
+            case OpType::SLT:
+                return ir::OpType::SGT;
+            case OpType::SLE:
+                return ir::OpType::SGE;
+            case OpType::SGT:
+                return ir::OpType::SLT;
+            case OpType::SGE:
+                return OpType::SLE;
+            default:
+                return opType;
+        }
+    }
+
+    Use &getValue(BinaryInst *binaryInst, bool isLeft) {
+        if (isLeft)
+            return binaryInst->ValueL;
+        else
+            return binaryInst->ValueR;
+    }
+
+    Use &getValue(StoreInst *storeInst, bool isLeft) {
+        if (isLeft)
+            return storeInst->ptr;
+        else
+            return storeInst->val;
     }
 
 }
