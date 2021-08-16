@@ -464,8 +464,12 @@ public:
         if (!loopIR.cmpInst || flipOperator(loopIR.cmpInst->optype) == loopIR.cmpInst->optype)
             return;
         // Step3 Process loop which execution times can be inferred
-        // TODO Remove loop where loopCount = 0
-        if (constLoopCondAnalysis(&loopIR, loopCount, loopDelta) && loopCount > 0) {
+        if (constLoopCondAnalysis(&loopIR, loopCount, loopDelta) && loopCount >= 0) {
+            if (loopCount == 0) {
+                // remove loop where loopCount = 0
+                loopIR.cmpInst->replaceWith(new ir::ConstValue(0), true);
+                std::cout << "replace meaningless cmpInst with const val 0" << std::endl;
+            }
             int loopUnrollingCount = loopCount / K;
             int loopResetCount = loopCount - loopUnrollingCount * K;
             if (loopUnrollingCount == 0) return; // do nothing
