@@ -515,7 +515,9 @@ bool ir::VInst::analysis_(ir::AutoVectorizationContext *context, bool satisfyVec
             auto iter = std::find(context->bb->iList.begin(), context->bb->iList.end(), result.vector->getAssociatedComponent(0));
             iter = context->bb->iList.insert(iter, result.vector);
             if (result.pre) {
+                result.pre->bb = context->bb;
                 context->bb->iList.insert(iter, result.pre);
+
             }
             changed = true;
         }
