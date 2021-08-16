@@ -222,6 +222,7 @@ void ir_passes::vectorize(ir::Module *module) {
             ir::AutoVectorizationContext context{bb};
             v.analysisAdjacentMemory(&context);
             v.tryVectorize(&context);
+            int debug=2;
             if (v.cleanupInst(&context, false)) {
                 std::cout << "Successfully Vectorize!" << std::endl;
                 v.cleanupInst(&context, true);
@@ -396,6 +397,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         for (int i = 0; i < result.vector->getSize(); i++) {
             context->associatedVInst[result.vector->getAssociatedComponent(i)] = {result.vector, i};
         }
+
         return true;
     } else if (auto storeInst = dynamic_cast<ir::StoreInst*>(base)) {
         if (!result.satisfyVector) return false;
@@ -429,7 +431,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
         auto * valVector = mightSameVectorR;
         if (!isLeftKnownVector) std::swap(ptrVector, valVector);
 
-        for (int i = 1; i < knownVectorL->getSize()-1; i++) {
+        for (int i = 1; i < knownVectorL->getSize(); i++) {
             // only consider the first one that satisfy the requirement
             bool findVector = false;
             for (auto *useOther : knownVectorL->getAssociatedComponent(i)->uList) {
@@ -481,6 +483,8 @@ bool ir::VInst::analysis_(ir::AutoVectorizationContext *context) {
             if (auto * analyst = dynamic_cast<IterationAnalyst*>(result.vector)) {
                 context->analyst.insert(analyst);
             }
+            auto iter = std::find(context->bb->iList.begin(), context->bb->iList.end(), result.vector->getAssociatedComponent(0));
+            context->bb->iList.insert(iter, result.vector);
             changed = true;
         }
     }
