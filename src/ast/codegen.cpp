@@ -111,8 +111,13 @@ namespace ast {
     }
 
     ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {
-        return builder.CreateFuncCall(name, is_void, params);
-
+        ir::Function *func = nullptr;
+        auto it = std::find_if(builder.module->functionList.begin(), builder.module->functionList.end(),
+                               [&](std::list<ir::Function *>::value_type &f) {
+                                   return f->name == name;
+                               });
+        if (it != builder.module->functionList.end()) func = *it;
+        return builder.CreateFuncCall(name, is_void, params, func);
     }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {

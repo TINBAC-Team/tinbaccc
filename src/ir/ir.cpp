@@ -508,7 +508,8 @@ namespace ir {
         phicont.erase(bb);
     }
 
-    CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
+    CallInst::CallInst(std::string n, bool _is_void, Function *_function) : Inst(OpType::CALL), fname(std::move(n)),
+                                                                            is_void(_is_void), function(_function) {}
 
     AllocaInst::AllocaInst(ast::Decl *_decl) : Inst(OpType::ALLOCA) {
         decl = _decl;
@@ -518,7 +519,7 @@ namespace ir {
     }
 
     GetElementPtrInst::GetElementPtrInst(Value *_arr, const std::vector<Value *> &_dims, std::vector<int> muls,
-                                         int _unpack,ast::Decl* _decl) :
+                                         int _unpack, ast::Decl *_decl) :
             AccessInst(OpType::GETELEMPTR), arr(this, _arr), unpack(_unpack) {
         if(_decl)
             decl = _decl;
@@ -565,9 +566,10 @@ namespace ir {
         return instp;
     }
 
-    Value *IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
+    Value *
+    IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params, Function *function) {
 
-        auto instp = new ir::CallInst(name, is_void);
+        auto instp = new ir::CallInst(name, is_void,function);
         auto *curblock = GetCurBlock();
         // XXX: should we convert it to unique_ptr instead?
         instp->params.reserve(params.size());

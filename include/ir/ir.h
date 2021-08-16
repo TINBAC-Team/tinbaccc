@@ -125,7 +125,7 @@ namespace ir {
 
         PhiInst *CreatePhi(BasicBlock *tgt_block);
 
-        Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params);
+        Value *CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params,Function* function = nullptr);
 
 
         static Value *getConstant(int _value,Module* module);
@@ -367,8 +367,9 @@ namespace ir {
         std::string fname;
         bool is_void;
         std::vector<Use> params;
+        Function* function;
 
-        explicit CallInst(std::string n, bool _is_void);
+        explicit CallInst(std::string n, bool _is_void,Function* _function = nullptr);
 
         void print(std::ostream &os) const;
 
