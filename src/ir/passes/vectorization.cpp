@@ -123,8 +123,7 @@ class Vectorization {
     ir::BasicBlock *bb;
     std::unordered_map<AdjacentMemoryKey, AdjacentMemoryBuilder *, HashFunc, EqualFunc> builders;
     std::unordered_map<AdjacentMemoryKey, std::vector<ir::AdjacentMemory *>, HashFunc, EqualFunc> memories;
-    std::vector<ir::GetElementPtrInst *> getPtrInstructions;
-    std::vector<ir::AdjacentMemory *> adjacentMemories;
+
 public:
     Vectorization(ir::BasicBlock *bb) : bb(bb) {}
 
@@ -210,6 +209,9 @@ public:
     }
 
 
+    bool hasAdjacentMemory() {
+        return !memories.empty();
+    }
 };
 
 void ir_passes::vectorize(ir::Module *module) {
@@ -221,6 +223,7 @@ void ir_passes::vectorize(ir::Module *module) {
             Vectorization v{bb};
             ir::AutoVectorizationContext context{bb};
             v.analysisAdjacentMemory(&context);
+            if (!v.hasAdjacentMemory()) continue;
             v.tryVectorize(&context);
             if (v.cleanupInst(&context, false)) {
                 std::cout << "Successfully Vectorize!" << std::endl;
