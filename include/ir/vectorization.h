@@ -76,11 +76,12 @@ namespace ir {
             return -1;
         }
 
-        bool analysis(AutoVectorizationContext *context);
+        bool analysis(AutoVectorizationContext *context) override;
 
-        asm_arm::Operand *codegen(asm_arm::Builder &builder);
+        asm_arm::Operand *codegen(asm_arm::Builder &builder) override;
         void insertToBB(ir::AutoVectorizationContext* context);
 
+        std::vector<Value *> uses() override;
     };
 
     class VDupInst : public VInst, public IterationAnalyst {
@@ -89,7 +90,7 @@ namespace ir {
     public:
         explicit VDupInst(std::vector<ConstValue *> associated) : VInst(OpType::DUP), associated(std::move(associated)) {}
 
-        bool analysis(AutoVectorizationContext *context);
+        bool analysis(AutoVectorizationContext *context) override;
 
         ir::ConstValue *getAssociatedComponent(int index) override {
             return associated[index];
@@ -99,9 +100,11 @@ namespace ir {
             return associated.size();
         }
 
-        asm_arm::Operand *codegen(asm_arm::Builder &builder);
+        asm_arm::Operand *codegen(asm_arm::Builder &builder) override;
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os) const override;
+
+        std::vector<Value *> uses() override;
     };
 
     class VBinaryInst : public VInst, public IterationAnalyst {
@@ -116,7 +119,7 @@ namespace ir {
             this->bb = this->associated[0]->bb;
         }
 
-        bool analysis(AutoVectorizationContext *context);
+        bool analysis(AutoVectorizationContext *context) override;
 
         ir::BinaryInst *getAssociatedComponent(int index) override {
             return associated[index];
@@ -127,9 +130,11 @@ namespace ir {
         }
 
 
-        asm_arm::Operand *codegen(asm_arm::Builder &builder);
+        asm_arm::Operand *codegen(asm_arm::Builder &builder) override;
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os) const override;
+
+        std::vector<Value *> uses() override;
     };
 
     class VLoadInst : public VInst, public IterationAnalyst {
@@ -154,9 +159,11 @@ namespace ir {
             return associated.size();
         }
 
-        asm_arm::Operand *codegen(asm_arm::Builder &builder);
+        asm_arm::Operand *codegen(asm_arm::Builder &builder) override;
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os) const override;
+
+        std::vector<Value *> uses() override;
     };
 
     class VStoreInst : public VInst, public IterationAnalyst {
@@ -166,7 +173,7 @@ namespace ir {
         std::vector<StoreInst *> associated;
     public:
 
-        bool analysis(AutoVectorizationContext *context);
+        bool analysis(AutoVectorizationContext *context) override;
 
         ir::StoreInst *getAssociatedComponent(int index) override {
             return associated[index];
@@ -182,9 +189,11 @@ namespace ir {
             std::cout << "VStoreInst Create" << std::endl;
         }
 
-        asm_arm::Operand *codegen(asm_arm::Builder &builder);
+        asm_arm::Operand *codegen(asm_arm::Builder &builder) override;
 
-        void print(std::ostream &os) const;
+        void print(std::ostream &os) const override;
+
+        std::vector<Value *> uses() override;
     };
 
 
