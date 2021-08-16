@@ -58,7 +58,7 @@ namespace ir {
         os<<get_name_of_value(ret)<<" = "<< "inttoptr i32 "<<get_name_of_value(value)<<" to i32*"<<std::endl<<'\t';
         return ret;
     }
-    void print_llvm_arr_inner_decl(std::ostream &os, std::vector<ast::Exp *> &array_dims, int dim) {
+    void print_llvm_arr_inner_decl(std::ostream &os, const std::vector<ast::Exp *> &array_dims, const int dim) {
         if (dim >= array_dims.size()) {
             os << "i32";
             return;
@@ -363,31 +363,40 @@ namespace ir {
     void AllocaInst::print(std::ostream &os) const {
         os << get_name_of_value((Value *) this) << " = ";
         Value::print(os);
-        print_llvm_arr_inner_decl(os,decl->array_dims,0);
+        print_llvm_arr_inner_decl(os, decl->array_dims, 0);
         //TODO: initialize imcomplete
     }
-    void GetElementPtrInst::print_llvm_type(std::ostream &os, int start_dim) const {
+
+    void print_llvm_type(std::ostream &os, const ast::Decl *decl, const int start_dim) {
         if (decl)
-            print_llvm_arr_inner_decl(os,decl->array_dims,start_dim);
+            print_llvm_arr_inner_decl(os, decl->array_dims, start_dim);
         else
             throw std::runtime_error("no decl for GEP.");
     }
 
+    void GetElementPtrInst::print_llvm_type(std::ostream &os,int start_dim) const {     //DEPRECATED!!!
+        if (decl)
+            print_llvm_arr_inner_decl(os, decl->array_dims, start_dim);
+        else
+            throw std::runtime_error("no decl for GEP.");
+    }
+
+
+
     void FuncParam::print_llvm_type(std::ostream &os) const {
         if (decl)
-            print_llvm_arr_inner_decl(os,decl->array_dims,1);
+            print_llvm_arr_inner_decl(os, decl->array_dims, 1);
         else
             throw std::runtime_error("no decl for FuncParam.");
     }
 
-    void GetElementPtrInst::print(std::ostream &os) const {
-        os << get_name_of_value((Value *) this) << " = ";
-        Value::print(os);
+    void
+    printGEP(std::ostream &os, const Use &arr, const int &unpack, const std::vector<Use> &dims, const ast::Decl *decl) {
         if (dynamic_cast<AllocaInst *>(arr.value) || dynamic_cast<GlobalVar *>(arr.value)) {
 
-            print_llvm_type(os, 0);
+            print_llvm_type(os, decl, 0);
             os << ", ";
-            print_llvm_type(os, 0);
+            print_llvm_type(os, decl, 0);
             os << "* ";
             os << get_name_of_value((Value *) arr.value) << ", ";
             os << "i32 0";
@@ -397,9 +406,9 @@ namespace ir {
             }
         } else if (auto arr_val = dynamic_cast<FuncParam *>(arr.value)) {
 
-            print_llvm_type(os, 1);
+            print_llvm_type(os, decl, 1);
             os << ", ";
-            print_llvm_type(os, 1);
+            print_llvm_type(os, decl, 1);
             os << "* ";
             os << get_name_of_value((Value *) arr_val) << ", ";
             bool is_first = true;
@@ -415,10 +424,9 @@ namespace ir {
 
             if (decl->is_fparam && !unpack) //if this GEP's input eventually comes from function param
             {
-                //printf("FOUND A GEP<-GEP eventually from fparam\n");
-                print_llvm_type(os, 1);
+                print_llvm_type(os, decl, 1);
                 os << ", ";
-                print_llvm_type(os, 1);
+                print_llvm_type(os, decl, 1);
                 os << "* ";
                 os << get_name_of_value(arr.value) << ", ";
                 bool is_first = true;
@@ -430,9 +438,9 @@ namespace ir {
                 }
             } else {
                 //printf("FOUND A GEP<-GEP not eventually from fparam\n");
-                print_llvm_type(os, unpack);
+                print_llvm_type(os, decl, unpack);
                 os << ", ";
-                print_llvm_type(os,  unpack);
+                print_llvm_type(os, decl, unpack);
                 os << "* ";
                 os << get_name_of_value(arr.value) << ", ";
                 os << "i32 0";
@@ -443,6 +451,11 @@ namespace ir {
             }
 
         }
+    }
+    void GetElementPtrInst::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        printGEP(os, arr, unpack, dims, decl);
     }
 
 
@@ -459,20 +472,54 @@ namespace ir {
         }
     }
 
-    void VLoadInst::print(std::ostream &os) const{
-        os<<";";
-        VInst::print(os);
+    Value *print_bitcast(std::ostream &os, Value *value, int vector_size) {
+        Value *ret = new Value(OpType::BITCAST);
+        os << get_name_of_value(ret) << " = bitcast i32* " << get_name_of_value(value) << " to " << "<" << vector_size
+           << " x " << "i32>*" << std::endl << '\t';
+        return ret;
     }
-    void VStoreInst::print(std::ostream &os) const{
-        os<<";";
-        VInst::print(os);
+
+    void VLoadInst::print(std::ostream &os) const {
+        int vector_size = associated.size();
+        Value *vec_ptr = print_bitcast(os, ptr.value, vector_size);
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        os << "<" << vector_size << " x " << "i32>" << ", " << "<" << vector_size << " x " << "i32>* "
+           << get_name_of_value(vec_ptr);
+
     }
-    void VBinaryInst::print(std::ostream &os) const{
-        os<<";";
-        VInst::print(os);
+
+    void VStoreInst::print(std::ostream &os) const {
+        int vector_size = associated.size();
+        Value *vec_ptr = print_bitcast(os, ptr.value, vector_size);
+        Value::print(os);
+        os << "<" << vector_size << " x " << "i32>" << " " << get_name_of_value(val.value) << ", " << "<" << vector_size
+           << " x " << "i32>* "
+           << get_name_of_value(vec_ptr);
     }
-    void VDupInst::print(std::ostream &os) const{
-        os<<";";
+
+    void VBinaryInst::print(std::ostream &os) const {
+        int vector_size = associated.size();
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        os << "<" << vector_size << " x " << "i32> " << get_name_of_value(ValueL.value) << ", "
+           << get_name_of_value(ValueR.value);
+    }
+
+    void AdjacentMemory::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
+        Value::print(os);
+        printGEP(os,arr,0,dims,decl);
+   }
+
+    void VDupInst::print(std::ostream &os) const {
+        os << get_name_of_value((Value *) this) << " = ";
+        os<<"insertelement"<<" <"<<size<<" x "<<"i32> ";
+        for(int i=0;i<size;i++){
+            os<<"i32 "<<get_name_of_value(value.value);
+            if(i!=size-1) os<<", ";
+        }
+
         VInst::print(os);
     }
 }
