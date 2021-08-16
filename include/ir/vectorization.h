@@ -20,12 +20,12 @@ namespace ir {
         AutoVectorizationContext(BasicBlock *bb): bb(bb) {}
     };
 
-    class VInst : public Value {
+    class VInst : public Inst {
     protected:
         bool analysis_(AutoVectorizationContext *context, bool satisfyVector=true, bool satisfyScalar=true);
 
     public:
-        explicit VInst(OpType optype) : Value(optype) {};
+        explicit VInst(OpType optype) : Inst(optype) {};
 
         virtual ir::Value *getAssociatedComponent(int index) = 0;
 
