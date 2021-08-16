@@ -111,15 +111,21 @@ namespace ast {
     }
 
     ir::Value *FuncCall::codegen(ir::IRBuilder &builder) {
+        ir::Function *func = nullptr;
+        auto it = std::find_if(builder.module->functionList.begin(), builder.module->functionList.end(),
+                               [&](std::list<ir::Function *>::value_type &f) {
+                                   return f->name == name;
+                               });
+        if (it != builder.module->functionList.end()) func = *it;
         return builder.CreateFuncCall(name, is_void, params);
-
     }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
         ir::Function *irFunc = builder.CreateFunction(name, type == Type::INT);
         irFunc->setupParams(params);
-
         // TODO: external functions?
+        if(is_extern) irFunc->has_side_effect = true;
+
         if(!block)
             return nullptr;
         // LLVM requires that the first block must have no predecessors. Create it here.

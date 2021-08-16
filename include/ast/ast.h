@@ -323,10 +323,11 @@ namespace ast {
         std::string name;
         std::vector<Decl *> params;
         Block *block;
+        bool is_extern;
 
         Function() {}
 
-        Function(Type t, std::string n, Block *b) : type(t), name(n), block(b) {}
+        Function(Type t, std::string n, Block *b) : type(t), name(n), block(b),is_extern(false) {}
 
         Function(Type t, std::string n, std::vector<FuncFParam *> &ps, Block *b) : Function(t, n, b) {
             for (auto i : ps)

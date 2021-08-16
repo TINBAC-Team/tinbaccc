@@ -114,8 +114,8 @@ namespace ir {
     bool Value::sideEffect() const {
         switch (optype) {
             case ir::OpType::RETURN:
-            case ir::OpType::BRANCH:
             case ir::OpType::JUMP:
+            case ir::OpType::BRANCH:
             case ir::OpType::STORE:
             case ir::OpType::VSTORE:
                 return true;
@@ -509,7 +509,8 @@ namespace ir {
         phicont.erase(bb);
     }
 
-    CallInst::CallInst(std::string n, bool _is_void) : Inst(OpType::CALL), fname(std::move(n)), is_void(_is_void) {}
+    CallInst::CallInst(std::string n, bool _is_void, Function *_function) : Inst(OpType::CALL), fname(std::move(n)),
+                                                                            is_void(_is_void), function(_function) {}
 
     AllocaInst::AllocaInst(ast::Decl *_decl) : Inst(OpType::ALLOCA) {
         decl = _decl;
@@ -566,9 +567,13 @@ namespace ir {
         return instp;
     }
 
-    Value *IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
+    Value *
+    IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
 
-        auto instp = new ir::CallInst(name, is_void);
+        auto func = std::find_if(module->functionList.begin(),module->functionList.end(),[&](std::list<Function *>::value_type &v){
+            return v->name == name;
+        });
+        auto instp = new ir::CallInst(name, is_void,*func);
         auto *curblock = GetCurBlock();
         // XXX: should we convert it to unique_ptr instead?
         instp->params.reserve(params.size());

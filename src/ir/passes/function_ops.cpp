@@ -151,7 +151,7 @@ namespace ir_passes {
                         value_map[inst] = dup;
                         phi_list.emplace_back(dup, x);
                     } else if (auto x = dynamic_cast<ir::CallInst *>(inst)) {
-                        auto *dup = new ir::CallInst(x->fname, x->is_void);
+                        auto *dup = new ir::CallInst(x->fname, x->is_void,x->function);
                         dup->params.reserve(x->params.size());
                         for (auto &u:x->params)
                             dup->params.emplace_back(dup, get_val(u));

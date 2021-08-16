@@ -48,14 +48,6 @@ namespace ir_passes {
         }
 
         ir::Value *find_eq(ir::BinaryInst *inst) {
-            //constant folding
-#ifdef _0
-            if (inst->ValueL.value->optype == ir::OpType::CONST && inst->ValueR.value->optype == ir::OpType::CONST) {
-                return ir::IRBuilder::getConstant(dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value,
-                                                  dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
-                                                  inst->optype, module);
-            }
-#endif
             //remove add 0 or sub 0
             if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
                 inst->ValueR.value->optype == ir::OpType::CONST &&

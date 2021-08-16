@@ -50,7 +50,8 @@ set(IR_PASSES_SOURCES
         src/ir/passes/eliminate_load.cpp
         src/ir/passes/strength_reduction.cpp
         src/ir/passes/vectorization.cpp
-        src/ir/passes/loop.cpp)
+        src/ir/passes/loop.cpp
+        src/ir/passes/side_effect.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp
