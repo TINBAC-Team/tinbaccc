@@ -567,9 +567,12 @@ namespace ir {
     }
 
     Value *
-    IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params, Function *function) {
+    IRBuilder::CreateFuncCall(std::string name, bool is_void, std::vector<ast::Exp *> &params) {
 
-        auto instp = new ir::CallInst(name, is_void,function);
+        auto func = std::find_if(module->functionList.begin(),module->functionList.end(),[&](std::list<Function *>::value_type &v){
+            return v->name == name;
+        });
+        auto instp = new ir::CallInst(name, is_void,*func);
         auto *curblock = GetCurBlock();
         // XXX: should we convert it to unique_ptr instead?
         instp->params.reserve(params.size());

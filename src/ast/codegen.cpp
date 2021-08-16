@@ -117,7 +117,7 @@ namespace ast {
                                    return f->name == name;
                                });
         if (it != builder.module->functionList.end()) func = *it;
-        return builder.CreateFuncCall(name, is_void, params, func);
+        return builder.CreateFuncCall(name, is_void, params);
     }
 
     ir::Value *Function::codegen(ir::IRBuilder &builder) {
