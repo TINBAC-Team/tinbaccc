@@ -23,7 +23,15 @@ namespace ir_passes {
 
         bool hasPureSideEffect(ir::Value *inst) { // without considering Call
             switch (inst->optype) {
-                case ir::OpType::STORE:
+                case ir::OpType::STORE: { // for clang warning: jump bypass variable initialization
+                    auto storeinst = dynamic_cast<const ir::StoreInst *>(inst);
+                    if (storeinst->ptr.value->optype == ir::OpType::GETELEMPTR) {
+                        auto gep = dynamic_cast<ir::GetElementPtrInst *>(storeinst->ptr.value);
+                        if (gep->arr.value->optype == ir::OpType::ALLOCA)
+                            return false;
+                    }
+                    return true;
+                }
                 case ir::OpType::VSTORE:
                     return true;
                 default:
