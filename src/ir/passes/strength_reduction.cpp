@@ -126,11 +126,6 @@ namespace ir_passes {
         for (auto &i:module->functionList)
             for (auto &loop:i->loops) {
                 StrengthREDPass(loop, i, module).run_pass();
-                cnt++;
-                //return;
-                //if(cnt==2) return;
             }
-
-
     }
 }

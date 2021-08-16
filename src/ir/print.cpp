@@ -180,6 +180,8 @@ namespace ir {
                 return "TBD--param"; //TODO:param optype
             case OpType::GETELEMPTR:
                 return "getelementptr";
+            case OpType::VLOAD:
+                return "vload?";
             default:
                 return "unknown";
         }

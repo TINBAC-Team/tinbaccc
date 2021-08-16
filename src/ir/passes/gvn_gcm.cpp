@@ -113,6 +113,7 @@ namespace ir_passes {
             int erase_count = 0;
             int inst_count = func->getInstCount() + 100; // number of instructions
             vn.reserve(inst_count);
+            index_in_vn.reserve(inst_count);
 
             for (auto &bb:func->bList) {
                 auto inst = bb->iList.begin();
@@ -123,14 +124,10 @@ namespace ir_passes {
                         erase_count++;
                         (*inst)->replaceWith(inst_v);
                         delete *inst;
-                        auto it = std::find_if(vn.begin(), vn.end(),
-                                               [inst](std::vector<std::pair<ir::Value *, ir::Value *> >::value_type &pair) {
-                                                   return pair.first == *inst;
-                                               });
-                        index_in_vn.erase((*it).first);
-                        std::swap(*it, vn.back());
+                        int index = index_in_vn[*inst];
+                        index_in_vn.erase(vn[index].first);
+                        std::swap(vn[index], vn.back());
                         vn.pop_back();
-
                         inst = bb->iList.erase(inst);
                         continue;
                     }
@@ -185,6 +182,10 @@ namespace ir_passes {
             return (*a) < (*b) ? b : a;
         }
 
+        bool is_alter_mem_inst(ir::Value *inst) {
+            return inst->optype == ir::OpType::CALL || inst->optype == ir::OpType::STORE ||
+                   inst->optype == ir::OpType::VSTORE;
+        }
 
         void move_icmp_back(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
@@ -261,21 +262,31 @@ namespace ir_passes {
             }
 
             if (dynamic_cast<ir::LoadInst *>(inst)) {
-                if(!last_input) return;
+                if (!last_input) return;
                 auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
                 auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), last_input);
+                auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
+                auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), last_input);
                 int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
                 int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
-                if (inst_pos < target_pos) return;
-                auto store_inst = std::find_if(target_iter, inst_iter, [&](std::list<ir::Value *>::value_type i) {
-                    return dynamic_cast<ir::StoreInst *>(i) != nullptr;
-                });
-                auto call_inst = std::find_if(target_iter, inst_iter, [&](std::list<ir::Value *>::value_type i) {
-                    return dynamic_cast<ir::CallInst *>(i) != nullptr;
-                });
-                if ((store_inst != target_iter || call_inst != target_iter)&& dynamic_cast<ir::LoadInst *>(inst)) {
-                    //NO ALLOW LoadInst free move!
-                    return;
+                if (inst_pos < target_pos) //we are descending...
+                {
+                    auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
+                        return is_alter_mem_inst(i);
+                    });
+                    if (mem_inst != target_iter) {
+                        // DANGER! NOT ALLOW LoadInst to move!
+                        return;
+                    }
+                } else { //we are climbing...
+                    auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
+                                                 [&](std::list<ir::Value *>::value_type i) {
+                                                     return is_alter_mem_inst(i);
+                                                 });
+                    if (mem_inst != target_iter_rev) {
+                        // DANGER! NOT ALLOW LoadInst to move!
+                        return;
+                    }
                 }
             }
             if (last_input)
@@ -284,6 +295,8 @@ namespace ir_passes {
         }
 
         void schedule_inner_late(ir::Value *_inst) {
+            if (_inst->optype == ir::OpType::LOAD && (*_inst->uList.begin())->user->optype == ir::OpType::DUP)
+                printf("DUP!!!\n");
             auto inst = dynamic_cast<ir::Inst *> (_inst);
             if (!inst || inst->vis) return;
             inst->vis = true;
@@ -306,21 +319,31 @@ namespace ir_passes {
                 }
             }
             if (dynamic_cast<ir::LoadInst *>(inst)) {
-                if(!first_user) return;
+                if (!first_user) return;
                 auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
                 auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), first_user);
+                auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
+                auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), first_user);
                 int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
                 int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
-                if (inst_pos > target_pos) return;
-                auto store_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
-                    return dynamic_cast<ir::StoreInst *>(i) != nullptr;
-                });
-                auto call_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
-                    return dynamic_cast<ir::CallInst *>(i) != nullptr;
-                });
-                if ((store_inst != target_iter || call_inst != target_iter) && dynamic_cast<ir::LoadInst *>(inst)) {
-                    //NO ALLOW LoadInst free move!
-                    return;
+                if (inst_pos < target_pos) //we are descending...
+                {
+                    auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
+                        return is_alter_mem_inst(i);
+                    });
+                    if (mem_inst != target_iter) {
+                        // DANGER! NOT ALLOW LoadInst to move!
+                        return;
+                    }
+                } else { //we are climbing...
+                    auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
+                                                 [&](std::list<ir::Value *>::value_type i) {
+                        return is_alter_mem_inst(i);
+                                                 });
+                    if (mem_inst != target_iter_rev) {
+                        // DANGER! NOT ALLOW LoadInst to move!
+                        return;
+                    }
                 }
             }
             if (first_user) {
@@ -414,6 +437,7 @@ namespace ir_passes {
             }
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
+
 
         void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END,
                        ir::Value *target = nullptr) {
