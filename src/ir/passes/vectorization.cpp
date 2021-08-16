@@ -169,6 +169,46 @@ public:
         }
     }
 
+    // determine whether an inst matches the following case:
+    // it's only used in inst OR vInst
+    bool cleanupInst(ir::AutoVectorizationContext *context, bool clean) {
+        for (auto iter = context->bb->iList.cbegin(); iter != context->bb->iList.cend();) {
+            auto * inst = *iter;
+            if (ir::isVector(inst) || context->associatedVInst.find(inst) == context->associatedVInst.cend()) {
+                // ignore
+                iter++;
+                continue;
+            }
+            // might be replaced with a vInst
+            std::vector<ir::Use*> uListCopy;
+            uListCopy.assign(inst->uList.cbegin(),  inst->uList.cend());
+            for(auto & use : uListCopy) {
+                if (context->associatedVInst.find(use->user) != context->associatedVInst.cend()) {
+                    // user is associated with a vInst, ok
+                } else {
+                    return false;
+                }
+            }
+            if (clean) {
+                iter = context->bb->iList.erase(iter);
+                delete inst;
+            } else {
+                iter++;
+            }
+        }
+        return true;
+    }
+
+    void cleanVInst(ir::AutoVectorizationContext *context) {
+        for (auto iter = context->bb->iList.cbegin(); iter != context->bb->iList.cend();) {
+            if (ir::isVector(*iter)) {
+                iter = context->bb->iList.erase(iter);
+            } else {
+                iter++;
+            }
+        }
+    }
+
 
 };
 
@@ -179,10 +219,16 @@ void ir_passes::vectorize(ir::Module *module) {
         if (func->bList.empty()) continue;
         for (auto *bb : func->bList) {
             Vectorization v{bb};
-            auto * context = new ir::AutoVectorizationContext();
-            v.analysisAdjacentMemory(context);
-            v.tryVectorize(context);
-            delete context;
+            ir::AutoVectorizationContext context{bb};
+            v.analysisAdjacentMemory(&context);
+            v.tryVectorize(&context);
+            if (v.cleanupInst(&context, false)) {
+                std::cout << "Successfully Vectorize!" << std::endl;
+                v.cleanupInst(&context, true);
+            } else {
+                std::cout << "Fail to Vectorize!" << std::endl;
+                v.cleanVInst(&context);
+            }
         }
     }
 }
@@ -445,3 +491,5 @@ bool ir::VInst::analysis_(ir::AutoVectorizationContext *context) {
 bool ir::VBinaryInst::analysis(ir::AutoVectorizationContext *context) {
     return analysis_(context);
 }
+
+

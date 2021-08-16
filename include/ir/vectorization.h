@@ -13,9 +13,11 @@ namespace ir {
 
     class AutoVectorizationContext {
     public:
+        BasicBlock *bb;
         std::set<IterationAnalyst *> analyst;
         std::unordered_map<ir::Value *, std::pair<ir::VInst *, int>> associatedVInst;
 
+        AutoVectorizationContext(BasicBlock *bb): bb(bb) {}
     };
 
     class VInst : public Value {
@@ -47,6 +49,7 @@ namespace ir {
         AdjacentMemory(std::vector<ir::GetElementPtrInst *> &address) :
                 arr(this, address[0]->arr.value), VInst(OpType::GETELEMPTR), address(address) {
             this->decl = {this->address[0]->decl};
+            this->dims.reserve(this->address[0]->dims.size());
             for (auto &use : this->address[0]->dims) {
                 this->dims.emplace_back(this, use.value);
             }
