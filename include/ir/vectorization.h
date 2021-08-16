@@ -47,7 +47,7 @@ namespace ir {
         std::vector<int> multipliers;
 
         AdjacentMemory(std::vector<ir::GetElementPtrInst *> &address) :
-                arr(this, address[0]->arr.value), VInst(OpType::GETELEMPTR), address(address) {
+                arr(this, address[0]->arr.value), VInst(OpType::ADJMEMORY), address(address) {
             this->decl = {this->address[0]->decl};
             this->dims.reserve(this->address[0]->dims.size());
             for (auto &use : this->address[0]->dims) {
@@ -147,7 +147,7 @@ namespace ir {
         Use ptr;
         std::vector<LoadInst *> associated;
 
-        VLoadInst(AdjacentMemory *ptr, std::vector<LoadInst *> associated) : VInst(OpType::LOAD),
+        VLoadInst(AdjacentMemory *ptr, std::vector<LoadInst *> associated) : VInst(OpType::VLOAD),
                                                                              ptr(this, ptr),
                                                                              associated(std::move(associated)) {
             this->bb = this->associated[0]->bb;
@@ -188,7 +188,7 @@ namespace ir {
             return associated.size();
         }
 
-        VStoreInst(AdjacentMemory *ptr, VInst *val, std::vector<StoreInst *> associated) : VInst(OpType::STORE), ptr(this, ptr),
+        VStoreInst(AdjacentMemory *ptr, VInst *val, std::vector<StoreInst *> associated) : VInst(OpType::VSTORE), ptr(this, ptr),
                                                       val(this, val), associated(std::move(associated)) {
             this->bb = this->associated[0]->bb;
             std::cout << "VStoreInst Create" << std::endl;

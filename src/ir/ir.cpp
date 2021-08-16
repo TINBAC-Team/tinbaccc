@@ -117,6 +117,7 @@ namespace ir {
             case ir::OpType::BRANCH:
             case ir::OpType::JUMP:
             case ir::OpType::STORE:
+            case ir::OpType::VSTORE:
                 return true;
             case ir::OpType::CALL:
                 // TODO: determine its side-effect from callee
