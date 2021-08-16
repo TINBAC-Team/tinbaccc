@@ -396,6 +396,7 @@ bool tryCombine(ir::AutoVectorizationContext *context, ir::VInst* knownVectorL, 
             for (int i = 0; i < result.pre->getSize(); i++) {
                 context->associatedVInst[result.pre->getAssociatedComponent(i)] = {result.pre, i};
             }
+            mightSameVectorR = dup;
         }
 
         auto *valueL = knownVectorL;
