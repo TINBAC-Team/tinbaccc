@@ -163,7 +163,9 @@ namespace ir {
             case OpType::RETURN:
                 return "ret";
             case OpType::LOAD:
+            case OpType::VLOAD:
                 return "load";
+            case OpType::VSTORE:
             case OpType::STORE:
                 return "store";
             case OpType::CALL:
@@ -172,16 +174,11 @@ namespace ir {
                 return "alloca";
             case OpType::PHI:
                 return "phi";
-            case OpType::CONST:
-                return "TBD--const"; //TODO:const optype
             case OpType::GLOBAL:
                 return "global";
-            case OpType::PARAM:
-                return "TBD--param"; //TODO:param optype
+            case OpType::ADJMEMORY:
             case OpType::GETELEMPTR:
                 return "getelementptr";
-            case OpType::VLOAD:
-                return "vload?";
             default:
                 return "unknown";
         }
@@ -515,13 +512,23 @@ namespace ir {
    }
 
     void VDupInst::print(std::ostream &os) const {
-        os << get_name_of_value((Value *) this) << " = ";
-        os<<"insertelement"<<" <"<<getSize()<<" x "<<"i32> ";
-        for(int i=0;i<associated.size();i++){
-            os<<"i32 "<<get_name_of_value(scalar.value);
-            if(i!=getSize()-1) os<<", ";
+        Value *vec_empty_ptr = new Value(OpType::ALLOCA);
+        os << get_name_of_value(vec_empty_ptr) << " = " << "alloca <" << getSize() << " x i32> " << std::endl << '\t';
+        Value *vec_empty = new Value(OpType::VECTOR);
+        os << get_name_of_value(vec_empty) << " = " << "load" << " <" << getSize() << " x " << "i32> , " << "<"
+           << getSize() << " x " << "i32>* " << get_name_of_value(vec_empty_ptr) << std::endl << '\t';
+        Value *vec_old = vec_empty;
+        Value *vec;
+
+        for (int i = 0; i < associated.size(); i++) {
+            if (i == associated.size() - 1) vec = (Value *) this;
+            else vec = new Value(OpType::VECTOR);
+            os << get_name_of_value(vec) << " = " << "insertelement" << " <" << getSize() << " x " << "i32> "
+               << get_name_of_value(vec_old) << ", ";
+            os << "i32 " << get_name_of_value(scalar.value) << ", i32 " << i;
+            if (i != associated.size() - 1) os << std::endl << "\t";
+            vec_old = vec;
         }
 
-        VInst::print(os);
     }
 }

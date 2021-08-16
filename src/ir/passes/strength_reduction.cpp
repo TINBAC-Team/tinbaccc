@@ -18,7 +18,8 @@ namespace ir_passes {
         explicit StrengthREDPass(ir::Loop *_loop, ir::Function *_func, ir::Module *_module) : loop(_loop), func(_func),
                                                                                               module(_module) {}
 
-        void run_pass() {
+        int run_pass() {
+            int elim_count = 0;
             ir::BasicBlock *pad = loop->prehead;
             body_front = *(++std::find(func->bList.begin(), func->bList.end(), pad));
 
@@ -113,19 +114,21 @@ namespace ir_passes {
                         gepinst->replaceWith(inner_gep);
                         gepinst->bb->eraseInst(gepinst);
                         delete gepinst;
-                        std::cerr << "Performed Strength RED on a GEP." << std::endl;
+                        elim_count++;
                     }
                 }
             }
+            return elim_count;
         }
     };
 
 
     void strength_reduction(ir::Module *module) {
-        int cnt = 0;
+        int count = 0;
         for (auto &i:module->functionList)
             for (auto &loop:i->loops) {
-                StrengthREDPass(loop, i, module).run_pass();
+                count += StrengthREDPass(loop, i, module).run_pass();
             }
+        if (count > 0) std::cerr << "strength reduction: performed " << count << " times." << std::endl;
     }
 }
