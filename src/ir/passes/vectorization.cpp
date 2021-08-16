@@ -509,4 +509,3 @@ bool ir::VBinaryInst::analysis(ir::AutoVectorizationContext *context) {
     return analysis_(context);
 }
 
-
