@@ -243,7 +243,6 @@ void ir_passes::vectorize(ir::Module *module) {
             if (!v.hasAdjacentMemory()) continue;
             v.tryVectorize(&context);
             if (v.cleanupInst(&context, false)) {
-                std::cout << "Successfully Vectorize!" << std::endl;
                 v.cleanupInst(&context, true);
             } else {
                 std::cout << "Fail to Vectorize!" << std::endl;
