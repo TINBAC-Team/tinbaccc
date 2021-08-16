@@ -39,9 +39,20 @@ namespace ir {
     class AdjacentMemory : public VInst, public IterationAnalyst {
     public:
         std::vector<ir::GetElementPtrInst *> address;
+        Use arr;
+        ast::Decl *decl;
+        std::vector<Use> dims;
+        std::vector<int> multipliers;
 
-        AdjacentMemory(std::vector<ir::GetElementPtrInst *> address) :
-                VInst(OpType::GETELEMPTR), address(std::move(address)) {}
+        AdjacentMemory(std::vector<ir::GetElementPtrInst *> &address) :
+                arr(this, address[0]->arr.value), VInst(OpType::GETELEMPTR), address(address) {
+            this->decl = {this->address[0]->decl};
+            for (auto &use : this->address[0]->dims) {
+                this->dims.emplace_back(this, use.value);
+            }
+            this->multipliers = this->address[0]->multipliers;
+            this->bb = this->address[0]->bb;
+        }
 
 
         ir::Value *front() const {
@@ -63,6 +74,8 @@ namespace ir {
         }
 
         bool analysis(AutoVectorizationContext *context);
+
+        void insertToBB();
 
     };
 
@@ -97,6 +110,7 @@ namespace ir {
         VBinaryInst(OpType optype, Value *_ValueL, Value *_ValueR, std::vector<BinaryInst *> associated) :
                 VInst(optype), ValueL(this, _ValueL), ValueR(this, _ValueR), associated(std::move(associated)) {
             std::cout << "VBinaryInst #" << static_cast<int>(optype) << " Create" << std::endl;
+            this->bb = this->associated[0]->bb;
         }
 
         bool analysis(AutoVectorizationContext *context);
@@ -121,7 +135,9 @@ namespace ir {
         std::vector<LoadInst *> associated;
 
         VLoadInst(AdjacentMemory *ptr, std::vector<LoadInst *> associated) : VInst(OpType::LOAD),
-            ptr(this, ptr), associated(std::move(associated)) {
+                                                                             ptr(this, ptr),
+                                                                             associated(std::move(associated)) {
+            this->bb = this->associated[0]->bb;
             std::cout << "VLoadInst Create" << std::endl;
         }
 
@@ -158,7 +174,8 @@ namespace ir {
         }
 
         VStoreInst(AdjacentMemory *ptr, VInst *val) : VInst(OpType::STORE), ptr(this, ptr),
-            val(this, val) {
+                                                      val(this, val) {
+            this->bb = this->associated[0]->bb;
             std::cout << "VStoreInst Create" << std::endl;
         }
 

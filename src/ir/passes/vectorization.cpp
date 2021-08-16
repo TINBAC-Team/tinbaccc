@@ -144,7 +144,11 @@ public:
             }
         }
         for (auto &pair : builders) {
-            memories[pair.first] = pair.second->build();
+            auto v = pair.second->build();
+            for(auto & adj : v) {
+                adj->insertToBB();
+            }
+            memories[pair.first] = std::move((v));
         }
         int debug = 1;
     };
@@ -240,7 +244,10 @@ bool ir::AdjacentMemory::analysis(ir::AutoVectorizationContext *context) {
     return change;
 }
 
-
+void ir::AdjacentMemory::insertToBB() {
+    auto iter = std::find(bb->iList.begin(), bb->iList.end(), address[0]);
+    bb->iList.insert(iter , this);
+}
 
 
 struct VectorizeResult {
