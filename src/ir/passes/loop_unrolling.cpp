@@ -139,20 +139,20 @@ public:
                 if (init < cond) cnt = (cond - init - 1) / delta + 1;
                 else cnt = 0;
                 break;
-                case ir::OpType::SLE:
-                    if (init <= cond) cnt = (cond - init) / delta + 1;
-                    else cnt = 0;
-                    break;
-                    case ir::OpType::SGT:
-                        if (init > cond) cnt = (init - cond - 1) / delta + 1;
-                        else cnt = 0;
-                        break;
-                        case ir::OpType::SGE:
-                            if (init >= cond) cnt = (init - cond) / delta + 1;
-                            else cnt = 0;
-                            break;
-                            default:
-                                return false;
+            case ir::OpType::SLE:
+                if (init <= cond) cnt = (cond - init) / delta + 1;
+                else cnt = 0;
+                break;
+            case ir::OpType::SGT:
+                if (init > cond) cnt = (init - cond - 1) / -delta + 1;
+                else cnt = 0;
+                break;
+            case ir::OpType::SGE:
+                if (init >= cond) cnt = (init - cond) / -delta + 1;
+                else cnt = 0;
+                break;
+            default:
+                return false;
         }
         return true;
     }
@@ -176,7 +176,7 @@ public:
             int loopInit = loopVarInit->value;
             int condConst = cmpValueR->value;
             if (tryInferLoopVarDelta(loopIR->loopCondVar, branchInst->true_block, loopDelta)
-            && tryInferLoopCount(cmpInst->optype, loopInit, condConst, loopDelta, loopCount)) {
+                && tryInferLoopCount(cmpInst->optype, loopInit, condConst, loopDelta, loopCount)) {
                 return true;
             }
         } else if (cmpValueL && !cmpValueR) {
@@ -194,7 +194,7 @@ public:
             int condConst = cmpValueL->value;
             ir::OpType opType = flipOperator(cmpInst->optype);
             if (tryInferLoopVarDelta(loopIR->loopCondVar, branchInst->true_block, loopDelta)
-            && tryInferLoopCount(opType, loopInit, condConst, loopDelta, loopCount)) {
+                && tryInferLoopCount(opType, loopInit, condConst, loopDelta, loopCount)) {
                 return true;
             }
         }
