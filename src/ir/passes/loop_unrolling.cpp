@@ -241,7 +241,7 @@ public:
     }
 
     void makeRunOnce(ir::LoopIR *loopIR) {
-        dynamic_cast<ir::JumpInst*>(loopIR->body->iList.back())->to = loopIR->branchInst->false_block;
+
         for (auto * phi : loopIR->phiInst) {
             std::set<ir::Use*> uList;
             for (auto * use : phi->uList) {
@@ -253,12 +253,17 @@ public:
             phi->uList = uList;
         }
         loopIR->cond->removeParent(loopIR->body);
+        loopIR->body->iList.pop_back();
+        loopIR->body->InsertAtEnd(new ir::JumpInst(loopIR->branchInst->false_block));
+        loopIR->body->removeParent(loopIR->cond);
+        loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->branchInst));
         loopIR->cond->InsertAtEnd(new ir::JumpInst(loopIR->body));
         loopIR->branchInst->false_block->replacePred(loopIR->cond, loopIR->body);
+
         // it's unlikely, but just in case
         loopIR->cmpInst->replaceWith(new ir::ConstValue(0));
         loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst));
-        loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->branchInst));
+
     }
 
 
