@@ -108,6 +108,8 @@ bool ir::tryInferLoopCount(ir::OpType opType, int init, int cond, long delta, in
 bool ir::constLoopCondAnalysis(ir::LoopIR *loopIR, int &loopCount, int &loopDelta) {
     auto *&cmpInst = loopIR->cmpInst;
     auto *&branchInst = loopIR->branchInst;
+    if (!cmpInst || !branchInst || flipOperator(loopIR->cmpInst->optype) == loopIR->cmpInst->optype)
+        return false;
     auto *cmpValueL = dynamic_cast<ir::ConstValue *>(cmpInst->ValueL.value);
     auto *cmpValueR = dynamic_cast<ir::ConstValue *>(cmpInst->ValueR.value);
     loopDelta = 0;
@@ -152,6 +154,7 @@ bool ir::constLoopCondAnalysis(ir::LoopIR *loopIR, int &loopCount, int &loopDelt
 bool ir::flexibleLoopAnalysis(ir::LoopIR *loopIR, int &loopDelta) {
     auto *&cmpInst = loopIR->cmpInst;
     auto *&branchInst = loopIR->branchInst;
+    if (!cmpInst || !branchInst) return false;
     auto *cmpValueL = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);
     auto *cmpValueR = dynamic_cast<ir::PhiInst *>(cmpInst->ValueR.value);
     loopIR->loopCondVar = new LoopVariable();

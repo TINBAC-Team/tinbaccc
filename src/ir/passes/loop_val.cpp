@@ -42,13 +42,16 @@ void computeCondVar(LoopIR *loopIR, bool loopDeltaAvailable, int loopDelta, bool
         cmpOP = flipOperator(cmpOP);
     }
     if (cmpL == loopIR->loopCondVar->loopVarDefine) {
-        if ((loopDelta == 1 && cmpOP == ir::OpType::SLT)
-        || (loopDelta == -1 && cmpOP == ir::OpType::SGT)) {
+        if (loopCountAvailable &&
+            (loopDelta == 1 && cmpOP == ir::OpType::SLT)
+            || (loopDelta == -1 && cmpOP == ir::OpType::SGT)) {
             replaceValue(loopIR, loopIR->loopCondVar, cmpR, 0);
-        } else if (loopDelta == 1 && cmpOP == ir::OpType::SLE) {
+        } else if (loopCountAvailable && loopDelta == 1 && cmpOP == ir::OpType::SLE) {
             replaceValue(loopIR, loopIR->loopCondVar, cmpR, 1);
-        } else if (loopDelta == -1 && cmpOP == ir::OpType::SGE) {
+        } else if (loopCountAvailable && loopDelta == -1 &&  cmpOP == ir::OpType::SGE) {
             replaceValue(loopIR, loopIR->loopCondVar, cmpR, -1);
+        } else if (cmpOP == ir::OpType::NE) {
+            replaceValue(loopIR, loopIR->loopCondVar, cmpR, 0);
         } else return;
         std::cout << "Replace condVar with condVal." << std::endl;
     }
@@ -102,6 +105,7 @@ void ir_passes::loop_val_compute(ir::Module *module) {
             int delta, count;
             bool deltaAvailable, countAvailable;
             if (ir::constLoopCondAnalysis(&loopIR, count, delta)) {
+                if (count == 0) continue;
                 deltaAvailable = true;
                 countAvailable = true;
             } else if (ir::flexibleLoopAnalysis(&loopIR, delta)) {

@@ -256,8 +256,9 @@ public:
         if (constLoopCondAnalysis(&loopIR, loopCount, loopDelta) && loopCount >= 0) {
             if (loopCount == 0) {
                 // remove loop where loopCount = 0
-                loopIR.cmpInst->replaceWith(new ir::ConstValue(0), true);
+                //loopIR.cmpInst->replaceWith(new ir::ConstValue(0), true);
                 std::cout << "replace meaningless cmpInst with const val 0" << std::endl;
+                return;
             }
             int loopUnrollingCount = loopCount / K;
             int loopResetCount = loopCount - loopUnrollingCount * K;
