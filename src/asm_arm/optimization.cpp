@@ -44,6 +44,7 @@ void asm_arm::ArchitectureOptimizer::process() {
         tryCombineMLA(iter);
     }
     tryCombineVMLA();
+    tryVLD1();
 
 }
 
@@ -177,6 +178,50 @@ void asm_arm::ArchitectureOptimizer::tryCombineVMLA() {
                     mulR->mark_nop(true);
                 } else continue;
             } else continue;
+        }
+    }
+}
+
+void asm_arm::ArchitectureOptimizer::tryVLD1() {
+    auto findVLD = [this](const asm_arm::InstLinkedList::iterator &iter, SIMDQReg dst) {
+        for(auto find=this->bb->insts.begin();find !=iter;find++)
+            if (auto *vld = dynamic_cast<VLDRInst *>(*find))
+                if (vld->dst == dst && vld->one_to_all) return vld;
+        return (VLDRInst *) nullptr;
+    };
+
+    auto findUse = [this](SIMDQReg n) {
+        std::vector<Inst *> uList;
+        for (auto *inst : this->bb->insts) {
+            if(inst->nop())
+                continue;
+            if (auto x = dynamic_cast<VBinaryInst *>(inst)) {
+                if (x->lhs == n || x->rhs == n) uList.push_back(x);
+            } else if (auto x = dynamic_cast<VSTRInst *>(inst)) {
+                if (x->src == n) uList.push_back(x);
+            }
+        }
+        return uList;
+    };
+
+    for (auto iter = this->bb->insts.begin(); iter != bb->insts.cend(); iter++) {
+        auto *inst = *iter;
+        if (!inst->nop() && (inst->op == Inst::Op::VMUL || inst->op == Inst::Op::VMLA)) {
+            auto *binaryInst = dynamic_cast<VBinaryInst *>(inst);
+
+            auto *vldl = findVLD(iter, binaryInst->lhs);
+            auto *vldr = findVLD(iter, binaryInst->rhs);
+            if (vldl && findUse(binaryInst->lhs).size() == 1) {
+                std::swap(binaryInst->lhs, binaryInst->rhs);
+                vldl->one_to_all = false;
+                vldl->onelane = true;
+                binaryInst->rhs_onelane = true;
+            } else if (vldr && findUse(binaryInst->rhs).size() == 1) {
+                vldr->one_to_all = false;
+                vldr->onelane = true;
+                binaryInst->rhs_onelane = true;
+            } else continue;
+
         }
     }
 }

@@ -377,6 +377,13 @@ namespace asm_arm {
         return os.str();
     }
 
+    static std::string get_dreg_one_lane(SIMDQReg r) {
+        std::ostringstream os;
+        int qval = static_cast<int>(r);
+        os << "d" << qval * 2 << "[0]";
+        return os.str();
+    }
+
     void VDUPInst::print_body(std::ostream &os) const {
         os << get_qreg_name(dst) << ", " << src->getOperandName();
     }
@@ -386,12 +393,15 @@ namespace asm_arm {
     }
 
     void VBinaryInst::print_body(std::ostream &os) const {
-        os << get_qreg_name(dst) << ", " << get_qreg_name(lhs) << ", " << get_qreg_name(rhs);
+        os << get_qreg_name(dst) << ", " << get_qreg_name(lhs) << ", " <<
+           (rhs_onelane ? get_dreg_one_lane(rhs) : get_qreg_name(rhs));
     }
 
     void VLDRInst::print_body(std::ostream &os) const {
         std::string regs;
-        if(one_to_all)
+        if(onelane)
+            regs = get_dreg_one_lane(dst);
+        else if(one_to_all)
             regs = get_dreg_group_all_lanes(dst);
         else
             regs = get_dreg_group(dst);

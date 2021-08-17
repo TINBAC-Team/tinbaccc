@@ -36,6 +36,8 @@ namespace asm_arm {
 
         void tryCombineVMLA();
 
+        void tryVLD1();
+
         InstLinkedList::iterator getDef(Operand *n) {
             auto iter = def.find(n);
             if (iter != def.cend())

@@ -414,6 +414,7 @@ namespace asm_arm {
     class VBinaryInst : public Inst {
     public:
         SIMDQReg dst, lhs, rhs;
+        bool rhs_onelane = false;
 
         VBinaryInst(Op op, SIMDQReg d, SIMDQReg l, SIMDQReg r);
 
@@ -426,6 +427,7 @@ namespace asm_arm {
         SIMDQReg dst;
         Operand *src;
         bool one_to_all = false;
+        bool onelane = false;
 
         VLDRInst(SIMDQReg d, Operand *s);
 
