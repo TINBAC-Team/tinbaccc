@@ -68,6 +68,15 @@ namespace ir_passes {
                 inst->ValueL.use(ir::IRBuilder::getConstant(0, module));
                 return inst;
             }
+            //ALTER x mul -1
+            if (inst->optype == ir::OpType::SDIV &&
+            inst->ValueR.value->optype == ir::OpType::CONST &&
+            dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == -1) {
+                inst->optype = ir::OpType::SUB;
+                inst->ValueR.use(inst->ValueL.value);
+                inst->ValueL.use(ir::IRBuilder::getConstant(0, module));
+                return inst;
+            }
             //remove x sub x
             if (inst->optype == ir::OpType::SUB && get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
                 return ir::IRBuilder::getConstant(0, module);
