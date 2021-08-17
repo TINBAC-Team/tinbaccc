@@ -59,9 +59,22 @@ namespace ir_passes {
                 dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 1) {
                 return get_vn(inst->ValueL.value);
             }
+            //ALTER x mul -1
+            if (inst->optype == ir::OpType::MUL &&
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == -1) {
+                inst->optype = ir::OpType::SUB;
+                inst->ValueR.use(inst->ValueL.value);
+                inst->ValueL.use(ir::IRBuilder::getConstant(0, module));
+                return inst;
+            }
             //remove x sub x
             if (inst->optype == ir::OpType::SUB && get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
                 return ir::IRBuilder::getConstant(0, module);
+            }
+            //remove x sdiv x
+            if (inst->optype == ir::OpType::SDIV && get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
+                return ir::IRBuilder::getConstant(1, module);
             }
             //remove cmp cond x, x
             if (get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
@@ -553,7 +566,7 @@ namespace ir_passes {
         bool eliminateChainCalc(ir::Value *_inst, ir::Value *_usage) const {
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
-            if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
+            if (!inst || !usage) throw std::runtime_error("chain calculation elimination works only with binaryinst!");
 
             if (inst->ValueR.value->optype != ir::OpType::CONST ||
                 usage->ValueR.value->optype != ir::OpType::CONST)
@@ -591,8 +604,21 @@ namespace ir_passes {
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
             }
+            if (inst->optype == ir::OpType::MUL && usage->optype == ir::OpType::MUL) {
+                usage->ValueL.use(inst->ValueL.value);
+                usage->ValueR.use(ir::IRBuilder::getConstant(constL * constR, module));
+                usage->optype = ir::OpType::MUL;
+                return true;
+            }
+            if (inst->optype == ir::OpType::SDIV && usage->optype == ir::OpType::SDIV) {
+                if (constR <= 0 || 1ll * constL * constR >= INT32_MAX || 1ll * constL * constR <= INT32_MIN)
+                    return false;
+                usage->ValueL.use(inst->ValueL.value);
+                usage->ValueR.use(ir::IRBuilder::getConstant(constL * constR, module));
+                return true;
+            }
             if (inst->optype == ir::OpType::MUL && usage->optype == ir::OpType::SDIV) {
-                if(constL % constR != 0) return false;
+                if (constL % constR != 0) return false;
                 usage->ValueL.use(inst->ValueL.value);
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL / constR, module));
                 usage->optype = ir::OpType::MUL;
