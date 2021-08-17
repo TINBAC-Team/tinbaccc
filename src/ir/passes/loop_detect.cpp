@@ -155,6 +155,7 @@ namespace ir_passes {
         for (auto &i:module->functionList)
         {
             i->loops.clear();
+            i->deepestLoop.clear();
             if (!i->bList.empty())
                 LoopDetector{i}.compute();
         }
