@@ -7,10 +7,11 @@ using ir::LoopVariable;
 
 class LoopUnrolling {
 private:
+    ir::Module *module;
     ir::Function *function;
 
 public:
-    LoopUnrolling(ir::Function *function) : function(function) {}
+    LoopUnrolling(ir::Module *module, ir::Function *function) : module(module), function(function) {}
 
     /**
      * Copy instruction to one basic block.
@@ -124,7 +125,7 @@ public:
             int castValue = (int)newValue;
             if (castValue == newValue) {
                 // assert overflow will not occur
-                *toFix = {loopIR->cmpInst, new ir::ConstValue(castValue)};
+                *toFix = {loopIR->cmpInst, ir::IRBuilder::getConstant(castValue, module)};
                 return;
             }
         }
@@ -142,7 +143,7 @@ public:
         subInst->bb = loopIR->cond;
 
         useL->use(subInst);
-        useR->use(new ir::ConstValue(K * loopDelta));
+        useR->use(ir::IRBuilder::getConstant(K * loopDelta, module));
     }
 
     void insertResetLoop(LoopIR *resetLoopIR, LoopIR *originLoopIR, std::vector<ir::Value *> &originInstList) {
@@ -261,7 +262,7 @@ public:
         loopIR->branchInst->false_block->replacePred(loopIR->cond, loopIR->body);
 
         // it's unlikely, but just in case
-        loopIR->cmpInst->replaceWith(new ir::ConstValue(0));
+        loopIR->cmpInst->replaceWith(ir::IRBuilder::getConstant(0, module));
         loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst));
 
     }
@@ -344,7 +345,7 @@ public:
 void ir_passes::loop_unrolling(ir::Module *module) {
 
     for (auto *func : module->functionList) {
-        LoopUnrolling unrollingFunc(func);
+        LoopUnrolling unrollingFunc(module, func);
         for (auto *loop : std::vector<ir::Loop *>{func->deepestLoop.cbegin(), func->deepestLoop.cend()})
             unrollingFunc.unrolling(loop);
     }
