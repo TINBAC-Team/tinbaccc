@@ -48,6 +48,14 @@ namespace ir_passes {
         }
 
         ir::Value *find_eq(ir::BinaryInst *inst) {
+            //constant propagation
+            if (inst->ValueL.value->optype == ir::OpType::CONST &&
+                inst->ValueR.value->optype == ir::OpType::CONST) {
+                return ir::IRBuilder::getConstant(
+                        dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value,
+                        dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
+                        inst->optype, module);
+            }
             //remove add 0 or sub 0
             if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
                 inst->ValueR.value->optype == ir::OpType::CONST &&
@@ -149,26 +157,6 @@ namespace ir_passes {
                     }
                     inst++;
                 }
-            }
-            for (auto &bb:func->bList) {
-                auto inst = bb->iList.begin();
-                while (inst != bb->iList.end()) {
-                    auto bin_inst = dynamic_cast<ir::BinaryInst *>(*inst);
-                    if (!bin_inst) {inst++;continue;}
-                    if (bin_inst->ValueL.value->optype == ir::OpType::CONST &&
-                        bin_inst->ValueR.value->optype == ir::OpType::CONST) {
-                        bin_inst->replaceWith(ir::IRBuilder::getConstant(
-                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueL.value)->value,
-                                dynamic_cast<ir::ConstValue *>(bin_inst->ValueR.value)->value,
-                                bin_inst->optype, module));
-                        delete bin_inst;
-                        erase_count++;
-                        inst = bb->iList.erase(inst);
-                        continue;
-                    }
-                    inst++;
-                }
-
             }
             return erase_count;
         }
@@ -543,7 +531,7 @@ namespace ir_passes {
         }
 
 
-        bool try_eliminate_chain_add(ir::Value *_inst, ir::Value *_usage) {
+        bool eliminate_chain_calc(ir::Value *_inst, ir::Value *_usage) {
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
@@ -585,6 +573,13 @@ namespace ir_passes {
                 return true;
             }
             return false;
+            if (inst->optype == ir::OpType::MUL && usage->optype == ir::OpType::SDIV) {
+                if(constL % constR != 0) return false;
+                usage->ValueL.use(inst->ValueL.value);
+                usage->ValueR.use(ir::IRBuilder::getConstant(constL / constR, module));
+                return true;
+            }
+            return false;
         }
 
         void schedule_late(ir::Value *inst) {
@@ -603,7 +598,7 @@ namespace ir_passes {
             }
             for(auto &i:use){
                 if (dynamic_cast<ir::BinaryInst *>(inst) && dynamic_cast<ir::BinaryInst *>(i->user))
-                    try_eliminate_chain_add(inst, i->user);
+                    eliminate_chain_calc(inst, i->user);
             }
             //eliminate chain add done.
             for (auto &y:inst->uList){
