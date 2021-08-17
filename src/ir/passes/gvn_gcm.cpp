@@ -143,12 +143,14 @@ namespace ir_passes {
                 if (inst->function != inst_prev->function) continue;
                 //check param
                 size_t param_size = inst->params.size();
+                bool dims_same = true;
                 for (size_t index = 0; index < param_size; index++) {
                     if (get_vn(inst->params[index].value) != get_vn(inst_prev->params[index].value)) {
-                        return inst;
+                        dims_same = false;
                     }
                 }
-                return vn[i].second;
+                if(dims_same)
+                    return vn[i].second;
             }
             return inst;
         }
@@ -177,6 +179,7 @@ namespace ir_passes {
 
         //it is O(n^2)
         int run_pass() {
+//            int dbg = 0;
             int erase_count = 0;
             int inst_count = func->getInstCount() + 100; // number of instructions
             vn.reserve(inst_count);
@@ -185,6 +188,12 @@ namespace ir_passes {
             for (auto &bb:func->bList) {
                 auto inst = bb->iList.begin();
                 while (inst != bb->iList.end()) {
+//                    if((*inst)->bb->name=="_while.true2" && (*inst)->optype==ir::OpType::CALL)
+//                    {
+//                        dbg++;
+//                        if(dbg==2)
+//                            printf("CATCH!\n");
+//                    }
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
                         erase_count++;
