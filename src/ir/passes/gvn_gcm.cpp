@@ -45,18 +45,41 @@ namespace ir_passes {
             if (inst->optype == ir::OpType::SDIV &&
                 inst->ValueL.value->optype == ir::OpType::CONST &&
                 dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value == 0) {
-                return ir::IRBuilder::getConstant(0,module);
+                return ir::IRBuilder::getConstant(0, module);
             }
             //remove x mul 0
             if (inst->optype == ir::OpType::MUL &&
-            inst->ValueR.value->optype == ir::OpType::CONST &&
-            dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
-                return ir::IRBuilder::getConstant(0,module);
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
+                return ir::IRBuilder::getConstant(0, module);
+            }
+            //remove x mul 1
+            if (inst->optype == ir::OpType::MUL &&
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 1) {
+                return get_vn(inst->ValueL.value);
             }
             //remove x sub x
-            if (inst->optype == ir::OpType::SUB && get_vn(inst->ValueL.value)== get_vn(inst->ValueR.value)){
-                return ir::IRBuilder::getConstant(0,module);
+            if (inst->optype == ir::OpType::SUB && get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
+                return ir::IRBuilder::getConstant(0, module);
             }
+            //remove cmp cond x, x
+            if (get_vn(inst->ValueL.value) == get_vn(inst->ValueR.value)) {
+                switch (inst->optype) {
+                    case ir::OpType::EQ:
+                    case ir::OpType::SGE:
+                    case ir::OpType::SLE:
+                        return ir::IRBuilder::getConstant(1, module);
+                    case ir::OpType::NE:
+                    case ir::OpType::SGT:
+                    case ir::OpType::SLT:
+                        return ir::IRBuilder::getConstant(0, module);
+                    case ir::OpType::AND:
+                    case ir::OpType::OR:
+                        return get_vn(inst->ValueL.value);
+                }
+            }
+            if (inst->is_icmp()) return inst;
             size_t size = vn.size();
             for (int i = 0; i < size; i++) {
                 auto inst_prev = dynamic_cast<ir::BinaryInst *>(vn[i].first);
@@ -110,8 +133,7 @@ namespace ir_passes {
                 vn[cur].second = find_eq(gepinst);
             }
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(vn[cur].first)) {
-                if (!bininst->is_icmp())
-                    vn[cur].second = find_eq(bininst);
+                vn[cur].second = find_eq(bininst);
             }
             if (auto callinst = dynamic_cast<ir::CallInst *>(vn[cur].first)) {
                 vn[cur].second = find_eq(callinst);
