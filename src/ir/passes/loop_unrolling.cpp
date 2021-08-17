@@ -240,6 +240,29 @@ public:
         }
     }
 
+    void makeRunOnce(ir::LoopIR *loopIR) {
+        dynamic_cast<ir::JumpInst*>(loopIR->body->iList.back())->to = loopIR->branchInst->false_block;
+        for (auto * phi : loopIR->phiInst) {
+            std::set<ir::Use*> uList;
+            for (auto * use : phi->uList) {
+                if (use->user->bb == loopIR->body || use->user->bb == loopIR->cond)
+                    uList.insert(use);
+                else
+                    use->use(phi->GetRelatedValue(loopIR->branchInst->true_block), false);
+            }
+            phi->uList = uList;
+        }
+        loopIR->cond->removeParent(loopIR->body);
+        loopIR->cond->InsertAtEnd(new ir::JumpInst(loopIR->body));
+        loopIR->branchInst->false_block->replacePred(loopIR->cond, loopIR->body);
+        // it's unlikely, but just in case
+        loopIR->cmpInst->replaceWith(new ir::ConstValue(0));
+        loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->cmpInst));
+        loopIR->cond->iList.erase(std::find(loopIR->cond->iList.begin(), loopIR->cond->iList.end(), loopIR->branchInst));
+    }
+
+
+
     void unrolling(ir::Loop *loop) {
         // Step1 only consider one basic block
         if (loop->body.size() != 2) return;
@@ -271,13 +294,29 @@ public:
             for (int i = 0; i < K - 1; i++)
                 duplicateLoopBody(&loopIR, loopIR.body, &loopIR, iList);
             loopIR.body->InsertAtEnd(jumpToCond);
-            std::cout << "unrolling constLoopCond #1" << std::endl;
+            std::cout << "unrolling constLoopCond #1 (" << loopUnrollingCount << ")" << std::endl;
 
             if (loopResetCount > 0) {
+                std::cout << "unrolling constLoopCond #2 (" << loopResetCount << ")" << std::endl;
                 LoopIR resetLoopIR;
                 insertResetLoop(&resetLoopIR, &loopIR, iList);
                 fixUnrollingLoopCondition(&loopIR, loopDelta, loopResetCount);
-                std::cout << "unrolling constLoopCond #2" << std::endl;
+                if (loopResetCount > 1) {
+                    auto * resetLoopJump = resetLoopIR.body->iList.back();
+                    resetLoopIR.body->iList.pop_back();
+                    std::vector<ir::Value*> resetLoopList;
+                    resetLoopList.assign(resetLoopIR.body->iList.cbegin(),  resetLoopIR.body->iList.cend());
+                    for(int i=0; i < loopResetCount -1; i++) {
+                        duplicateLoopBody(&resetLoopIR, resetLoopIR.body, &resetLoopIR, resetLoopList);
+                    }
+                    resetLoopIR.body->InsertAtEnd(resetLoopJump);
+                }
+                if (loopResetCount > 0) {
+                    makeRunOnce(&resetLoopIR);
+                }
+            }
+            if (loopUnrollingCount == 1) {
+                makeRunOnce(&loopIR);
             }
         } else if (flexibleLoopAnalysis(&loopIR, loopDelta)) {
             auto *jumpToCond = loopIR.body->iList.back();
