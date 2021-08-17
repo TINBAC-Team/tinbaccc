@@ -572,11 +572,11 @@ namespace ir_passes {
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL + constR, module));
                 return true;
             }
-            return false;
             if (inst->optype == ir::OpType::MUL && usage->optype == ir::OpType::SDIV) {
                 if(constL % constR != 0) return false;
                 usage->ValueL.use(inst->ValueL.value);
                 usage->ValueR.use(ir::IRBuilder::getConstant(constL / constR, module));
+                usage->optype = ir::OpType::MUL;
                 return true;
             }
             return false;
