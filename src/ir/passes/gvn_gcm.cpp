@@ -72,6 +72,27 @@ namespace ir_passes {
             return inst;
         }
 
+        ir::Value *find_eq(ir::CallInst *inst) {
+            if (inst->function->has_side_effect) return inst;
+            if (inst->function->load_from_addr) return inst;
+            size_t size = vn.size();
+            for (int i = 0; i < size; i++) {
+                auto inst_prev = dynamic_cast<ir::CallInst *>(vn[i].first);
+                if (!inst_prev || inst == inst_prev) continue;
+                //check function
+                if (inst->function != inst_prev->function) continue;
+                //check param
+                size_t param_size = inst->params.size();
+                for (size_t i = 0; i < param_size; i++) {
+                    if (get_vn(inst->params[i].value) != get_vn(inst_prev->params[i].value)) {
+                        return inst;
+                    }
+                }
+                return vn[i].second;
+            }
+            return inst;
+        }
+
         ir::Value *get_vn(ir::Value *value) {
             if (index_in_vn.find(value) != index_in_vn.end()) {
                 int index = index_in_vn[value];
@@ -96,6 +117,9 @@ namespace ir_passes {
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(vn[cur].first)) {
                 if (!bininst->is_icmp())
                     vn[cur].second = find_eq(bininst);
+            }
+            if (auto callinst = dynamic_cast<ir::CallInst *>(vn[cur].first)) {
+                vn[cur].second = find_eq(callinst);
             }
             return vn[cur].second;
         }
@@ -175,14 +199,17 @@ namespace ir_passes {
         }
 
         bool is_alter_mem_inst(ir::Value *inst) {
-            return inst->optype == ir::OpType::CALL || inst->optype == ir::OpType::STORE;
+            if (auto callinst = dynamic_cast<ir::CallInst *>(inst)) {
+                return callinst->function->has_side_effect;
+            }
+            return inst->optype == ir::OpType::STORE;
             // FIXME: load can not move across VStore, so the frontend may produce wrong code.
             //  ADD a VSTORE here if vector instuctions are carefully inserted in the first place,
             //  to guarantee its correctness.
         }
 
         bool can_move_to_target(ir::Value* inst, ir::Value* target){
-            if(inst->optype!=ir::OpType::LOAD) return true;
+            if (inst->optype != ir::OpType::LOAD && inst->optype != ir::OpType::CALL) return true;
             if (!target) return false;
             auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
             auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), target);
@@ -273,7 +300,10 @@ namespace ir_passes {
                 schedule_inner_early(usage);
             }
             if (!dynamic_cast<ir::BinaryInst *>(inst) && !dynamic_cast<ir::GetElementPtrInst *>(inst) &&
-                !dynamic_cast<ir::LoadInst *>(inst))
+                !dynamic_cast<ir::LoadInst *>(inst) &&
+                !(dynamic_cast<ir::CallInst *>(inst) &&
+                  !dynamic_cast<ir::CallInst *>(inst)->function->has_side_effect &&
+                  !dynamic_cast<ir::CallInst *>(inst)->function->load_from_addr))
                 return;
             for (auto &usage:uses) {
                 if (std::distance(inst->bb->iList.begin(),
@@ -302,7 +332,10 @@ namespace ir_passes {
                 schedule_inner_late(use->user);
             }
             if (!dynamic_cast<ir::BinaryInst *>(inst) && !dynamic_cast<ir::GetElementPtrInst *>(inst) &&
-                !dynamic_cast<ir::LoadInst *>(inst))
+                !dynamic_cast<ir::LoadInst *>(inst) &&
+                !(dynamic_cast<ir::CallInst *>(inst) &&
+                  !dynamic_cast<ir::CallInst *>(inst)->function->has_side_effect &&
+                  !dynamic_cast<ir::CallInst *>(inst)->function->load_from_addr))
                 return;
             for(auto &use:inst->uList){
                 if (use->user->bb != inst->bb) continue;
@@ -402,6 +435,9 @@ namespace ir_passes {
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(inst)) {
                 return bininst->is_icmp();
             }
+            if (auto callinst = dynamic_cast<ir::CallInst *>(inst)) {
+                return callinst->function->has_side_effect || callinst->function->load_from_addr;
+            }
             return !(dynamic_cast<ir::GetElementPtrInst *>(inst) || dynamic_cast<ir::BinaryInst *>(inst));
         }
 
@@ -445,11 +481,22 @@ namespace ir_passes {
             if (auto inst = dynamic_cast<ir::GetElementPtrInst *>(_inst)) {
                 move_inst(_inst, block);
                 schedule_early(inst->arr.value);
-                schedule_deeper(inst,inst->arr.value);
+                schedule_deeper(inst, inst->arr.value);
                 for (auto &i:inst->dims) {
                     schedule_early(i.value);
-                    schedule_deeper(inst,i.value);
+                    schedule_deeper(inst, i.value);
                 }
+            }
+            if (auto inst = dynamic_cast<ir::CallInst *>(_inst)) {
+                if (!inst->function->has_side_effect && !inst->function->load_from_addr)
+                {
+                    move_inst(_inst, block);
+                    for (auto &i:inst->params) {
+                        schedule_early(i.value);
+                        schedule_deeper(inst, i.value);
+                    }
+                }
+
             }
             if (auto inst = dynamic_cast<ir::BinaryInst *>(_inst)) {
                 ir::BasicBlock *old_bb = _inst->bb;
@@ -616,6 +663,5 @@ namespace ir_passes {
             if (!i->bList.empty()) {
                 GCMPass(i, module).run_pass(sche_late);
             }
-
     }
 }

@@ -217,9 +217,11 @@ namespace ir {
         std::set<Loop *> loops;
         std::vector<Loop *> deepestLoop;
         bool has_side_effect;
+        bool load_from_addr;
         bool visit;
 
-        explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret), has_side_effect(false) {}
+        explicit Function(std::string n, bool ret) : name(std::move(n)), return_int(ret), has_side_effect(false),
+                                                     load_from_addr(false) {}
 
         /**
          * create a new block, add it to current function and return it.

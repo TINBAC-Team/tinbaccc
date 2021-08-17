@@ -39,13 +39,27 @@ namespace ir_passes {
             }
         }
 
+        bool isLoadFromAddr(ir::Value *inst) {
+            auto gepinst = dynamic_cast<ir::GetElementPtrInst *>(inst);
+            auto ldinst = dynamic_cast<ir::LoadInst *>(inst);
+            if (gepinst)
+                return dynamic_cast<ir::GlobalVar *>(gepinst->arr.value) ||
+                       dynamic_cast<ir::FuncParam *>(gepinst->arr.value);
+            if (ldinst)
+                return dynamic_cast<ir::GlobalVar *>(ldinst->ptr.value) ||
+                       dynamic_cast<ir::FuncParam *>(ldinst->ptr.value);
+            return false;
+        }
+
         void dfs(ir::Function *func) {
             if (func->visit) return;
             func->visit = true;
-            if (!func->has_side_effect) return;
             for (auto &v:rev_call_graph[func]) {
                 if (func->has_side_effect) {
                     v->has_side_effect = true;
+                }
+                if (func->load_from_addr) {
+                    v->load_from_addr = true;
                 }
                 dfs(v);
             }
@@ -60,14 +74,14 @@ namespace ir_passes {
                         if (hasPureSideEffect(inst)) {
                             func->has_side_effect = true;
                         }
+                        if (isLoadFromAddr(inst)) {
+                            func->load_from_addr = true;
+                        }
                         if (auto callinst = dynamic_cast<ir::CallInst *>(inst)) {
-                            auto call_target = std::find_if(module->functionList.begin(), module->functionList.end(),
-                                                            [&](std::list<ir::Function *>::value_type &target) {
-                                                                return target->name == callinst->fname;
-                                                            });
-                            if (call_target == module->functionList.end())
+                            auto call_target = callinst->function;
+                            if (!call_target)
                                 throw std::runtime_error("Calling invalid function.");
-                            rev_call_graph[*call_target].push_back(func);
+                            rev_call_graph[call_target].push_back(func);
                         }
                     }
                 }
