@@ -55,8 +55,8 @@ namespace ir_passes {
                 func_length[func] += bb->iList.size();
                 for (auto inst_it = bb->iList.begin(); inst_it != bb->iList.end(); inst_it++) {
                     auto &inst = *inst_it;
-                    if (inst->optype == ir::OpType::ALLOCA)
-                        not_inlinable_func.insert(func);
+                    /*if (inst->optype == ir::OpType::ALLOCA)
+                        not_inlinable_func.insert(func);*/
                     // check optype first to avoid too many vtable lookups
                     if (inst->optype != ir::OpType::CALL)
                         continue;
@@ -189,6 +189,10 @@ namespace ir_passes {
                         dup->multipliers = x->multipliers;
                         if(auto gep_src = dynamic_cast<ir::GetElementPtrInst *>(get_val(x->arr)))
                             dup->decl = x->decl;
+                        dst_bb->InsertAtEnd(dup);
+                        value_map[inst] = dup;
+                    } else if (auto x = dynamic_cast<ir::AllocaInst *>(inst)) {
+                        auto *dup = new ir::AllocaInst(x->decl);
                         dst_bb->InsertAtEnd(dup);
                         value_map[inst] = dup;
                     } else {
