@@ -15,8 +15,9 @@ void replaceValue(ir::LoopIR *loopIR, ir::LoopVariable *loopVar, ir::Value *base
             replace = new ir::ConstValue(x->value + delta);
         } else {
             replace = new ir::BinaryInst(ir::OpType::ADD, base, new ir::ConstValue(delta));
+            loopIR->cond->InsertBefore(replace, loopVar->loopVarDefine);
         }
-        loopIR->cond->InsertBefore(replace, loopVar->loopVarDefine);
+
     }
     std::set<ir::Use*> uList;
     for (auto * curr_use : loopVar->loopVarDefine->uList) {
