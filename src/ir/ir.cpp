@@ -54,7 +54,6 @@ namespace ir {
         auto *constL = dynamic_cast<ConstValue *>(_ValueL);
         auto *constR = dynamic_cast<ConstValue *>(_ValueR);
         if (constL && constR) {
-
             return getConstant(constL->value, constR->value, optype, *this);
         }
         if (constL && (optype == OpType::ADD || optype == OpType::MUL)) std::swap(_ValueL, _ValueR);

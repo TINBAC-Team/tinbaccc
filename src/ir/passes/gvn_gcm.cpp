@@ -1,3 +1,6 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-no-recursion"
+
 #include "ir/passes/gvn_gcm.h"
 #include <map>
 #include <unordered_map>
@@ -10,37 +13,13 @@ namespace ir_passes {
     class GVNPass {
     public:
         std::vector<std::pair<ir::Value *, ir::Value *> > vn;
-        std::unordered_map<ir::Value *, int> index_in_vn;
+        std::unordered_map<ir::Value *, size_t> index_in_vn;
         ir::Function *func;
         ir::Module *module;
 
         explicit GVNPass(ir::Function *f, ir::Module *_module) : func(f), module(_module) {}
 
-        std::map<std::vector<std::pair<ir::OpType, std::vector<ir::Value *> > >, int> inst_input;
-
-        ir::Value *find_eq(ir::GetElementPtrInst *inst) {
-            size_t size = vn.size();
-            for (int i = 0; i < size; i++) {
-                auto inst_prev = dynamic_cast<ir::GetElementPtrInst *>(vn[i].first);
-                if (!inst_prev || inst == inst_prev) continue;
-
-                //check dim size and arr address
-                if (inst->dims.size() != inst_prev->dims.size()) continue;
-                if (inst->decl != inst_prev->decl) continue;
-                if (get_vn(inst->arr.value) != get_vn(inst_prev->arr.value)) continue;
-                //check dim value
-                bool dims_same = true;
-                for (size_t dim_index = 0; dim_index < inst->dims.size(); dim_index++) {
-                    if (get_vn(inst->dims[dim_index].value) != get_vn(inst_prev->dims[dim_index].value)) {
-                        dims_same = false;
-                    }
-                }
-                if (dims_same) {
-                    return get_vn(vn[i].second);
-                }
-            }
-            return inst;
-        }
+        ir::Value *find_eq(ir::GetElementPtrInst *inst);
 
         static bool is_swappable(ir::OpType op) {
             return op == ir::OpType::ADD || op == ir::OpType::MUL || op == ir::OpType::EQ || op == ir::OpType::NE ||
@@ -56,11 +35,27 @@ namespace ir_passes {
                         dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
                         inst->optype, module);
             }
-            //remove add 0 or sub 0
+            //remove add 0 ,sub 0 or mul 0
             if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
                 inst->ValueR.value->optype == ir::OpType::CONST &&
                 dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
                 return inst->ValueL.value;
+            }
+            //remove 0 sdiv x
+            if (inst->optype == ir::OpType::SDIV &&
+                inst->ValueL.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value == 0) {
+                return ir::IRBuilder::getConstant(0,module);
+            }
+            //remove x mul 0
+            if (inst->optype == ir::OpType::MUL &&
+            inst->ValueR.value->optype == ir::OpType::CONST &&
+            dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
+                return ir::IRBuilder::getConstant(0,module);
+            }
+            //remove x sub x
+            if (inst->optype == ir::OpType::SUB && get_vn(inst->ValueL.value)== get_vn(inst->ValueR.value)){
+                return ir::IRBuilder::getConstant(0,module);
             }
             size_t size = vn.size();
             for (int i = 0; i < size; i++) {
@@ -91,8 +86,8 @@ namespace ir_passes {
                 if (inst->function != inst_prev->function) continue;
                 //check param
                 size_t param_size = inst->params.size();
-                for (size_t i = 0; i < param_size; i++) {
-                    if (get_vn(inst->params[i].value) != get_vn(inst_prev->params[i].value)) {
+                for (size_t index = 0; index < param_size; index++) {
+                    if (get_vn(inst->params[index].value) != get_vn(inst_prev->params[index].value)) {
                         return inst;
                     }
                 }
@@ -103,19 +98,11 @@ namespace ir_passes {
 
         ir::Value *get_vn(ir::Value *value) {
             if (index_in_vn.find(value) != index_in_vn.end()) {
-                int index = index_in_vn[value];
+                size_t index = index_in_vn[value];
                 if (vn[index].first != vn[index].second) {
                     return vn[index].second = get_vn(vn[index].second);
                 } else return vn[index].first;
             }
-            // path compression trick
-            //.. if A,B,C are three identical instructions, vn[A]=A, vn[B]=A, vn[C]=B,
-            //.. then vn[C] would be updated to A after path compression.
-            //.. in this case: there are two instructions Inst1(A,B,C), Inst2(A,A,A)
-            //.. if no path compression, the two instructions are different, but now they can be treated as the same.
-            //.. I haven't seen any other implementation uses this trick, but it seems no counterexamples doing this.
-            //..**REMOVE** it if encountered any problems.
-
             vn.emplace_back(value, value);
             index_in_vn[value] = vn.size() - 1;
             size_t cur = vn.size() - 1;
@@ -141,14 +128,13 @@ namespace ir_passes {
 
             for (auto &bb:func->bList) {
                 auto inst = bb->iList.begin();
-                int cnt = 0;
                 while (inst != bb->iList.end()) {
                     auto inst_v = get_vn(*inst);
                     if (inst_v != *inst) {
                         erase_count++;
                         (*inst)->replaceWith(inst_v);
                         delete *inst;
-                        int index = index_in_vn[*inst];
+                        size_t index = index_in_vn[*inst];
                         index_in_vn.erase(vn[index].first);
                         std::swap(vn[index], vn.back());
                         vn.pop_back();
@@ -163,6 +149,30 @@ namespace ir_passes {
 
 
     };
+
+    ir::Value *GVNPass::find_eq(ir::GetElementPtrInst *inst) {
+        size_t size = vn.size();
+        for (int i = 0; i < size; i++) {
+            auto inst_prev = dynamic_cast<ir::GetElementPtrInst *>(vn[i].first);
+            if (!inst_prev || inst == inst_prev) continue;
+
+            //check dim size and arr address
+            if (inst->dims.size() != inst_prev->dims.size()) continue;
+            if (inst->decl != inst_prev->decl) continue;
+            if (get_vn(inst->arr.value) != get_vn(inst_prev->arr.value)) continue;
+            //check dim value
+            bool dims_same = true;
+            for (size_t dim_index = 0; dim_index < inst->dims.size(); dim_index++) {
+                if (get_vn(inst->dims[dim_index].value) != get_vn(inst_prev->dims[dim_index].value)) {
+                    dims_same = false;
+                }
+            }
+            if (dims_same) {
+                return get_vn(vn[i].second);
+            }
+        }
+        return inst;
+    }
 
     class GCMPass {
     public:
@@ -179,14 +189,7 @@ namespace ir_passes {
 
         explicit GCMPass(ir::Function *f, ir::Module *_module) : func(f), module(_module) {}
 
-        ir::BasicBlock *depth_max(ir::BasicBlock *a, ir::BasicBlock *b) {
-            if (a == nullptr && b == nullptr) throw std::runtime_error("Requesting max depth of two null BB");
-            if (a == nullptr) return b;
-            if (b == nullptr) return a;
-            return (*a) < (*b) ? b : a;
-        }
-
-        bool is_alter_mem_inst(ir::Value *inst) {
+        static bool isAlterMemInst(ir::Value *inst) {
             if (auto callinst = dynamic_cast<ir::CallInst *>(inst)) {
                 return callinst->function->has_side_effect;
             }
@@ -196,28 +199,27 @@ namespace ir_passes {
             //  to guarantee its correctness.
         }
 
-        bool can_move_to_target(ir::Value* inst, ir::Value* target){
+        static bool canMoveToTarget(ir::Value *inst, ir::Value *target) {
             if (inst->optype != ir::OpType::LOAD && inst->optype != ir::OpType::CALL) return true;
             if (!target) return false;
             auto inst_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), inst);
             auto target_iter = std::find(inst->bb->iList.begin(), inst->bb->iList.end(), target);
             auto inst_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), inst);
             auto target_iter_rev = std::find(inst->bb->iList.rbegin(), inst->bb->iList.rend(), target);
-            int inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
-            int target_pos = std::distance(inst->bb->iList.begin(), target_iter);
-            if (inst_pos < target_pos)
-                {
+            size_t inst_pos = std::distance(inst->bb->iList.begin(), inst_iter);
+            size_t target_pos = std::distance(inst->bb->iList.begin(), target_iter);
+            if (inst_pos < target_pos) {
                 auto mem_inst = std::find_if(inst_iter, target_iter, [&](std::list<ir::Value *>::value_type i) {
-                    return is_alter_mem_inst(i);
+                    return isAlterMemInst(i);
                 });
                 if (mem_inst != target_iter) {
                     return false;
                 }
-                } else { //we are climbing...
+            } else { //we are climbing...
                 auto mem_inst = std::find_if(inst_iter_rev, target_iter_rev,
                                              [&](std::list<ir::Value *>::value_type i) {
-                    return is_alter_mem_inst(i);
-                });
+                                                 return isAlterMemInst(i);
+                                             });
                 if (mem_inst != target_iter_rev) {
                     return false;
                 }
@@ -225,7 +227,7 @@ namespace ir_passes {
             return true;
         }
 
-        void move_icmp_back(ir::BasicBlock *bb) {
+        static void moveIcmpBack(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
@@ -244,7 +246,7 @@ namespace ir_passes {
             }
         }
 
-        void move_terminal_inst_back(ir::BasicBlock *bb) {
+        static void moveTerminalInstBack(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
@@ -258,7 +260,7 @@ namespace ir_passes {
             }
         }
 
-        void move_phi_front(ir::BasicBlock *bb) {
+        static void movePhiFront(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
@@ -288,20 +290,20 @@ namespace ir_passes {
                 schedule_inner_early(usage);
             }
             if (!dynamic_cast<ir::BinaryInst *>(inst) && !dynamic_cast<ir::GetElementPtrInst *>(inst) &&
-                !dynamic_cast<ir::LoadInst *>(inst) &&
-                !(dynamic_cast<ir::CallInst *>(inst) &&
-                  !dynamic_cast<ir::CallInst *>(inst)->function->has_side_effect &&
-                  !dynamic_cast<ir::CallInst *>(inst)->function->load_from_addr))
+                    !dynamic_cast<ir::LoadInst *>(inst) &&
+                    !(dynamic_cast<ir::CallInst *>(inst) &&
+                            !dynamic_cast<ir::CallInst *>(inst)->function->has_side_effect &&
+                            !dynamic_cast<ir::CallInst *>(inst)->function->load_from_addr))
                 return;
             for (auto &usage:uses) {
-                if (std::distance(inst->bb->iList.begin(),
-                                  std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage)) > dis) {
-                    dis = std::distance(inst->bb->iList.begin(),
-                                        std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage));
+                if ((int) std::distance(inst->bb->iList.begin(),
+                                        std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage)) > dis) {
+                    dis = (int) std::distance(inst->bb->iList.begin(),
+                                              std::find(inst->bb->iList.begin(), inst->bb->iList.end(), usage));
                     last_input = usage;
                 }
             }
-            if(!can_move_to_target(inst,last_input)) return;
+            if (!canMoveToTarget(inst, last_input)) return;
             if (last_input)
                 move_inst(inst, inst->bb, MoveBehavior::MOVE_AFTER, last_input);
             else move_inst(inst, inst->bb, MoveBehavior::MOVE_FRONT);
@@ -313,7 +315,7 @@ namespace ir_passes {
             auto inst = dynamic_cast<ir::Inst *> (_inst);
             if (!inst || inst->vis) return;
             inst->vis = true;
-            int dis = std::distance(inst->bb->iList.begin(), inst->bb->iList.end()) + 1;
+            int dis = (int) std::distance(inst->bb->iList.begin(), inst->bb->iList.end()) + 1;
             ir::Value *first_user = nullptr;
             for (auto &use:inst->uList) {
                 if (use->user->bb != inst->bb) continue;
@@ -329,12 +331,12 @@ namespace ir_passes {
                 if (use->user->bb != inst->bb) continue;
                 if (std::distance(inst->bb->iList.begin(),
                                   std::find(inst->bb->iList.begin(), inst->bb->iList.end(), use->user)) < dis) {
-                    dis = std::distance(inst->bb->iList.begin(),
-                                        std::find(inst->bb->iList.begin(), inst->bb->iList.end(), use->user));
+                    dis = (int) std::distance(inst->bb->iList.begin(),
+                                              std::find(inst->bb->iList.begin(), inst->bb->iList.end(), use->user));
                     first_user = use->user;
                 }
             }
-            if(!can_move_to_target(inst,first_user)) return;
+            if (!canMoveToTarget(inst, first_user)) return;
             if (first_user) {
                 // If an instruction A immediately precedes the [first user],
                 // and A's uList has only one usage by [first user], then we move up...
@@ -351,8 +353,7 @@ namespace ir_passes {
             } else move_inst(inst, inst->bb, MoveBehavior::MOVE_END);
         }
 
-        void reschedule_inst_order(ir::BasicBlock *bb) {
-            int cnt = 0;
+        void rescheduleInstOrder(ir::BasicBlock *bb) {
             std::vector<ir::Value *> insts;
             insts.reserve(bb->iList.size() + 10);
             for (auto &inst:bb->iList) {
@@ -374,7 +375,7 @@ namespace ir_passes {
 
         }
 
-        void run_pass(bool sche_late = true) {
+        void run_pass() {
             //saving all instruction's ptr, or the move would cause problem
             std::vector<ir::Value *> insts;
             int inst_count = func->getInstCount() + 100; // number of instructions
@@ -390,21 +391,21 @@ namespace ir_passes {
                 schedule_early(inst);
             }
 
-            for(auto inst = insts.begin();inst!=insts.end();inst++){
-                if (sche_late) schedule_late(*inst);
+            for (auto inst:insts) {
+                schedule_late(inst);
             }
             for (auto &bb:func->bList) {
-                move_icmp_back(bb);
-                move_terminal_inst_back(bb);
-                move_phi_front(bb);
-                reschedule_inst_order(bb);
-                move_icmp_back(bb);
-                move_terminal_inst_back(bb);
-                move_phi_front(bb);
+                moveIcmpBack(bb);
+                moveTerminalInstBack(bb);
+                movePhiFront(bb);
+                rescheduleInstOrder(bb);
+                moveIcmpBack(bb);
+                moveTerminalInstBack(bb);
+                movePhiFront(bb);
             }
         }
 
-        ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
+        static ir::BasicBlock *find_lca(ir::BasicBlock *a, ir::BasicBlock *b) {
             if (a == nullptr) return b;
             while (a->dom_tree_depth < b->dom_tree_depth) {
                 b = b->idom;
@@ -419,7 +420,7 @@ namespace ir_passes {
             return a;
         }
 
-        bool is_pinned(ir::Value *inst) {
+        static bool isPinned(ir::Value *inst) {
             if (auto bininst = dynamic_cast<ir::BinaryInst *>(inst)) {
                 return bininst->is_icmp();
             }
@@ -430,10 +431,9 @@ namespace ir_passes {
         }
 
 
-
-
-        void move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END,
-                       ir::Value *target = nullptr) {
+        static void
+        move_inst(ir::Value *_inst, ir::BasicBlock *block, MoveBehavior move_behavior = MoveBehavior::MOVE_END,
+                  ir::Value *target = nullptr) {
             if (auto inst = dynamic_cast<ir::Inst *>(_inst)) {
                 inst->bb->eraseInst(inst);
                 inst->bb = block;
@@ -455,10 +455,10 @@ namespace ir_passes {
         }
 
 
-        void schedule_deeper(ir::Value* i, ir::Value* x){
-            if(!x || !x->bb) return;
-            if(i->bb->dom_tree_depth < x->bb->dom_tree_depth){
-                move_inst(i,x->bb);
+        static void schedule_deeper(ir::Value *i, ir::Value *x) {
+            if (!x || !x->bb) return;
+            if (i->bb->dom_tree_depth < x->bb->dom_tree_depth) {
+                move_inst(i, x->bb);
             }
         }
 
@@ -476,8 +476,7 @@ namespace ir_passes {
                 }
             }
             if (auto inst = dynamic_cast<ir::CallInst *>(_inst)) {
-                if (!inst->function->has_side_effect && !inst->function->load_from_addr)
-                {
+                if (!inst->function->has_side_effect && !inst->function->load_from_addr) {
                     move_inst(_inst, block);
                     for (auto &i:inst->params) {
                         schedule_early(i.value);
@@ -511,7 +510,6 @@ namespace ir_passes {
             }
             if (auto inst = dynamic_cast<ir::StoreInst *>(_inst)) {
                 ir::BasicBlock* old_bb = _inst->bb;
-
                 schedule_early(inst->ptr.value);
                 //schedule_deeper(inst,inst->ptr.value);
                 schedule_early(inst->val.value);
@@ -524,14 +522,13 @@ namespace ir_passes {
                 for (auto &i:inst->params) {
                     schedule_early(i.value);
                 }
-
                 move_inst(_inst, block);
                 move_inst(_inst, old_bb);
             }
         }
 
 
-        bool eliminate_chain_calc(ir::Value *_inst, ir::Value *_usage) {
+        bool eliminateChainCalc(ir::Value *_inst, ir::Value *_usage) const {
             auto inst = dynamic_cast<ir::BinaryInst *>(_inst);
             auto usage = dynamic_cast<ir::BinaryInst *>(_usage);
             if (!inst || !usage) throw std::runtime_error("chain add elimination works only with binaryinst!");
@@ -590,7 +587,7 @@ namespace ir_passes {
             vis_late.insert(inst);
             ir::BasicBlock *lca = nullptr;
 
-            //eliminate chain add
+            //eliminate chain calculation
             std::vector<ir::Use*> use;
             use.reserve(inst->uList.size());
             for(auto &i:inst->uList){
@@ -598,26 +595,25 @@ namespace ir_passes {
             }
             for(auto &i:use){
                 if (dynamic_cast<ir::BinaryInst *>(inst) && dynamic_cast<ir::BinaryInst *>(i->user))
-                    eliminate_chain_calc(inst, i->user);
+                    eliminateChainCalc(inst, i->user);
             }
-            //eliminate chain add done.
-            for (auto &y:inst->uList){
+            for (auto &y:inst->uList) {
                 schedule_late(y->user);
-                if (is_pinned(inst)) continue;
-                ir::BasicBlock *use = y->user->bb;
+                if (isPinned(inst)) continue;
+                ir::BasicBlock *user_bb = y->user->bb;
                 if (auto phiinst = dynamic_cast<ir::PhiInst *>(y->user)) {
                     auto it = std::find_if(phiinst->phicont.begin(), phiinst->phicont.end(),
                                            [y](std::map<ir::BasicBlock *, std::unique_ptr<ir::Use>>::value_type &pair) {
                                                return pair.second.get() == y;
                                            });
-                    use = it->first;
+                    user_bb = it->first;
                 }
-                lca = find_lca(lca, use);
+                lca = find_lca(lca, user_bb);
             }
-            if(is_pinned(inst)){
+            if (isPinned(inst)) {
                 return;
             }
-            if(inst->uList.empty()){
+            if (inst->uList.empty()) {
                 //throw std::runtime_error("GCM should not be dealing with an empty uList.");
                 return;
             }
@@ -648,15 +644,14 @@ namespace ir_passes {
                 }
             }
         }
-
         if (erase_count > 0)
             std::cerr << "GVN: Eliminated " << erase_count << " instructions." << std::endl;
     }
 
-    void gcm(ir::Module *module, bool sche_late) {
+    void gcm(ir::Module *module) {
         for (auto &i:module->functionList)
             if (!i->bList.empty()) {
-                GCMPass(i, module).run_pass(sche_late);
+                GCMPass(i, module).run_pass();
             }
     }
 }
