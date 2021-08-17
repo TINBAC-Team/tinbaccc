@@ -58,6 +58,6 @@ namespace ir {
 
     bool constLoopCondAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
 
-    bool flexibleLoopAnalysis(LoopIR *loopIR, int &loopCount, int &loopDelta);
+    bool flexibleLoopAnalysis(ir::LoopIR *loopIR, int &loopDelta);
 }
 #endif //TINBACCC_LOOP_H

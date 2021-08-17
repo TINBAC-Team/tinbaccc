@@ -240,71 +240,6 @@ public:
         }
     }
 
-    void computeCondVar(LoopIR *loopIR, bool loopDeltaAvailable, int loopDelta,bool loopCountAvailable, int loopCount) {
-        // loopVar might be inferred
-        if (loopDeltaAvailable && loopIR->loopCondVar->loopVarBody->uList.size() == 1) {
-            auto * cmpL = loopIR->cmpInst->ValueL.value;
-            auto * cmpR = loopIR->cmpInst->ValueR.value;
-            auto cmpOP = loopIR->cmpInst->optype;
-            if (cmpR == loopIR->loopCondVar->loopVarDefine) {
-                std::swap(cmpL, cmpR);
-                cmpOP = flipOperator(cmpOP);
-            }
-            if (cmpL == loopIR->loopCondVar->loopVarDefine) {
-                if ((loopDelta == 1 && loopIR->cmpInst->optype == ir::OpType::SLT)
-                    || (loopDelta == -1 && loopIR->cmpInst->optype == ir::OpType::SGT)) {
-                    loopIR->loopCondVar->loopVarDefine->replaceWith(loopIR->loopCondVar->loopVarInit);
-                } else if (loopDelta == 1 && loopIR->cmpInst->optype == ir::OpType::SLE) {
-                    auto * add = new ir::BinaryInst(ir::OpType::ADD, loopIR->loopCondVar->loopVarInit, new ir::ConstValue(1));
-                    loopIR->loopCondVar->loopVarDefine->replaceWith(add);
-                } else if (loopDelta == -1 && loopIR->cmpInst->optype == ir::OpType::SGE) {
-                    auto * sub = new ir::BinaryInst(ir::OpType::SUB, loopIR->loopCondVar->loopVarInit, new ir::ConstValue(1));
-                    loopIR->loopCondVar->loopVarDefine->replaceWith(sub);
-                }
-            }
-        }
-
-    }
-
-    void computeLoopVar(LoopIR *loopIR, bool loopDeltaAvailable, int loopDelta,bool loopCountAvailable, int loopCount) {
-        for(auto &pair : loopIR->loopVarsByDefine) {
-            auto * loopVar = pair.second;
-            if (loopVar == loopIR->loopCondVar) continue;
-            tryInferLoopVarDelta(loopVar, loopIR->body, loopVar->loopDelta);
-            if (loopVar->loopDelta) {
-                if (loopVar->loopDelta == 0) {
-                    // not changed
-                    loopVar->loopVarDefine->replaceWith(loopVar->loopVarInit);
-                } else if (loopCountAvailable) {
-                    if (loopVar->deltaPresent && loopVar->loopVarDefine->uList.size() == 1) {
-                        auto * add = new ir::BinaryInst(
-                                ir::OpType::ADD,
-                                loopVar->loopVarInit,
-                                new ir::ConstValue(loopVar->loopDelta * loopCount)
-                                );
-                        loopVar->loopVarDefine->replaceWith(add);
-                        loopIR->body->InsertBefore(loopVar->loopVarDefine, add);
-                    } else {
-                        if (auto * x = dynamic_cast<ir::BinaryInst*>(loopVar->loopVarBody)) {
-                            if (loopVar->loopVarDefine->uList.size() == 1) {
-                                if (x->optype == ir::OpType::ADD) {
-                                    if (loopVar->loopVarBody == x->ValueL.value && loopIR->loopVarsByBody.find(x->ValueR.value) != loopIR->loopVarsByBody.cend()) {
-                                        auto & plusBy = loopIR->loopVarsByBody[x->ValueR.value];
-                                        if (plusBy.size() != 1) continue;
-                                        if (auto * plusByInit = dynamic_cast<ir::ConstValue*>(plusBy[0]->loopVarInit)) {
-
-                                            //loopVar->loopVarDefine->replaceWith()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     void unrolling(ir::Loop *loop) {
         // Step1 only consider one basic block
         if (loop->body.size() != 2) return;
@@ -343,7 +278,7 @@ public:
                 fixUnrollingLoopCondition(&loopIR, loopDelta, loopResetCount);
                 std::cout << "unrolling constLoopCond #2" << std::endl;
             }
-        } else if (flexibleLoopAnalysis(&loopIR, loopCount, loopDelta)) {
+        } else if (flexibleLoopAnalysis(&loopIR, loopDelta)) {
             auto *jumpToCond = loopIR.body->iList.back();
             loopIR.body->iList.pop_back();
             std::vector<ir::Value *> iList;

@@ -149,7 +149,7 @@ bool ir::constLoopCondAnalysis(ir::LoopIR *loopIR, int &loopCount, int &loopDelt
     return false;
 }
 
-bool ir::flexibleLoopAnalysis(ir::LoopIR *loopIR, int &loopCount, int &loopDelta) {
+bool ir::flexibleLoopAnalysis(ir::LoopIR *loopIR, int &loopDelta) {
     auto *&cmpInst = loopIR->cmpInst;
     auto *&branchInst = loopIR->branchInst;
     auto *cmpValueL = dynamic_cast<ir::PhiInst *>(cmpInst->ValueL.value);

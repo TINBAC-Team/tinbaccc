@@ -51,7 +51,7 @@ set(IR_PASSES_SOURCES
         src/ir/passes/strength_reduction.cpp
         src/ir/passes/vectorization.cpp
         src/ir/passes/loop.cpp
-        src/ir/passes/side_effect.cpp)
+        src/ir/passes/side_effect.cpp src/ir/passes/loop_val.cpp)
 
 set(ASM_SOURCES
         src/asm_arm/instructions.cpp
@@ -59,7 +59,7 @@ set(ASM_SOURCES
         src/asm_arm/print.cpp
         src/asm_arm/registers.cpp
         src/asm_arm/function_fixup.cpp
-        src/asm_arm/optimization.cpp)
+        src/asm_arm/optimization.cpp src/ir/passes/loop_val.cpp)
 
 add_executable(tinbaccc src/main.cpp
         ${PARSER_SOURCES}

@@ -111,6 +111,20 @@ namespace ir {
             uList.clear();
     }
 
+    void Value::replaceWithDependence(Value *val, bool clear_ulist) {
+        std::set<Use*> list;
+        for (auto cur_use : uList) {
+            if (cur_use->user == this || cur_use->value != this)
+                continue;
+            if (cur_use->user == val)
+                list.insert(cur_use);
+            else
+                cur_use->use(val, false);
+        }
+        if (clear_ulist)
+            uList = list;
+    }
+
     bool Value::sideEffect() const {
         switch (optype) {
             case ir::OpType::RETURN:

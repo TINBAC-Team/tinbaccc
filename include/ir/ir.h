@@ -166,6 +166,8 @@ namespace ir {
         virtual std::vector<Value *> uses() { return {}; }
 
         virtual ~Value();
+
+        void replaceWithDependence(Value *val, bool clear_ulist);
     };
 
     class Use {
