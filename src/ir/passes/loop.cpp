@@ -54,6 +54,7 @@ ir::LoopIR::~LoopIR() {
 bool ir::tryInferLoopVarDelta(ir::LoopVariable *loopVar, ir::BasicBlock *scope, int &delta) {
     delta = 0;
     auto *currInst = loopVar->loopVarBody;
+    if (!loopVar->loopVarBody) return false;
     while (currInst != loopVar->loopVarDefine && currInst->bb == scope) {
         auto *binaryInst = dynamic_cast<ir::BinaryInst *>(currInst);
         if (!binaryInst) return false;
