@@ -35,7 +35,7 @@ namespace ir_passes {
                         dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value,
                         inst->optype, module);
             }
-            //remove add 0 ,sub 0 or mul 0
+            //remove add 0 ,sub 0
             if ((inst->optype == ir::OpType::ADD || inst->optype == ir::OpType::SUB) &&
                 inst->ValueR.value->optype == ir::OpType::CONST &&
                 dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 0) {
@@ -45,6 +45,12 @@ namespace ir_passes {
             if (inst->optype == ir::OpType::SDIV &&
                 inst->ValueL.value->optype == ir::OpType::CONST &&
                 dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value == 0) {
+                return ir::IRBuilder::getConstant(0, module);
+            }
+            //remove 0 srem x
+            if (inst->optype == ir::OpType::SREM &&
+            inst->ValueL.value->optype == ir::OpType::CONST &&
+            dynamic_cast<ir::ConstValue *>(inst->ValueL.value)->value == 0) {
                 return ir::IRBuilder::getConstant(0, module);
             }
             //remove x mul 0
@@ -68,10 +74,16 @@ namespace ir_passes {
                 inst->ValueL.use(ir::IRBuilder::getConstant(0, module));
                 return inst;
             }
-            //ALTER x mul -1
+            //remove x sdiv 1
             if (inst->optype == ir::OpType::SDIV &&
-            inst->ValueR.value->optype == ir::OpType::CONST &&
-            dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == -1) {
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == 1) {
+                return get_vn(inst->ValueL.value);
+            }
+            //ALTER x sdiv -1
+            if (inst->optype == ir::OpType::SDIV &&
+                inst->ValueR.value->optype == ir::OpType::CONST &&
+                dynamic_cast<ir::ConstValue *>(inst->ValueR.value)->value == -1) {
                 inst->optype = ir::OpType::SUB;
                 inst->ValueR.use(inst->ValueL.value);
                 inst->ValueL.use(ir::IRBuilder::getConstant(0, module));
