@@ -6,81 +6,87 @@
 using ir::LoopIR;
 using ir::LoopVariable;
 
-void replaceValue(ir::BasicBlock *scope, ir::Value *value, int delta) {
-    if (auto * x = dynamic_cast<ir::ConstValue*>(value)) {
-        x->value += delta;
-    } else if (delta != 0) {
-        auto * binaryInst = new ir::BinaryInst(ir::OpType::ADD, value, new ir::ConstValue(delta));
-        scope->InsertAfter(binaryInst, value);
-        value->replaceWithDependence(binaryInst, true);
+void replaceValue(ir::LoopIR *loopIR, ir::LoopVariable *loopVar, ir::Value *base, int delta) {
+    ir::Value *replace;
+    if (delta == 0) {
+        replace = base;
+    } else {
+        if (auto x = dynamic_cast<ir::ConstValue*>(base)) {
+            replace = new ir::ConstValue(x->value + delta);
+        } else {
+            replace = new ir::BinaryInst(ir::OpType::ADD, base, new ir::ConstValue(delta));
+        }
+        loopIR->cond->InsertBefore(replace, loopVar->loopVarDefine);
     }
+    std::set<ir::Use*> uList;
+    for (auto * curr_use : loopVar->loopVarDefine->uList) {
+        if (loopIR->cond == curr_use->user->bb || loopIR->body == curr_use->user->bb) {
+
+            uList.insert(curr_use);
+        } else {
+            curr_use->use(replace, false);
+        }
+    }
+    loopVar->loopVarDefine->uList = uList;
 }
 void computeCondVar(LoopIR *loopIR, bool loopDeltaAvailable, int loopDelta, bool loopCountAvailable, int loopCount) {
     // loopVar might be inferred
-    if (loopDeltaAvailable && loopIR->loopCondVar->loopVarBody->uList.size() == 1) {
-        auto *cmpL = loopIR->cmpInst->ValueL.value;
-        auto *cmpR = loopIR->cmpInst->ValueR.value;
-        auto cmpOP = loopIR->cmpInst->optype;
-        // standard form
-        if (cmpR == loopIR->loopCondVar->loopVarDefine) {
-            std::swap(cmpL, cmpR);
-            cmpOP = flipOperator(cmpOP);
-        }
-        if (cmpL == loopIR->loopCondVar->loopVarDefine) {
-            if ((loopDelta == 1 && cmpOP == ir::OpType::SLT)
-                || (loopDelta == -1 && cmpOP == ir::OpType::SGT)) {
-                loopIR->loopCondVar->loopVarDefine->replaceWithDependence(cmpR, true);
-            } else if (loopDelta == 1 && cmpOP == ir::OpType::SLE) {
-                auto * binaryInst = new ir::BinaryInst(ir::OpType::ADD, cmpR, new ir::ConstValue(1));
-                loopIR->cond->InsertAfter(binaryInst, loopIR->loopCondVar->loopVarDefine);
-                loopIR->loopCondVar->loopVarDefine->replaceWithDependence(binaryInst, true);
-            } else if (loopDelta == -1 && cmpOP == ir::OpType::SGE) {
-                auto * binaryInst = new ir::BinaryInst(ir::OpType::SUB, cmpR, new ir::ConstValue(1));
-                loopIR->cond->InsertAfter(binaryInst, loopIR->loopCondVar->loopVarDefine);
-                loopIR->loopCondVar->loopVarDefine->replaceWithDependence(binaryInst, true);
-            }
-        }
+    if (!loopDeltaAvailable) return;
+    auto *cmpL = loopIR->cmpInst->ValueL.value;
+    auto *cmpR = loopIR->cmpInst->ValueR.value;
+    auto cmpOP = loopIR->cmpInst->optype;
+    // standard form
+    if (cmpR == loopIR->loopCondVar->loopVarDefine) {
+        std::swap(cmpL, cmpR);
+        cmpOP = flipOperator(cmpOP);
+    }
+    if (cmpL == loopIR->loopCondVar->loopVarDefine) {
+        if ((loopDelta == 1 && cmpOP == ir::OpType::SLT)
+        || (loopDelta == -1 && cmpOP == ir::OpType::SGT)) {
+            replaceValue(loopIR, loopIR->loopCondVar, cmpR, 0);
+        } else if (loopDelta == 1 && cmpOP == ir::OpType::SLE) {
+            replaceValue(loopIR, loopIR->loopCondVar, cmpR, 1);
+        } else if (loopDelta == -1 && cmpOP == ir::OpType::SGE) {
+            replaceValue(loopIR, loopIR->loopCondVar, cmpR, -1);
+        } else return;
+        std::cout << "Replace condVar with condVal." << std::endl;
     }
 
 }
 
 void computeLoopVar(LoopIR *loopIR, bool loopDeltaAvailable, int loopDelta, bool loopCountAvailable, int loopCount) {
+    if (!loopCountAvailable || !loopDeltaAvailable) return;
     for (auto &pair : loopIR->loopVarsByDefine) {
         auto *loopVar = pair.second;
-        if (loopVar == loopIR->loopCondVar) continue;
         tryInferLoopVarDelta(loopVar, loopIR->body, loopVar->loopDelta);
-        if (loopVar->loopDelta) {
-            if (loopVar->loopDelta == 0) {
-                // not changed
-                loopVar->loopVarDefine->replaceWith(loopVar->loopVarInit);
-            } else if (loopCountAvailable) {
-                if (loopVar->deltaPresent && loopVar->loopVarDefine->uList.size() == 1) {
-                    auto *add = new ir::BinaryInst(
-                            ir::OpType::ADD,
-                            loopVar->loopVarInit,
-                            new ir::ConstValue(loopVar->loopDelta * loopCount)
-                    );
-                    loopVar->loopVarDefine->replaceWith(add);
-                    loopIR->body->InsertBefore(loopVar->loopVarDefine, add);
-                } else {
-                    if (auto *x = dynamic_cast<ir::BinaryInst *>(loopVar->loopVarBody)) {
-                        if (loopVar->loopVarDefine->uList.size() == 1) {
-                            if (x->optype == ir::OpType::ADD) {
-                                if (loopVar->loopVarBody == x->ValueL.value &&
-                                    loopIR->loopVarsByBody.find(x->ValueR.value) != loopIR->loopVarsByBody.cend()) {
-                                    auto &plusBy = loopIR->loopVarsByBody[x->ValueR.value];
-                                    if (plusBy.size() != 1) continue;
-                                    if (auto *plusByInit = dynamic_cast<ir::ConstValue *>(plusBy[0]->loopVarInit)) {
-
-                                        //loopVar->loopVarDefine->replaceWith()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if (loopVar->deltaPresent) {
+            replaceValue(loopIR, loopVar, loopVar->loopVarInit, loopVar->loopDelta * loopCount);
+        } else {
+            // while (i < n) {s += i;} put(s);
+            int d, delta;
+            if (auto * x = dynamic_cast<ir::BinaryInst*>(loopVar->loopVarBody)) {
+                if (x->ValueL.value == loopIR->loopCondVar->loopVarDefine &&
+                    x->ValueR.value == loopVar->loopVarDefine) {
+                    // s = i + s
+                    if (x->optype == ir::OpType::ADD) {
+                        d = loopDelta;
+                    } else continue;
+                } else if (x->ValueL.value == loopVar->loopVarDefine &&
+                    x->ValueR.value == loopIR->loopCondVar->loopVarDefine) {
+                    // s = s + i
+                    if (x->optype == ir::OpType::ADD) {
+                        d = loopDelta;
+                    } else if (x->optype == ir::OpType::SUB) {
+                        d = -loopDelta;
+                    } else continue;
+                } else continue;
+            } else continue;
+            // s = nx + n(n-1)*d/2
+            delta = (dynamic_cast<ir::ConstValue*>(loopIR->loopCondVar->loopVarInit)->value) * loopCount
+                    + loopCount * (loopCount - 1) / 2 * d;
+            replaceValue(loopIR, loopVar, loopVar->loopVarInit, delta);
         }
+        std::cout << "Inferred loop delta." << std::endl;
     }
 }
 
@@ -88,6 +94,7 @@ void ir_passes::loop_val_compute(ir::Module *module) {
     for(auto * func : module->functionList) {
         if (func->is_extern() || func->bList.empty()) continue;
         for (auto * deepestLoop : func->deepestLoop) {
+            if (deepestLoop->body.size() != 2) continue;
             ir::LoopIR loopIR;
             loopIR.init(deepestLoop);
             loopIR.build();
@@ -100,7 +107,12 @@ void ir_passes::loop_val_compute(ir::Module *module) {
                 deltaAvailable = true;
                 countAvailable = false;
             } else continue;
-            computeCondVar(&loopIR, deltaAvailable, delta, countAvailable, count);
+            computeLoopVar(&loopIR, deltaAvailable, delta, countAvailable, count);
+            if (!countAvailable) {
+                computeCondVar(&loopIR, deltaAvailable, delta, countAvailable, count);
+            }
+
         }
     }
+    int debug = 1;
 }
